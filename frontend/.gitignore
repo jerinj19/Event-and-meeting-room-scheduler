@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*API_STATUS_AND_AUDIT_REPORT.pdf
+*API_TEST_DOCUMENTATION.md
+*API_TEST_DOCUMENTATION.pdf

@@ -19,22 +19,47 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    for env_path in [BASE_DIR / '.env', BASE_DIR.parent / '.env']:
+        if env_path.is_file():
+            load_dotenv(env_path)
+except ImportError:
+    for env_path in [BASE_DIR / '.env', BASE_DIR.parent / '.env']:
+        if env_path.is_file():
+            with open(env_path, encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        k, v = line.split('=', 1)
+                        os.environ.setdefault(k.strip(), v.strip().strip("'\""))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-development-key-change-this-before-production-32chars',
+    'SECRET_KEY',
+    os.environ.get(
+        'DJANGO_SECRET_KEY',
+        'django-insecure-development-key-change-this-before-production-32chars',
+    ),
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
+DEBUG = os.environ.get(
+    'DEBUG',
+    os.environ.get('DJANGO_DEBUG', 'True')
+).lower() in ('true', '1', 'yes', 't')
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    for host in os.environ.get(
+        'DJANGO_ALLOWED_HOSTS',
+        os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+    ).split(',')
     if host.strip()
 ]
 
@@ -93,8 +118,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.environ.get('DB_NAME', 'event_scheduler_db'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 

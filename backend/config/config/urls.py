@@ -14,11 +14,41 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import logging
+
 from django.contrib import admin
-from django.urls import path, include
+from django.http import JsonResponse
+from django.urls import include, path
+
+
+logger = logging.getLogger('users.api')
+
+
+def api_not_found(request, exception):
+    if request.path.startswith('/api/'):
+        logger.warning(
+            'API error status=404 code=NOT_FOUND method=%s path=%s',
+            request.method,
+            request.path,
+        )
+        return JsonResponse(
+            {
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': 'The requested resource was not found.',
+                    'details': {},
+                }
+            },
+            status=404,
+        )
+    return JsonResponse({'detail': 'Not found.'}, status=404)
+
+
+handler404 = 'config.urls.api_not_found'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('bookings.urls')),
+    path('api/', include('users.urls')),
 ]
 

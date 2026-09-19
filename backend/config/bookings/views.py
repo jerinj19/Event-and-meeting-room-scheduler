@@ -1,7 +1,7 @@
-from rest_framework import status
+from rest_framework import status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, ListAPIView
 from django.utils.dateparse import parse_date, parse_datetime
 from django.db.models import Q
 from django.utils import timezone
@@ -11,6 +11,10 @@ from .serializers import BookingSerializer, CheckAvailabilitySerializer
 
 class BookingListCreateView(ListCreateAPIView):
     serializer_class = BookingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
     def get_queryset(self):
         queryset = Booking.objects.all()
@@ -46,7 +50,8 @@ class BookingListCreateView(ListCreateAPIView):
             queryset = queryset.filter(
                 Q(title__icontains=search) |
                 Q(description__icontains=search) |
-                Q(user_name__icontains=search) |
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search) |
                 Q(room_name__icontains=search)
             )
 
@@ -59,11 +64,16 @@ class BookingDetailView(RetrieveUpdateDestroyAPIView):
 
 
 class CancelBookingView(APIView):
-    def post(self, request, pk):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, pk):
         try:
-            booking = Booking.objects.get(pk=pk)
+            booking = Booking.objects.get(pk=pk, user=request.user)
         except Booking.DoesNotExist:
-            return Response({"error": "Booking not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Booking not found or you do not have permission to cancel it."}, status=status.HTTP_404_NOT_FOUND)
+
+        if booking.status == 'CANCELLED':
+            return Response({"error": "Booking is already cancelled."}, status=status.HTTP_400_BAD_REQUEST)
 
         booking.status = 'CANCELLED'
         booking.save(update_fields=['status', 'updated_at'])
@@ -71,6 +81,14 @@ class CancelBookingView(APIView):
             "message": f"Booking '{booking.title}' has been cancelled.",
             "booking": BookingSerializer(booking).data
         }, status=status.HTTP_200_OK)
+
+
+class MyBookingsView(ListAPIView):
+    serializer_class = BookingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Booking.objects.filter(user=self.request.user).order_by('-start_time')
 
 
 class CheckAvailabilityView(APIView):

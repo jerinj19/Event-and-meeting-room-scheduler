@@ -1,7 +1,10 @@
+import uuid
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 class Booking(models.Model):
     STATUS_CHOICES = [
@@ -11,11 +14,11 @@ class Booking(models.Model):
         ('COMPLETED', 'Completed'),
     ]
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200, help_text="Title or purpose of the meeting/event")
     description = models.TextField(blank=True, default='', help_text="Additional details or agenda")
     room_name = models.CharField(max_length=120, help_text="Name or identifier of the room")
-    user_name = models.CharField(max_length=120, default='Organizer', help_text="Person booking the room")
-    user_email = models.EmailField(blank=True, default='', help_text="Contact email of the organizer")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings', help_text="Person booking the room")
     start_time = models.DateTimeField(help_text="Booking start time")
     end_time = models.DateTimeField(help_text="Booking end time")
     attendees_count = models.PositiveIntegerField(default=1, help_text="Number of expected attendees")

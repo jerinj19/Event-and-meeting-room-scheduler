@@ -48,5 +48,7 @@ handler404 = 'config.urls.api_not_found'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('bookings.urls')),
     path('api/', include('users.urls')),
 ]
+

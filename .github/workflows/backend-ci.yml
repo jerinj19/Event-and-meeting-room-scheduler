@@ -17,6 +17,28 @@ permissions:
 jobs:
   django-checks:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: event_scheduler_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: event_scheduler_db
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
 
     defaults:
       run:

@@ -7,9 +7,9 @@ export default function BookRoom() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
 
-  // Currently, the backend has room_id hardcoded or expected as integer.
-  // For simplicity we use a static room id=1.
-  const [roomId, setRoomId] = useState('1'); 
+  // Currently, the backend expects a string room_name
+  // For simplicity we use a static room name "Conference Room A"
+  const [roomName, setRoomName] = useState('Conference Room A');
 
   const handleBook = async (e) => {
     e.preventDefault();
@@ -27,7 +27,7 @@ export default function BookRoom() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          room_id: parseInt(roomId, 10),
+          room_name: roomName,
           title: title,
           start_time: startTime,
           end_time: endTime,
@@ -77,16 +77,14 @@ export default function BookRoom() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700">Select Room</label>
-              <select
-                value={roomId}
-                onChange={e => setRoomId(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
-              >
-                <option value="1">Conference Room A</option>
-                <option value="2">Meeting Room B</option>
-                <option value="3">Huddle Space C</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700">Room Name</label>
+              <input
+                type="text"
+                value={roomName}
+                onChange={(e) => setRoomName(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                required
+              />
             </div>
             
             <div className="grid grid-cols-2 gap-4">

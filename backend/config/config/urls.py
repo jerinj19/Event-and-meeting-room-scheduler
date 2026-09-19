@@ -52,10 +52,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('bookings.urls')),
     path('api/', include('users.urls')),
-    
-    # Frontend Template Routes
-    # path('', TemplateView.as_view(template_name='login.html'), name='frontend-login'),
-    # path('dashboard/', TemplateView.as_view(template_name='dashboard.html'), name='frontend-dashboard'),
-    # path('book/', TemplateView.as_view(template_name='book_room.html'), name='frontend-book-room'),
+    path('api/', include('rooms.urls')),
 ]
 

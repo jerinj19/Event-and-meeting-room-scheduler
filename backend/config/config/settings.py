@@ -22,6 +22,7 @@ LOG_DIR.mkdir(exist_ok=True)
 
 # Load environment variables from .env file
 try:
+    # pyrefly: ignore [missing-import]
     from dotenv import load_dotenv
     for env_path in [BASE_DIR / '.env', BASE_DIR.parent / '.env']:
         if env_path.is_file():
@@ -78,6 +79,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'django.contrib.postgres',
     'users',
     'bookings',
     'rooms',
@@ -174,6 +176,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'EXCEPTION_HANDLER': 'users.exception_handlers.api_exception_handler',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
 }
 
 SIMPLE_JWT = {
@@ -229,15 +233,6 @@ LOGGING = {
     },
 }
 
-
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
 
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
 

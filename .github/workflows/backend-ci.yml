@@ -65,4 +65,4 @@ jobs:
         run: python manage.py makemigrations --check --dry-run
 
       - name: Run backend tests
-        run: python manage.py test users -v 2
+        run: python manage.py test -v 2

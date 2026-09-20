@@ -8,11 +8,14 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rooms.models import Room
+from django.db import IntegrityError
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .models import Booking
 from .serializers import (
     BookingSerializer,
     CheckAvailabilitySerializer,
+    BookingConflictException,
 )
 
 
@@ -80,7 +83,10 @@ class BookingListCreateView(generics.ListCreateAPIView):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        try:
+            serializer.save(user=self.request.user)
+        except (IntegrityError, DjangoValidationError) as e:
+            raise BookingConflictException(detail=str(e))
 
 
 class BookingDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -93,6 +99,12 @@ class BookingDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Booking.objects.select_related("room", "user").all()
     serializer_class = BookingSerializer
     permission_classes = [permissions.IsAuthenticated, IsBookingOwnerOrStaff]
+
+    def perform_update(self, serializer):
+        try:
+            serializer.save()
+        except (IntegrityError, DjangoValidationError) as e:
+            raise BookingConflictException(detail=str(e))
 
 
 class CheckAvailabilityView(APIView):

@@ -436,8 +436,8 @@ class BookingAPITests(TestCase):
         self.client.force_authenticate(user=self.user1)
         response = self.client.get("/api/my-bookings/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["title"], "Alice Meeting")
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["title"], "Alice Meeting")
 
     # -------------------------------------------------------------------------
     # Cancellation Flow & Permission Checks (/api/bookings/<id>/cancel/)

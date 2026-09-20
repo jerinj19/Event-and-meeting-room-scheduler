@@ -78,8 +78,8 @@ class RoomAPITests(TestCase):
         response = self.client.get("/api/rooms/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Regular users only see active rooms by default (room_a, room_b)
-        self.assertEqual(len(response.data), 2)
-        names = [r["name"] for r in response.data]
+        self.assertEqual(len(response.data["results"]), 2)
+        names = [r["name"] for r in response.data["results"]]
         self.assertIn("Boardroom Alpha", names)
         self.assertIn("Huddle Beta", names)
         self.assertNotIn("Storage Gamma", names)
@@ -209,29 +209,29 @@ class RoomAPITests(TestCase):
         self.client.force_authenticate(user=self.regular_user)
         response = self.client.get("/api/rooms/", {"min_capacity": 10})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["name"], "Boardroom Alpha")
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["name"], "Boardroom Alpha")
 
     def test_filter_by_amenity(self):
         """Filter rooms having a specific amenity."""
         self.client.force_authenticate(user=self.regular_user)
         response = self.client.get("/api/rooms/", {"amenity": "Video Conference"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["name"], "Boardroom Alpha")
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["name"], "Boardroom Alpha")
 
     def test_filter_by_location(self):
         """Filter rooms by location substring."""
         self.client.force_authenticate(user=self.regular_user)
         response = self.client.get("/api/rooms/", {"location": "West Wing"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["name"], "Huddle Beta")
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["name"], "Huddle Beta")
 
     def test_search_by_name_or_location(self):
         """Search query matching name or location."""
         self.client.force_authenticate(user=self.regular_user)
         response = self.client.get("/api/rooms/", {"search": "Alpha"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["name"], "Boardroom Alpha")
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["name"], "Boardroom Alpha")

@@ -4,6 +4,9 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.contrib.postgres.constraints import ExclusionConstraint
+from django.contrib.postgres.fields.ranges import RangeOperators
+from django.db.models import Func
 
 
 class Booking(models.Model):
@@ -79,6 +82,14 @@ class Booking(models.Model):
             models.CheckConstraint(
                 condition=models.Q(attendees_count__gt=0),
                 name='booking_attendees_gt_0',
+            ),
+            ExclusionConstraint(
+                name='booking_prevent_overlapping',
+                expressions=[
+                    ('room', RangeOperators.EQUAL),
+                    (Func('start_time', 'end_time', function='tstzrange'), RangeOperators.OVERLAPS),
+                ],
+                condition=models.Q(status='CONFIRMED'),
             ),
         ]
 

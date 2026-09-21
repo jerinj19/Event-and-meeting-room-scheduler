@@ -521,3 +521,218 @@ class BookingAPITests(TestCase):
         self.assertEqual(response.data["total_bookings"], 2)
         self.assertEqual(response.data["confirmed_bookings"], 1)
         self.assertEqual(response.data["cancelled_bookings"], 1)
+
+    # -------------------------------------------------------------------------
+    # Booking List Filtering & Search (/api/bookings/)
+    # -------------------------------------------------------------------------
+
+    def test_list_bookings_filters(self):
+        """Test filtering bookings by room, status, date, date range, and search."""
+        b1 = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Design Review",
+            description="Discuss wireframes",
+            start_time=self.base_start,
+            end_time=self.base_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+        b2 = Booking.objects.create(
+            room=self.secondary_room,
+            user=self.user2,
+            title="Sprint Planning",
+            description="Agile sprint kick-off",
+            start_time=self.base_start + timedelta(days=2),
+            end_time=self.base_end + timedelta(days=2),
+            status=Booking.STATUS_CANCELLED,
+        )
+
+        self.client.force_authenticate(user=self.user1)
+
+        # 1. Filter by room
+        res = self.client.get("/api/bookings/", {"room": str(self.room.id)})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data["results"]), 1)
+        self.assertEqual(res.data["results"][0]["id"], str(b1.id))
+
+        # 2. Filter by status
+        res = self.client.get("/api/bookings/", {"status": "CANCELLED"})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data["results"]), 1)
+        self.assertEqual(res.data["results"][0]["id"], str(b2.id))
+
+        # 3. Filter by date
+        res = self.client.get("/api/bookings/", {"date": self.base_start.date().isoformat()})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data["results"]), 1)
+        self.assertEqual(res.data["results"][0]["id"], str(b1.id))
+
+        # 4. Filter by date range (start_date and end_date)
+        res = self.client.get("/api/bookings/", {
+            "start_date": self.base_start.date().isoformat(),
+            "end_date": (self.base_start + timedelta(days=3)).date().isoformat(),
+        })
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data["results"]), 2)
+
+        # 5. Filter by search query
+        res = self.client.get("/api/bookings/", {"search": "wireframes"})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data["results"]), 1)
+        self.assertEqual(res.data["results"][0]["id"], str(b1.id))
+
+    # -------------------------------------------------------------------------
+    # Booking Detail, Update (PUT / PATCH), and Delete
+    # -------------------------------------------------------------------------
+
+    def test_retrieve_booking_detail(self):
+        """Retrieve single booking detail by ID."""
+        booking = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Single Detail Check",
+            start_time=self.base_start,
+            end_time=self.base_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        self.client.force_authenticate(user=self.user1)
+        res = self.client.get(f"/api/bookings/{booking.id}/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["id"], str(booking.id))
+        self.assertEqual(res.data["title"], "Single Detail Check")
+
+    def test_retrieve_nonexistent_booking_detail_returns_404(self):
+        """Retrieve booking with non-existent ID returns 404."""
+        self.client.force_authenticate(user=self.user1)
+        res = self.client.get(f"/api/bookings/{uuid.uuid4()}/")
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owner_can_fully_update_booking_put(self):
+        """Booking owner can perform full update via PUT."""
+        booking = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Old Meeting Title",
+            start_time=self.base_start,
+            end_time=self.base_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        self.client.force_authenticate(user=self.user1)
+        payload = {
+            "room": str(self.room.id),
+            "title": "Completely Updated Meeting",
+            "description": "Updated agenda",
+            "start_time": self.base_start.isoformat(),
+            "end_time": self.base_end.isoformat(),
+            "attendees_count": 5,
+        }
+        res = self.client.put(f"/api/bookings/{booking.id}/", payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        booking.refresh_from_db()
+        self.assertEqual(booking.title, "Completely Updated Meeting")
+        self.assertEqual(booking.description, "Updated agenda")
+
+    def test_non_owner_cannot_update_booking(self):
+        """Non-owner cannot update someone else's booking via PUT or PATCH (403)."""
+        booking = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Alice's Meeting",
+            start_time=self.base_start,
+            end_time=self.base_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        self.client.force_authenticate(user=self.user2)
+        res_put = self.client.put(f"/api/bookings/{booking.id}/", {"title": "Bob Takeover"}, format="json")
+        self.assertEqual(res_put.status_code, status.HTTP_403_FORBIDDEN)
+
+        res_patch = self.client.patch(f"/api/bookings/{booking.id}/", {"title": "Bob Takeover"}, format="json")
+        self.assertEqual(res_patch.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_patch_booking_title_does_not_self_conflict(self):
+        """Updating non-time fields like title/description does not trigger conflict with itself."""
+        booking = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Original Title",
+            start_time=self.base_start,
+            end_time=self.base_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        self.client.force_authenticate(user=self.user1)
+        res = self.client.patch(f"/api/bookings/{booking.id}/", {"title": "Renamed Title"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        booking.refresh_from_db()
+        self.assertEqual(booking.title, "Renamed Title")
+
+    def test_patch_booking_reschedule_to_conflicting_slot_returns_409(self):
+        """Rescheduling an existing booking into another confirmed booking's time slot returns 409."""
+        # Booking 1: 10:00 - 11:00
+        Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Fixed Morning Slot",
+            start_time=self.base_start,
+            end_time=self.base_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        # Booking 2: 12:00 - 13:00
+        booking2 = Booking.objects.create(
+            room=self.room,
+            user=self.user2,
+            title="Afternoon Slot",
+            start_time=self.base_end + timedelta(hours=1),
+            end_time=self.base_end + timedelta(hours=2),
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        self.client.force_authenticate(user=self.user2)
+        # Attempt to shift booking2 into booking1's time (10:30 - 11:30)
+        res = self.client.patch(
+            f"/api/bookings/{booking2.id}/",
+            {
+                "start_time": (self.base_start + timedelta(minutes=30)).isoformat(),
+                "end_time": (self.base_end + timedelta(minutes=30)).isoformat(),
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(res.data["error"]["code"], "BOOKING_CONFLICT")
+
+    def test_owner_can_delete_booking(self):
+        """Owner can delete their own booking."""
+        booking = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Meeting to Delete",
+            start_time=self.base_start,
+            end_time=self.base_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        self.client.force_authenticate(user=self.user1)
+        res = self.client.delete(f"/api/bookings/{booking.id}/")
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Booking.objects.filter(id=booking.id).exists())
+
+    def test_non_owner_cannot_delete_booking(self):
+        """Non-owner cannot delete someone else's booking (403)."""
+        booking = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Alice's Protected Meeting",
+            start_time=self.base_start,
+            end_time=self.base_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        self.client.force_authenticate(user=self.user2)
+        res = self.client.delete(f"/api/bookings/{booking.id}/")
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Booking.objects.filter(id=booking.id).exists())
+

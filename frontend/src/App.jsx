@@ -49,9 +49,17 @@ export default function App() {
         <Route 
           path="/book" 
           element={
-            <ProtectedRoute>
+            <AppShell>
               <BookRoom />
-            </ProtectedRoute>
+            </AppShell>
+          } 
+        />
+        <Route 
+          path="/book/:roomId" 
+          element={
+            <AppShell>
+              <BookRoom />
+            </AppShell>
           } 
         />
 

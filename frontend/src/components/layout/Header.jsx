@@ -51,6 +51,16 @@ export default function Header({ onToggleSidebar }) {
 
       {/* Right: Notifications & User Profile */}
       <div className="flex items-center gap-3 sm:gap-4">
+        <Link
+          to="/book"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold rounded-xl transition shadow-xs shadow-blue-500/20"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Book Slot</span>
+        </Link>
+
         <button
           type="button"
           aria-label="View notifications"

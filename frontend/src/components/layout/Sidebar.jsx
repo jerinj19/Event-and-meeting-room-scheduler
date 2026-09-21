@@ -49,6 +49,28 @@ export default function Sidebar({ isOpen, onClose }) {
           </NavLink>
 
           <NavLink
+            to="/book"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition ${
+                isActive
+                  ? 'text-blue-600 bg-blue-50/80 border-l-4 border-blue-600 shadow-xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`
+            }
+          >
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Book a Slot</span>
+            </div>
+            <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">
+              Live
+            </span>
+          </NavLink>
+
+          <NavLink
             to="/dashboard"
             onClick={onClose}
             className={({ isActive }) =>

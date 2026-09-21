@@ -211,8 +211,11 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
             </button>
             <button
               type="button"
-              onClick={() => onBook(room)}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold rounded-xl transition shadow-xs shadow-blue-500/20 flex items-center gap-1.5"
+              onClick={() => {
+                onClose();
+                onBook(room);
+              }}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold rounded-xl transition shadow-xs shadow-blue-500/20 flex items-center gap-1.5 cursor-pointer"
             >
               Proceed to Booking ➔
             </button>

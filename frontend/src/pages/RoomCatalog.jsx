@@ -158,7 +158,9 @@ export default function RoomCatalog() {
 
   const handleBook = (room) => {
     // Passes room state into Srilaxmi's flow
-    navigate(`/book?roomId=${room.id}&roomName=${encodeURIComponent(room.name)}`);
+    navigate(`/book?roomId=${room.id}&roomName=${encodeURIComponent(room.name)}`, {
+      state: { room },
+    });
   };
 
   return (

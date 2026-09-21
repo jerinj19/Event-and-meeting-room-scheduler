@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Header({ onToggleSidebar }) {
+  const { user } = useAuth();
+  
   return (
     <header className="fixed top-0 inset-x-0 h-16 bg-white border-b border-slate-200 z-40 flex items-center justify-between px-4 sm:px-6">
       {/* Left: Mobile Toggle & Brand */}
@@ -77,11 +80,11 @@ export default function Header({ onToggleSidebar }) {
         {/* User Badge */}
         <div className="flex items-center gap-2.5 pl-1">
           <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-semibold flex items-center justify-center text-xs sm:text-sm ring-2 ring-blue-500/30">
-            JJ
+            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
           <div className="hidden lg:block text-left">
-            <p className="text-sm font-semibold leading-tight text-slate-900">Jerin J.</p>
-            <p className="text-[11px] text-slate-500">Team Lead</p>
+            <p className="text-sm font-semibold leading-tight text-slate-900">{user?.name || 'User'}</p>
+            <p className="text-[11px] text-slate-500">{user?.email || 'user@example.com'}</p>
           </div>
         </div>
       </div>

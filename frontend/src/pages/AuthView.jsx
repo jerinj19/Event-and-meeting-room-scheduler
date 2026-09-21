@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useNavigate } from 'react-router-dom';
 import './AuthView.css';
 
 const GoogleIcon = () => (
@@ -59,12 +60,23 @@ const AuthView = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [department, setDepartment] = useState('');
-  const { login } = useAuth();
+  const { login, register, isAuthenticated } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await login(email, password);
+    if (isLogin) {
+      await login(email, password);
+    } else {
+      await register(email, password, firstName, lastName, department);
+    }
   };
 
   return (

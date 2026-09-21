@@ -1,13 +1,14 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleSignOut = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    navigate('/login');
+    logout();
+    navigate('/');
   };
 
   const navContent = (
@@ -32,7 +33,24 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Primary Links */}
         <div className="space-y-1.5">
           <NavLink
-            to="/"
+            to="/dashboard"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition ${
+                isActive
+                  ? 'text-blue-600 bg-blue-50/80 border-l-4 border-blue-600 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`
+            }
+          >
+            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span>Welcome Dashboard</span>
+          </NavLink>
+
+          <NavLink
+            to="/rooms"
             onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition ${
@@ -71,7 +89,7 @@ export default function Sidebar({ isOpen, onClose }) {
           </NavLink>
 
           <NavLink
-            to="/dashboard"
+            to="/my-bookings"
             onClick={onClose}
             className={({ isActive }) =>
               `flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition ${

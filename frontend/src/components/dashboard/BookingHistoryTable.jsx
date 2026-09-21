@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import StatusBadge from './StatusBadge';
 import CancelModal from './CancelModal';
 import { useToast } from '../../contexts/ToastContext';
-import './BookingHistoryTable.css';
 
-const BookingHistoryTable = ({ bookings = [] }) => {
+const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const toast = useToast();
 
@@ -12,51 +10,126 @@ const BookingHistoryTable = ({ bookings = [] }) => {
     setSelectedBooking(booking);
   };
 
-  const confirmCancel = () => {
-    // In a real app: PATCH /api/bookings/{id}/cancel/
-    toast.success(`Successfully cancelled booking for ${selectedBooking.roomName}`);
-    
-    // Optimistic UI Update (Mock)
-    selectedBooking.status = 'CANCELLED';
-    setSelectedBooking(null);
+  const confirmCancel = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://localhost:8000/api/bookings/${selectedBooking.id}/cancel/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to cancel booking');
+      
+      toast.success(`Successfully cancelled booking for ${selectedBooking.roomName}`);
+      setSelectedBooking(null);
+      if (onCancelSuccess) {
+        onCancelSuccess();
+      }
+    } catch (err) {
+      toast.error('Could not cancel booking.');
+    }
   };
 
   return (
-    <div className="table-container">
-      <table className="booking-table">
-        <thead>
-          <tr>
-            <th>Room Details</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Status</th>
-            <th className="action-col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bookings.map((booking) => (
-            <tr key={booking.id}>
-              <td className="room-cell">
-                <div className="room-preview" style={{ backgroundImage: `url(${booking.imageUrl})` }}></div>
-                <div className="room-info">
-                  <span className="room-name">{booking.roomName}</span>
-                  <span className="room-location">{booking.location}</span>
-                </div>
-              </td>
-              <td className="tabular-data">{booking.date}</td>
-              <td className="tabular-data">{booking.time}</td>
-              <td><StatusBadge status={booking.status} /></td>
-              <td className="action-col">
-                {booking.status === 'CONFIRMED' && (
-                  <button className="btn-cancel" onClick={() => handleCancelClick(booking)}>
-                    Cancel Booking
-                  </button>
-                )}
-              </td>
+    <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/40 shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-surface-container-low/60 border-b border-outline-variant/40 text-label-xs font-label-xs text-secondary uppercase tracking-wider">
+              <th className="py-3.5 px-5 font-semibold" scope="col">Room Details</th>
+              <th className="py-3.5 px-4 font-semibold" scope="col">Date</th>
+              <th className="py-3.5 px-4 font-semibold" scope="col">Time Interval</th>
+              <th className="py-3.5 px-4 font-semibold" scope="col">Status</th>
+              <th className="py-3.5 px-5 text-right font-semibold" scope="col">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-outline-variant/30 text-body-sm font-body-sm">
+            {bookings.map((booking) => {
+              const isCancelled = booking.status === 'CANCELLED';
+              const isConfirmed = booking.status === 'CONFIRMED';
+              
+              return (
+                <tr key={booking.id} className={`hover:bg-surface-container-low/30 transition-colors group ${isCancelled ? 'bg-surface-container-low/10 opacity-90' : ''}`}>
+                  <td className="py-4 px-5">
+                    <div className="flex items-center space-x-4">
+                      <div className={`relative w-20 h-14 rounded-lg overflow-hidden shrink-0 border border-outline-variant/30 shadow-sm ${isCancelled ? 'grayscale-[30%]' : ''}`}>
+                        <img alt={booking.roomName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src={booking.imageUrl} />
+                        <span className="absolute bottom-1 right-1 bg-on-surface/80 text-white text-[9px] px-1 py-0.2 rounded font-medium">RM</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-title-sm text-title-sm font-semibold text-on-surface">{booking.roomName}</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-surface-container-high text-primary">Cap: {booking.capacity}</span>
+                        </div>
+                        <div className="text-body-sm text-secondary flex items-center space-x-1.5 mt-0.5">
+                          <span className="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
+                          <span>{booking.location}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-4 whitespace-nowrap">
+                    <div className="font-medium text-on-surface">{booking.date}</div>
+                  </td>
+                  <td className="py-4 px-4 whitespace-nowrap">
+                    <div className="font-medium text-on-surface">{booking.time}</div>
+                    <div className="text-label-xs text-outline">{booking.duration} mins duration</div>
+                  </td>
+                  <td className="py-4 px-4 whitespace-nowrap">
+                    {isCancelled ? (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-label-xs font-semibold bg-error-container text-on-error-container border border-error/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-error mr-1.5"></span>
+                        • CANCELLED
+                      </span>
+                    ) : isConfirmed ? (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-label-xs font-semibold bg-[#ecfdf5] text-[#047857] border border-[#a7f3d0]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#047857] mr-1.5"></span>
+                        • CONFIRMED
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-label-xs font-semibold bg-surface-container-high text-secondary border border-outline-variant/40">
+                        • {booking.status}
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-4 px-5 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end space-x-2">
+                      {!booking.isPast && isConfirmed && (
+                        <button 
+                          onClick={() => handleCancelClick(booking)}
+                          className="px-3 py-1.5 border border-error/30 text-error hover:bg-error/5 text-label-sm font-label-sm rounded-lg transition-colors">
+                          Cancel Booking
+                        </button>
+                      )}
+                      <button className="p-1.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors" title="Quick Options">
+                        <span className="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      
+      <div className="px-5 py-3.5 bg-surface-container-low/40 border-t border-outline-variant/30 flex items-center justify-between text-body-sm text-secondary">
+        <div className="text-label-sm font-label-sm">
+          Showing <span className="font-semibold text-on-surface">{bookings.length}</span> reservations
+        </div>
+        <div className="flex items-center space-x-1">
+          <button className="px-2.5 py-1 rounded border border-outline-variant/40 text-outline hover:bg-surface-container-lowest disabled:opacity-40" disabled>
+            <span className="material-symbols-outlined text-[16px]" data-icon="chevron_left">chevron_left</span>
+          </button>
+          <span className="px-3 py-1 text-label-sm font-semibold bg-primary-container text-on-primary rounded">1</span>
+          <button className="px-2.5 py-1 rounded border border-outline-variant/40 text-outline hover:bg-surface-container-lowest disabled:opacity-40" disabled>
+            <span className="material-symbols-outlined text-[16px]" data-icon="chevron_right">chevron_right</span>
+          </button>
+        </div>
+      </div>
 
       <CancelModal 
         isOpen={!!selectedBooking}

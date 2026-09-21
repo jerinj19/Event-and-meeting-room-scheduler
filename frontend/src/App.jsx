@@ -1,13 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AuthView from './pages/AuthView';
+import DashboardWelcome from './pages/DashboardWelcome';
 import MyBookingsView from './pages/MyBookingsView';
 import { useAuth } from './contexts/AuthContext';
 
-// Teammates' components
+// Layout and Teammates' components
+import AppShell from './components/layout/AppShell';
 import BookRoom from './pages/BookRoom';
 import RoomCatalog from './pages/RoomCatalog';
-import AppShell from './components/layout/AppShell';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -27,7 +28,20 @@ export default function App() {
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              <MyBookingsView />
+              <AppShell>
+                <DashboardWelcome />
+              </AppShell>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/my-bookings" 
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <MyBookingsView />
+              </AppShell>
             </ProtectedRoute>
           } 
         />
@@ -43,6 +57,16 @@ export default function App() {
           }
         />
         
+        <Route 
+          path="/book" 
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <BookRoom />
+              </AppShell>
+            </ProtectedRoute>
+          } 
+        />
         <Route 
           path="/book/:roomId" 
           element={

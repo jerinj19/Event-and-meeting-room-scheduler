@@ -46,6 +46,8 @@ def api_not_found(request, exception):
 
 handler404 = 'config.urls.api_not_found'
 
+from django.views.generic import TemplateView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('bookings.urls')),

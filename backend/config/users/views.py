@@ -33,3 +33,23 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
+
+
+class LogoutView(APIView):
+    """POST /api/auth/logout/ — accepts a refresh token and blacklists it."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from rest_framework_simplejwt.tokens import RefreshToken
+        from rest_framework.exceptions import ParseError
+
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                raise ParseError("Refresh token is required")
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)

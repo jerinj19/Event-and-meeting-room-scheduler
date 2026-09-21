@@ -17,7 +17,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     - DELETE /api/rooms/{id}/: Delete room (Staff/Admin only).
     """
 
-    queryset = Room.objects.all().order_by("name")
+    queryset = Room.objects.select_related("created_by").order_by("name")
     serializer_class = RoomSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
 
@@ -25,7 +25,7 @@ class RoomViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
     def get_queryset(self):
-        queryset = Room.objects.all().order_by("name")
+        queryset = Room.objects.select_related("created_by").order_by("name")
 
         # By default, non-staff users only see active rooms unless specified
         is_active_param = self.request.query_params.get("is_active")

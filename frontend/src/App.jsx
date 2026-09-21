@@ -3,11 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import BookRoom from './pages/BookRoom';
+import RoomCatalog from './pages/RoomCatalog';
+import AppShell from './components/layout/AppShell';
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('access_token');
   if (!token) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
   return children;
 }
@@ -16,7 +18,26 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Login />} />
+        {/* Jerin's Room & Asset Management Module */}
+        <Route
+          path="/"
+          element={
+            <AppShell>
+              <RoomCatalog />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/rooms"
+          element={
+            <AppShell>
+              <RoomCatalog />
+            </AppShell>
+          }
+        />
+
+        {/* Teammates' Modules */}
+        <Route path="/login" element={<Login />} />
         <Route 
           path="/dashboard" 
           element={
@@ -33,7 +54,11 @@ export default function App() {
             </ProtectedRoute>
           } 
         />
+
+        {/* Fallback to Room Catalog */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
 }
+

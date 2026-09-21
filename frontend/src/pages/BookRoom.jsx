@@ -7,15 +7,16 @@ export default function BookRoom() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
 
-  // Currently, the backend expects a string room_name
-  // For simplicity we use a static room name "Conference Room A"
-  const [roomName, setRoomName] = useState('Conference Room A');
+  // Read roomName from query param if passed from catalog
+  const queryParams = new URLSearchParams(window.location.search);
+  const initialRoom = queryParams.get('roomName') || 'Conference Room A';
+  const [roomName, setRoomName] = useState(initialRoom);
 
   const handleBook = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('access_token');
     if (!token) {
-      navigate('/');
+      navigate('/login');
       return;
     }
     

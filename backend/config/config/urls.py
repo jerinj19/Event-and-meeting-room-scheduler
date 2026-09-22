@@ -46,7 +46,8 @@ def api_not_found(request, exception):
 
 handler404 = 'config.urls.api_not_found'
 
-from django.views.generic import TemplateView
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -54,4 +55,6 @@ urlpatterns = [
     path('api/', include('users.urls')),
     path('api/', include('rooms.urls')),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

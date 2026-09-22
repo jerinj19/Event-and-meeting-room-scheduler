@@ -1,5 +1,5 @@
 from django.db.models import Q
-from rest_framework import permissions, viewsets
+from rest_framework import parsers, permissions, viewsets
 from rest_framework.exceptions import ValidationError
 
 from .models import Room
@@ -20,6 +20,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     queryset = Room.objects.select_related("created_by").order_by("name")
     serializer_class = RoomSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

@@ -68,6 +68,11 @@ const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
                           <span className="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
                           <span>{booking.location}</span>
                         </div>
+                        <div className="flex items-center space-x-2 mt-1.5 text-label-xs text-outline">
+                          <span className="flex items-center"><span className="material-symbols-outlined text-[13px] mr-1" data-icon="videocam">videocam</span>4K Telepresence</span>
+                          <span>•</span>
+                          <span className="flex items-center"><span className="material-symbols-outlined text-[13px] mr-1" data-icon="speaker">speaker</span>Polycom Studio</span>
+                        </div>
                       </div>
                     </div>
                   </td>

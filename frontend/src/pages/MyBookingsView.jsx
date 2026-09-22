@@ -85,6 +85,27 @@ const MyBookingsView = () => {
             </button>
           </div>
           <div className="flex items-center flex-wrap gap-2.5">
+            {/* Floor Selector */}
+            <div className="relative">
+              <select className="appearance-none bg-surface-container-lowest border border-outline-variant/50 text-body-sm font-body-sm text-on-surface rounded-lg pl-3 pr-8 py-1.5 focus:border-primary-container focus:ring-1 focus:ring-primary-container cursor-pointer shadow-sm">
+                <option>All Floors</option>
+                <option>Floor 42 - Executive Suite</option>
+                <option>Floor 18 - Innovation Hub</option>
+                <option>Floor 12 - Quiet Zone</option>
+                <option>Floor 50 - Tower Summit</option>
+              </select>
+              <span className="material-symbols-outlined text-outline pointer-events-none absolute right-2 top-2 text-[18px]" data-icon="expand_more">expand_more</span>
+            </div>
+            {/* Capacity Selector */}
+            <div className="relative">
+              <select className="appearance-none bg-surface-container-lowest border border-outline-variant/50 text-body-sm font-body-sm text-on-surface rounded-lg pl-3 pr-8 py-1.5 focus:border-primary-container focus:ring-1 focus:ring-primary-container cursor-pointer shadow-sm">
+                <option>Any Capacity</option>
+                <option>1-4 People</option>
+                <option>5-12 People</option>
+                <option>15+ People</option>
+              </select>
+              <span className="material-symbols-outlined text-outline pointer-events-none absolute right-2 top-2 text-[18px]" data-icon="group">group</span>
+            </div>
             <button className="flex items-center space-x-1.5 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant/50 hover:bg-surface-container-low text-secondary hover:text-on-surface text-body-sm font-body-sm rounded-lg shadow-sm transition-colors">
               <span className="material-symbols-outlined text-[16px]" data-icon="download">download</span>
               <span>Export CSV</span>

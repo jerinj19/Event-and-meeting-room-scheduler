@@ -38,12 +38,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('refresh_token', data.refresh);
       }
       
-      // We don't get the user payload in the token response without decoding or a /me endpoint,
-      // so we'll just mock the user object for the UI for now
-      const mockUser = { id: '1', email, name: email.split('@')[0], department: 'Engineering' };
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      // Extract user from token response
+      const realUser = data.user;
+      localStorage.setItem('user', JSON.stringify(realUser));
       
-      setUser(mockUser);
+      setUser(realUser);
       setIsAuthenticated(true);
       toast.success('Successfully logged in!');
     } catch (error) {

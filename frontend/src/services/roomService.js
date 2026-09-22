@@ -69,7 +69,26 @@ export const roomService = {
       headers: getAuthHeaders(),
     });
 
-    return handleResponse(response);
+    const data = await handleResponse(response);
+    const list = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : []);
+    return list.map((room) => ({
+      ...room,
+      hourlyRate: Number(room.hourly_rate ?? room.hourlyRate ?? 0),
+      hourly_rate: Number(room.hourly_rate ?? room.hourlyRate ?? 0),
+    }));
+  },
+
+  /**
+   * Fetch previously uploaded room images for reuse
+   */
+  async getGallery() {
+    const response = await fetch(`${API_BASE_URL}/rooms/gallery/`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : []);
   },
 
   /**
@@ -77,6 +96,7 @@ export const roomService = {
    */
   async createRoom(roomData) {
     const token = localStorage.getItem('access_token');
+    const rate = Number(roomData.hourly_rate ?? roomData.hourlyRate ?? 0);
     
     // If an image file is provided, use FormData
     if (roomData.imageFile instanceof File) {
@@ -84,6 +104,7 @@ export const roomService = {
       formData.append('name', roomData.name.trim());
       formData.append('capacity', Number(roomData.capacity));
       formData.append('location', roomData.location.trim());
+      formData.append('hourly_rate', rate);
       formData.append('amenities', JSON.stringify(roomData.amenities || []));
       formData.append('is_active', roomData.is_active !== undefined ? roomData.is_active : true);
       formData.append('image', roomData.imageFile);
@@ -97,16 +118,19 @@ export const roomService = {
     }
 
     // Default JSON payload
+    const jsonPayload = {
+      name: roomData.name.trim(),
+      capacity: Number(roomData.capacity),
+      location: roomData.location.trim(),
+      hourly_rate: rate,
+      amenities: roomData.amenities || [],
+      is_active: roomData.is_active !== undefined ? roomData.is_active : true,
+    };
+
     const response = await fetch(`${API_BASE_URL}/rooms/`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({
-        name: roomData.name.trim(),
-        capacity: Number(roomData.capacity),
-        location: roomData.location.trim(),
-        amenities: roomData.amenities || [],
-        is_active: roomData.is_active !== undefined ? roomData.is_active : true,
-      }),
+      body: JSON.stringify(jsonPayload),
     });
 
     return handleResponse(response);
@@ -117,6 +141,9 @@ export const roomService = {
    */
   async updateRoom(roomId, roomData) {
     const token = localStorage.getItem('access_token');
+    const rate = roomData.hourly_rate !== undefined || roomData.hourlyRate !== undefined 
+      ? Number(roomData.hourly_rate ?? roomData.hourlyRate) 
+      : undefined;
 
     // If a new image file is uploaded, use FormData
     if (roomData.imageFile instanceof File) {
@@ -124,6 +151,7 @@ export const roomService = {
       if (roomData.name !== undefined) formData.append('name', roomData.name.trim());
       if (roomData.capacity !== undefined) formData.append('capacity', Number(roomData.capacity));
       if (roomData.location !== undefined) formData.append('location', roomData.location.trim());
+      if (rate !== undefined) formData.append('hourly_rate', rate);
       if (roomData.amenities !== undefined) {
         formData.append('amenities', JSON.stringify(roomData.amenities));
       }
@@ -143,6 +171,7 @@ export const roomService = {
     if (roomData.name !== undefined) payload.name = roomData.name.trim();
     if (roomData.capacity !== undefined) payload.capacity = Number(roomData.capacity);
     if (roomData.location !== undefined) payload.location = roomData.location.trim();
+    if (rate !== undefined) payload.hourly_rate = rate;
     if (roomData.amenities !== undefined) payload.amenities = roomData.amenities;
     if (roomData.is_active !== undefined) payload.is_active = roomData.is_active;
 

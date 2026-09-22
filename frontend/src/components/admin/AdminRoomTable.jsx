@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
 
-const DEFAULT_ROOM_IMAGES = [
-  'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=300&q=80',
-  'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=300&q=80',
-];
 
 export default function AdminRoomTable({
   rooms = [],
@@ -107,9 +99,9 @@ export default function AdminRoomTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/30 text-sm text-on-surface">
-            {paginatedRooms.map((room, index) => {
+            {paginatedRooms.map((room) => {
               const isSelected = selectedIds.includes(room.id);
-              const rawImage = room.image || DEFAULT_ROOM_IMAGES[index % DEFAULT_ROOM_IMAGES.length];
+              const rawImage = room.image;
               const roomImage = typeof rawImage === 'string' && rawImage.startsWith('/media/')
                 ? `http://localhost:8000${rawImage}`
                 : rawImage;
@@ -136,11 +128,17 @@ export default function AdminRoomTable({
                   {/* Room Name & Thumbnail */}
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-3.5">
-                      <img
-                        src={roomImage}
-                        alt={room.name}
-                        className="w-12 h-12 rounded-lg object-cover border border-outline-variant/50 shadow-sm flex-shrink-0"
-                      />
+                      {roomImage ? (
+                        <img
+                          src={roomImage}
+                          alt={room.name}
+                          className="w-12 h-12 rounded-lg object-cover border border-outline-variant/50 shadow-sm flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-surface-container-low border border-outline-variant/50 flex items-center justify-center text-secondary flex-shrink-0 shadow-sm">
+                          <span className="material-symbols-outlined text-2xl text-primary/60" data-icon="meeting_room">meeting_room</span>
+                        </div>
+                      )}
                       <div>
                         <div className="font-semibold text-on-surface flex items-center gap-1.5">
                           <span>{room.name}</span>
@@ -215,7 +213,7 @@ export default function AdminRoomTable({
                   {/* Billing Rate */}
                   <td className="py-3.5 px-4">
                     <div className="text-xs font-medium text-on-surface">
-                      <strong className="text-sm font-semibold">${room.hourlyRate || '85'}</strong>
+                      <strong className="text-sm font-semibold">₹{room.hourly_rate ?? room.hourlyRate ?? '500'}</strong>
                       <span className="text-secondary text-[11px]"> / hr</span>
                     </div>
                   </td>

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import CreateAdminModal from '../components/admin/CreateAdminModal';
-import { useAuth } from '../contexts/AuthContext';
 
 const AdminDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { user } = useAuth();
 
   return (
     <div className="min-h-full bg-surface text-on-surface p-4 md:p-8 font-body-md">

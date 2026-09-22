@@ -19,6 +19,7 @@ class RoomSerializer(serializers.ModelSerializer):
             "capacity",
             "location",
             "amenities",
+            "image",
             "is_active",
             "created_by",
             "created_by_email",
@@ -39,6 +40,17 @@ class RoomSerializer(serializers.ModelSerializer):
         return stripped
 
     def validate_amenities(self, value):
+        if isinstance(value, str):
+            import json
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    value = parsed
+                else:
+                    raise serializers.ValidationError("Amenities must be provided as a list.")
+            except (json.JSONDecodeError, ValueError):
+                raise serializers.ValidationError("Amenities must be provided as a list.")
+
         if not isinstance(value, list):
             raise serializers.ValidationError("Amenities must be provided as a list.")
         # Ensure all items in the list are non-empty strings

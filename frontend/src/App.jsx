@@ -3,10 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import AuthView from './pages/AuthView';
 import DashboardWelcome from './pages/DashboardWelcome';
 import MyBookingsView from './pages/MyBookingsView';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminBookings from './pages/AdminBookings';
 import { useAuth } from './contexts/AuthContext';
 
 // Layout and Teammates' components
 import AppShell from './components/layout/AppShell';
+import AdminAppShell from './components/admin/AdminAppShell';
 import BookRoom from './pages/BookRoom';
 import RoomCatalog from './pages/RoomCatalog';
 
@@ -74,6 +77,26 @@ export default function App() {
               <AppShell>
                 <BookRoom />
               </AppShell>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute>
+              <AdminAppShell>
+                <AdminDashboard />
+              </AdminAppShell>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/bookings" 
+          element={
+            <ProtectedRoute>
+              <AdminAppShell>
+                <AdminBookings />
+              </AdminAppShell>
             </ProtectedRoute>
           } 
         />

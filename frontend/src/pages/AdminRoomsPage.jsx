@@ -5,88 +5,6 @@ import DeleteConfirmModal from '../components/admin/DeleteConfirmModal';
 import roomService from '../services/roomService';
 import { useToast } from '../contexts/ToastContext';
 
-// Default seed rooms to ensure instant visual richness if database is pristine
-const DEFAULT_INITIAL_ROOMS = [
-  {
-    id: 'room-1',
-    name: 'Boardroom Alpha',
-    code: 'RM-ALPHA-01',
-    location: 'Building A · Floor 4, West Executive Wing',
-    capacity: 14,
-    hourlyRate: 85,
-    is_active: true,
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
-    amenities: ['4K Display Screen', 'Polycom PTZ Video Conf', 'Magnetic Glass Whiteboard', 'Soundproof Acoustic Paneling', 'High-Speed Wi-Fi 6E'],
-    created_by_email: 'jerin.j@innovyx.internal',
-    updated_at: new Date(Date.now() - 2 * 3600000).toISOString(),
-  },
-  {
-    id: 'room-2',
-    name: 'Innovation Hub',
-    code: 'RM-INNOV-02',
-    location: 'Building B · Floor 2, East Collaborative Wing',
-    capacity: 8,
-    hourlyRate: 55,
-    is_active: true,
-    image: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80',
-    amenities: ['Dual Display Screen', 'Video Conf', 'Acoustic Baffles', 'Magnetic Glass Whiteboard', 'High-Speed Wi-Fi 6E'],
-    created_by_email: 'jerin.j@innovyx.internal',
-    updated_at: new Date(Date.now() - 4 * 3600000).toISOString(),
-  },
-  {
-    id: 'room-3',
-    name: 'Executive Suite 301',
-    code: 'RM-EXEC-301',
-    location: 'Building A · Floor 3, C-Suite Corridor',
-    capacity: 18,
-    hourlyRate: 110,
-    is_active: false,
-    image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80',
-    amenities: ['85" OLED', 'Audio Suite', 'Marble Table', 'High-Speed Wi-Fi 6E', 'Conference Phone Station'],
-    created_by_email: 'mark.t@innovyx.internal',
-    updated_at: new Date(Date.now() - 24 * 3600000).toISOString(),
-  },
-  {
-    id: 'room-4',
-    name: 'Focus Pod Gamma',
-    code: 'RM-POD-G4',
-    location: 'Building B · Floor 1, Agile Focus Zone',
-    capacity: 4,
-    hourlyRate: 30,
-    is_active: true,
-    image: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80',
-    amenities: ['50" Display Screen', 'Soundproof Acoustic Paneling', 'USB-C Hub', 'High-Speed Wi-Fi 6E'],
-    created_by_email: 'jerin.j@innovyx.internal',
-    updated_at: new Date(Date.now() - 72 * 3600000).toISOString(),
-  },
-  {
-    id: 'room-5',
-    name: 'Creative Studio Delta',
-    code: 'RM-STUDIO-D',
-    location: 'Building A · Floor 2, Media Lab Wing',
-    capacity: 10,
-    hourlyRate: 65,
-    is_active: true,
-    image: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
-    amenities: ['Ultra-wide Screen', 'Podcast Mic Array', 'Magnetic Glass Whiteboard', 'High-Speed Wi-Fi 6E'],
-    created_by_email: 'sarah.l@innovyx.internal',
-    updated_at: new Date(Date.now() - 120 * 3600000).toISOString(),
-  },
-  {
-    id: 'room-6',
-    name: 'Acoustic Sprint Pod 102',
-    code: 'RM-POD-102',
-    location: 'Building B · Floor 1, West Quiet Hub',
-    capacity: 2,
-    hourlyRate: 25,
-    is_active: true,
-    image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=800&q=80',
-    amenities: ['Soundproof NRC 0.9+', 'Air Purifier', 'Ergonomic Desk', 'High-Speed Wi-Fi 6E'],
-    created_by_email: 'jerin.j@innovyx.internal',
-    updated_at: new Date(Date.now() - 168 * 3600000).toISOString(),
-  },
-];
-
 export default function AdminRoomsPage() {
   const toast = useToast();
 
@@ -97,7 +15,6 @@ export default function AdminRoomsPage() {
 
   // Filter & Search Controls
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('all');
   const [selectedCapacity, setSelectedCapacity] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'grid'
@@ -119,19 +36,18 @@ export default function AdminRoomsPage() {
     setLoading(true);
     try {
       const data = await roomService.getRooms();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setRooms(data);
       } else {
-        // Use default curated initial rooms if database is currently empty
-        setRooms(DEFAULT_INITIAL_ROOMS);
+        setRooms([]);
       }
     } catch {
-      // Fallback gracefully to default initial rooms
-      setRooms(DEFAULT_INITIAL_ROOMS);
+      setRooms([]);
+      toast.error('Unable to fetch rooms from backend database. Please ensure server is running.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadRooms();
@@ -155,27 +71,23 @@ export default function AdminRoomsPage() {
   }, [rooms]);
 
   /**
-   * Filter rooms by search keyword, location, capacity, and status
+   * Filter rooms by search keyword, capacity, and status
    */
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => {
-      // 1. Search filter
+      // 1. Multi-attribute Search filter (name, location, code, amenities)
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase().trim();
         const matchesName = room.name?.toLowerCase().includes(query);
         const matchesLocation = room.location?.toLowerCase().includes(query);
         const matchesCode = room.code?.toLowerCase().includes(query);
-        if (!matchesName && !matchesLocation && !matchesCode) return false;
+        const matchesAmenities = Array.isArray(room.amenities) && room.amenities.some((a) =>
+          typeof a === 'string' && a.toLowerCase().includes(query)
+        );
+        if (!matchesName && !matchesLocation && !matchesCode && !matchesAmenities) return false;
       }
 
-      // 2. Location filter
-      if (selectedLocation !== 'all') {
-        if (!room.location?.toLowerCase().includes(selectedLocation.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // 3. Capacity filter
+      // 2. Capacity filter
       if (selectedCapacity !== 'all') {
         const cap = Number(room.capacity);
         if (selectedCapacity === 'small' && (cap < 1 || cap > 4)) return false;
@@ -184,13 +96,13 @@ export default function AdminRoomsPage() {
         if (selectedCapacity === 'executive' && cap <= 20) return false;
       }
 
-      // 4. Status filter
+      // 3. Status filter
       if (selectedStatus === 'active' && !room.is_active) return false;
       if (selectedStatus === 'inactive' && room.is_active) return false;
 
       return true;
     });
-  }, [rooms, searchTerm, selectedLocation, selectedCapacity, selectedStatus]);
+  }, [rooms, searchTerm, selectedCapacity, selectedStatus]);
 
   /**
    * Open modal for creating a new room
@@ -216,49 +128,22 @@ export default function AdminRoomsPage() {
     try {
       if (editingRoom) {
         // UPDATE (PATCH)
-        try {
-          const updated = await roomService.updateRoom(editingRoom.id, formData);
-          setRooms((prev) =>
-            prev.map((r) => (r.id === editingRoom.id ? { ...r, ...updated, ...formData } : r))
-          );
-        } catch {
-          // Local optimistic update if backend error
-          setRooms((prev) =>
-            prev.map((r) => (r.id === editingRoom.id ? { ...r, ...formData } : r))
-          );
-        }
+        const updated = await roomService.updateRoom(editingRoom.id, formData);
+        setRooms((prev) =>
+          prev.map((r) => (r.id === editingRoom.id ? { ...r, ...updated, ...formData } : r))
+        );
         toast.success(`Room "${formData.name}" updated successfully!`);
       } else {
         // CREATE (POST)
-        try {
-          const created = await roomService.createRoom(formData);
-          setRooms((prev) => [
-            {
-              ...created,
-              ...formData,
-              id: created.id || `room-${Date.now()}`,
-              created_by_email: 'Admin',
-              updated_at: new Date().toISOString(),
-            },
-            ...prev,
-          ]);
-        } catch {
-          // Local fallback creation
-          const newRoom = {
-            ...formData,
-            id: `room-${Date.now()}`,
-            created_by_email: 'Admin',
-            updated_at: new Date().toISOString(),
-          };
-          setRooms((prev) => [newRoom, ...prev]);
-        }
+        const created = await roomService.createRoom(formData);
+        setRooms((prev) => [created, ...prev]);
         toast.success(`Room "${formData.name}" created and published!`);
       }
 
       setIsModalOpen(false);
       setEditingRoom(null);
     } catch (err) {
-      toast.error(err.message || 'Failed to save room.');
+      toast.error(err.message || 'Failed to save room to database.');
     } finally {
       setModalSubmitting(false);
     }
@@ -272,12 +157,7 @@ export default function AdminRoomsPage() {
     const newStatus = !room.is_active;
 
     try {
-      try {
-        await roomService.toggleRoomStatus(room.id, room.is_active);
-      } catch {
-        // optimistic fallback
-      }
-
+      await roomService.toggleRoomStatus(room.id, room.is_active);
       setRooms((prev) =>
         prev.map((r) => (r.id === room.id ? { ...r, is_active: newStatus } : r))
       );
@@ -285,8 +165,8 @@ export default function AdminRoomsPage() {
       toast.info(
         `Room "${room.name}" marked as ${newStatus ? 'Active' : 'Under Maintenance'}.`
       );
-    } catch {
-      toast.error('Failed to update room status.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update room status.');
     } finally {
       setActionLoadingId(null);
     }
@@ -308,12 +188,7 @@ export default function AdminRoomsPage() {
   const handleConfirmDelete = async (roomId) => {
     setDeleteSubmitting(true);
     try {
-      try {
-        await roomService.deleteRoom(roomId);
-      } catch {
-        // optimistic fallback
-      }
-
+      await roomService.deleteRoom(roomId);
       setRooms((prev) => prev.filter((r) => r.id !== roomId));
       toast.success('Room has been successfully deleted.');
       setIsDeleteModalOpen(false);
@@ -416,8 +291,8 @@ export default function AdminRoomsPage() {
               </div>
               <div className="flex items-baseline gap-2.5">
                 <span className="text-4xl font-bold text-on-surface tracking-tight leading-none">{kpiStats.total}</span>
-                <span className="inline-flex items-center text-emerald-700 text-[11px] font-semibold bg-emerald-50 px-2 py-0.5 rounded">
-                  +2 this month
+                <span className="inline-flex items-center text-primary text-[11px] font-semibold bg-primary-container/15 px-2 py-0.5 rounded">
+                  {kpiStats.total} Registered
                 </span>
               </div>
             </div>
@@ -458,8 +333,12 @@ export default function AdminRoomsPage() {
               </div>
               <div className="flex items-baseline gap-2.5">
                 <span className="text-4xl font-bold text-on-surface tracking-tight leading-none">{kpiStats.inactive}</span>
-                <span className="inline-flex items-center text-amber-800 text-[11px] font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  HVAC / AV Upgrade
+                <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded border ${
+                  kpiStats.inactive > 0
+                    ? 'text-amber-800 bg-amber-50 border-amber-200'
+                    : 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                }`}>
+                  {kpiStats.inactive > 0 ? `${kpiStats.inactive} Offline` : 'All Operational'}
                 </span>
               </div>
             </div>
@@ -497,20 +376,6 @@ export default function AdminRoomsPage() {
           {/* Faceted Dropdowns & View Toggles */}
           <div className="flex flex-wrap items-center gap-2.5">
             
-            {/* Location Dropdown */}
-            <select
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className="px-3 py-2 text-xs font-medium rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:outline-none"
-            >
-              <option value="all">All Floors & Wings</option>
-              <option value="Building A">Building A</option>
-              <option value="Building B">Building B</option>
-              <option value="Floor 1">Floor 1</option>
-              <option value="Floor 2">Floor 2</option>
-              <option value="Floor 4">Floor 4 (Executive)</option>
-            </select>
-
             {/* Capacity Dropdown */}
             <select
               value={selectedCapacity}
@@ -589,11 +454,30 @@ export default function AdminRoomsPage() {
             onCreateNew={handleOpenCreateModal}
             actionLoadingId={actionLoadingId}
           />
+        ) : filteredRooms.length === 0 ? (
+          /* Card Grid View Empty State */
+          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-12 text-center shadow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-surface-container-low flex items-center justify-center text-secondary mx-auto mb-4">
+              <span className="material-symbols-outlined text-3xl" data-icon="meeting_room">meeting_room</span>
+            </div>
+            <h3 className="text-lg font-bold text-on-surface">No meeting rooms found</h3>
+            <p className="text-xs text-secondary max-w-sm mx-auto mt-1 mb-6">
+              No rooms matched your search filters, or no rooms have been registered yet.
+            </p>
+            <button
+              type="button"
+              onClick={handleOpenCreateModal}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition"
+            >
+              <span className="material-symbols-outlined text-[16px]" data-icon="add">add</span>
+              <span>Create New Room</span>
+            </button>
+          </div>
         ) : (
           /* Card Grid View representation */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRooms.map((room, index) => {
-              const rawImage = room.image || DEFAULT_INITIAL_ROOMS[index % DEFAULT_INITIAL_ROOMS.length].image;
+            {filteredRooms.map((room) => {
+              const rawImage = room.image;
               const roomImage = typeof rawImage === 'string' && rawImage.startsWith('/media/')
                 ? `http://localhost:8000${rawImage}`
                 : rawImage;
@@ -602,12 +486,19 @@ export default function AdminRoomsPage() {
                   key={room.id}
                   className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition"
                 >
-                  <div className="relative h-44 overflow-hidden">
-                    <img
-                      src={roomImage}
-                      alt={room.name}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="relative h-44 overflow-hidden bg-surface-container-low flex items-center justify-center border-b border-outline-variant/30">
+                    {roomImage ? (
+                      <img
+                        src={roomImage}
+                        alt={room.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-secondary">
+                        <span className="material-symbols-outlined text-4xl text-primary/40 mb-1" data-icon="meeting_room">meeting_room</span>
+                        <span className="text-xs text-secondary font-medium">No Image Uploaded</span>
+                      </div>
+                    )}
                     <div className="absolute top-3 right-3">
                       {room.is_active ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-sm backdrop-blur-sm">
@@ -627,7 +518,7 @@ export default function AdminRoomsPage() {
                     <div>
                       <div className="flex items-baseline justify-between gap-2">
                         <h3 className="font-bold text-base text-on-surface">{room.name}</h3>
-                        <span className="font-semibold text-primary text-sm">${room.hourlyRate || 85}/hr</span>
+                        <span className="font-semibold text-primary text-sm">₹{room.hourly_rate ?? room.hourlyRate ?? 0}/hr</span>
                       </div>
                       <p className="text-xs text-secondary flex items-center gap-1 mt-1">
                         <span className="material-symbols-outlined text-[13px]" data-icon="location_on">location_on</span>

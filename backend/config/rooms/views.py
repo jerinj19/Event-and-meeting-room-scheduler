@@ -1,6 +1,8 @@
 from django.db.models import Q
 from rest_framework import parsers, permissions, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 
 from .models import Room
 from .permissions import IsAdminOrReadOnly
@@ -15,6 +17,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     - GET /api/rooms/{id}/: Retrieve room details.
     - PUT / PATCH /api/rooms/{id}/: Update room (Staff/Admin only).
     - DELETE /api/rooms/{id}/: Delete room (Staff/Admin only).
+    - GET /api/rooms/gallery/: Distinct previously uploaded room images.
     """
 
     queryset = Room.objects.select_related("created_by").order_by("name")
@@ -24,6 +27,26 @@ class RoomViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+    @action(detail=False, methods=["get"], url_path="gallery")
+    def gallery(self, request):
+        """
+        Return a list of distinct previously uploaded room images for reuse.
+        """
+        rooms_with_images = Room.objects.exclude(image="").exclude(image__isnull=True).order_by("-updated_at")
+        seen_urls = set()
+        gallery_items = []
+        for r in rooms_with_images:
+            if r.image:
+                url = request.build_absolute_uri(r.image.url)
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    gallery_items.append({
+                        "id": str(r.id),
+                        "room_name": r.name,
+                        "image_url": url,
+                    })
+        return Response(gallery_items)
 
     def get_queryset(self):
         queryset = Room.objects.select_related("created_by").order_by("name")

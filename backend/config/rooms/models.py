@@ -22,6 +22,12 @@ class Room(models.Model):
     location = models.CharField(max_length=150, help_text="Floor, wing, building, or area description")
     amenities = models.JSONField(default=list, blank=True, help_text="List of amenities/assets available in the room")
     image = models.ImageField(upload_to="room_images/", null=True, blank=True, help_text="Room cover photo or interior layout image")
+    hourly_rate = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        help_text="Hourly rental rate in INR (₹)"
+    )
     is_active = models.BooleanField(default=True, help_text="Designates whether this room is available for scheduling")
 
     created_by = models.ForeignKey(

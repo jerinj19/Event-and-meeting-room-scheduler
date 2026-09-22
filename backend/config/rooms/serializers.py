@@ -20,6 +20,7 @@ class RoomSerializer(serializers.ModelSerializer):
             "location",
             "amenities",
             "image",
+            "hourly_rate",
             "is_active",
             "created_by",
             "created_by_email",
@@ -27,6 +28,11 @@ class RoomSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "created_by", "created_by_email", "created_at", "updated_at"]
+
+    def validate_hourly_rate(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Hourly rate cannot be negative.")
+        return value
 
     def validate_capacity(self, value):
         if value is None or value <= 0:

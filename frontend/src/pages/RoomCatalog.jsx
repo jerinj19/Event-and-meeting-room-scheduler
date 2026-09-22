@@ -91,21 +91,28 @@ export default function RoomCatalog() {
 
   // Optional fetch from DRF backend
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/rooms/')
+    const token = localStorage.getItem('access_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch('http://127.0.0.1:8000/api/rooms/', { headers })
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Backend not active');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        const list = Array.isArray(data) ? data : data?.results || [];
+        if (list.length > 0) {
           // Merge API data with default imagery if needed
-          const formatted = data.map((r, i) => ({
+          const formatted = list.map((r, i) => ({
             ...r,
             image: r.image || INITIAL_ROOMS[i % INITIAL_ROOMS.length].image,
-            area: r.area || '950 sq ft',
+            area: r.area || '1,100 sq ft',
             hourlyRate: r.hourlyRate || 75,
             status: r.is_active ? 'Available' : 'In-Maintenance',
-            amenities: r.amenities || ['4K Screen', 'WiFi 6'],
+            amenities: Array.isArray(r.amenities)
+              ? r.amenities
+              : typeof r.amenities === 'string'
+              ? r.amenities.split(' ').filter(Boolean)
+              : ['4K Screen', 'WiFi 6'],
           }));
           setRooms(formatted);
         }

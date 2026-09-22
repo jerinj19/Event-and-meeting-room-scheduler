@@ -12,11 +12,24 @@ import AppShell from './components/layout/AppShell';
 import AdminAppShell from './components/admin/AdminAppShell';
 import BookRoom from './pages/BookRoom';
 import RoomCatalog from './pages/RoomCatalog';
+import AdminRoomsPage from './pages/AdminRoomsPage';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
+function AdminRoute({ children }) {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  // Allow if user is staff or if profile is still loading/defaulting
+  if (user && user.is_staff === false) {
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 }
@@ -83,11 +96,21 @@ export default function App() {
         <Route 
           path="/admin" 
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminAppShell>
                 <AdminDashboard />
               </AdminAppShell>
-            </ProtectedRoute>
+            </AdminRoute>
+          } 
+        />
+        <Route 
+          path="/admin/rooms" 
+          element={
+            <AdminRoute>
+              <AdminAppShell>
+                <AdminRoomsPage />
+              </AdminAppShell>
+            </AdminRoute>
           } 
         />
         <Route 

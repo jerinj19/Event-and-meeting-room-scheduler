@@ -32,13 +32,13 @@ const MyBookingsView = () => {
         
         return {
           id: b.id,
-          roomName: b.room?.name || 'Unknown Room',
-          location: b.room?.location || 'Unknown Location',
+          roomName: b.room_name || b.room?.name || 'Meeting Room',
+          location: b.room_location || b.room?.location || 'Bangalore Campus',
           date: startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
           time: `${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
-          duration: Math.round((endDate - startDate) / 60000),
+          duration: Math.max(15, Math.round((endDate - startDate) / 60000)),
           status: b.status, // e.g. "CONFIRMED" or "CANCELLED"
-          capacity: b.room?.capacity || 8,
+          capacity: b.room_capacity || b.room?.capacity || 8,
           imageUrl: b.room?.image_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
           isPast: isPast
         }

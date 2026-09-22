@@ -129,34 +129,43 @@ export default function BookRoom() {
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // Fetch live room details if available
+  const [availableRooms, setAvailableRooms] = useState([]);
+
+  // Fetch live room details and full rooms list from backend
   useEffect(() => {
-    if (queryRoomId && queryRoomId.length > 10) {
-      // Valid UUID
-      fetch(`http://127.0.0.1:8000/api/rooms/${queryRoomId}/`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) {
-            setApiRoom((prev) => ({
-              ...(prev || baseRoom),
-              ...data,
-              image: data.image || (prev ? prev.image : baseRoom.image),
-              amenities: Array.isArray(data.amenities) ? data.amenities : (prev ? prev.amenities : baseRoom.amenities),
-            }));
-          }
-        })
-        .catch(() => {});
-    }
+    const token = localStorage.getItem('access_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch('http://127.0.0.1:8000/api/rooms/', { headers })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const list = Array.isArray(data) ? data : data?.results || [];
+        if (list.length > 0) {
+          setAvailableRooms(list);
+          const matched = list.find((r) => r.id === queryRoomId);
+          const target = matched || list[0];
+          setApiRoom({
+            ...target,
+            image: target.image || baseRoom.image || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
+            amenities: Array.isArray(target.amenities)
+              ? target.amenities
+              : typeof target.amenities === 'string'
+              ? target.amenities.split(' ').filter(Boolean)
+              : ['4K Screen', 'WiFi 6'],
+          });
+        }
+      })
+      .catch(() => {});
   }, [queryRoomId, baseRoom]);
 
   // Check real-time slot availability
   const fetchAvailability = React.useCallback(async () => {
+    if (!room?.id || typeof room.id !== 'string' || room.id.length < 30) return;
     setIsLoadingAvailability(true);
     try {
       const token = localStorage.getItem('access_token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(
-        `http://127.0.0.1:8000/api/bookings/check-availability/?room=${room.id}&start_time=${selectedDate}T09:00:00Z&end_time=${selectedDate}T18:00:00Z`,
+        `http://127.0.0.1:8000/api/bookings/check-availability/?room_id=${room.id}&start_time=${selectedDate}T09:00:00Z&end_time=${selectedDate}T18:00:00Z`,
         { headers }
       );
 
@@ -164,6 +173,8 @@ export default function BookRoom() {
         const data = await res.json();
         if (data.conflicts && data.conflicts.length > 0) {
           setBookedSlots(data.conflicts);
+        } else {
+          setBookedSlots([]);
         }
       }
     } catch {
@@ -171,7 +182,7 @@ export default function BookRoom() {
     } finally {
       setIsLoadingAvailability(false);
     }
-  }, [room.id, selectedDate]);
+  }, [room?.id, selectedDate]);
 
   useEffect(() => {
     fetchAvailability();
@@ -228,8 +239,8 @@ export default function BookRoom() {
       if (res.status === 201) {
         setBookingSuccess(true);
         setTimeout(() => {
-          navigate('/dashboard');
-        }, 1500);
+          navigate('/my-bookings');
+        }, 1200);
       } else if (res.status === 409) {
         const errorData = await res.json();
         setConflictError(
@@ -321,6 +332,37 @@ export default function BookRoom() {
                 Active & Available
               </span>
             </div>
+
+            {/* Room Selector Dropdown */}
+            {availableRooms.length > 0 && (
+              <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+                <label className="text-[11px] font-semibold text-slate-600 shrink-0">Switch Room:</label>
+                <select
+                  value={room.id}
+                  onChange={(e) => {
+                    const found = availableRooms.find((r) => r.id === e.target.value);
+                    if (found) {
+                      setApiRoom({
+                        ...found,
+                        image: found.image || baseRoom.image,
+                        amenities: Array.isArray(found.amenities)
+                          ? found.amenities
+                          : typeof found.amenities === 'string'
+                          ? found.amenities.split(' ').filter(Boolean)
+                          : ['4K Screen', 'WiFi 6'],
+                      });
+                    }
+                  }}
+                  className="w-full text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-2xs"
+                >
+                  {availableRooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({r.capacity} seats)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Room Image */}
             <div className="relative w-full h-52 overflow-hidden bg-slate-100">

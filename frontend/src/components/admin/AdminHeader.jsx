@@ -62,10 +62,12 @@ export default function AdminHeader({ onToggleSidebar }) {
         {/* User Badge */}
         <div className="flex items-center gap-2.5 pl-1">
           <div className="w-9 h-9 rounded-full bg-inverse-surface text-inverse-on-surface font-semibold flex items-center justify-center text-xs sm:text-sm">
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+            {(user?.first_name || user?.name || user?.email || 'A').charAt(0).toUpperCase()}
           </div>
           <div className="hidden lg:block text-left">
-            <p className="text-sm font-semibold leading-tight text-on-surface">{user?.name || 'Administrator'}</p>
+            <p className="text-sm font-semibold leading-tight text-on-surface">
+              {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : (user?.name || 'Administrator')}
+            </p>
             <p className="text-[11px] text-secondary">{user?.email || 'admin@innovyx.com'}</p>
           </div>
         </div>

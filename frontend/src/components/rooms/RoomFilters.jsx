@@ -1,47 +1,23 @@
 import React from 'react';
 
-const CAPACITY_OPTIONS = [
-  { id: 'all', label: 'All Room Capacities', count: 18 },
-  { id: 'small', label: 'Focus Sprint Pod (2–4 seats)', count: 4 },
-  { id: 'medium', label: 'Team Meeting Room (6–10 seats)', count: 8 },
-  { id: 'large', label: 'Executive Boardroom (12–20 seats)', count: 4 },
-  { id: 'boardroom', label: 'All-Hands Auditorium (25+ seats)', count: 2 },
-];
-
-const POPULAR_FILTERS = [
-  { id: 'Available', label: 'Available Right Now', count: 14, isStatus: true },
-  { id: '4K', label: '4K Display / Dual OLED', count: 15 },
-  { id: 'Video', label: 'Video Conference Suite', count: 12 },
-  { id: 'Whiteboard', label: 'Whiteboard & Glass Walls', count: 10 },
-  { id: 'Coffee Bar', label: 'Coffee Bar Included', count: 8 },
-];
-
-const ACOUSTIC_FILTERS = [
-  { id: 'NRC', label: 'Ultra-Quiet NRC 0.9+ Felt', count: 5 },
-  { id: 'Acoustic', label: 'Standard Acoustic Baffles', count: 13 },
-];
-
-const LOCATION_OPTIONS = [
-  { id: 'all', label: 'All Bangalore Hubs', count: 18 },
-  { id: 'Koramangala', label: 'Koramangala', count: 7 },
-  { id: 'Indiranagar', label: 'Indiranagar', count: 5 },
-  { id: 'MG Road', label: 'MG Road', count: 4 },
-  { id: 'Whitefield', label: 'Whitefield', count: 2 },
-];
-
 export default function RoomFilters({
-  selectedCapacity,
-  onSelectCapacity,
-  selectedAmenities,
-  onToggleAmenity,
-  availableOnly,
-  onToggleAvailableOnly,
-  locationFilter,
-  onChangeLocation,
-  maxHourlyRate,
+  minRate = 0,
+  maxRateLimit = 1000,
+  currentMaxRate,
   onChangeMaxRate,
+  histogramBuckets = [],
+  availableAmenities = [],
+  selectedAmenities = [],
+  onToggleAmenity,
+  availableOnly = false,
+  onToggleAvailableOnly,
+  availableLocations = [],
+  locationFilter = 'all',
+  onChangeLocation,
   onResetFilters,
 }) {
+  const activeRate = currentMaxRate !== undefined && currentMaxRate !== null ? currentMaxRate : maxRateLimit;
+
   return (
     <aside className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs divide-y divide-slate-100 space-y-4 sticky top-20">
       
@@ -62,146 +38,139 @@ export default function RoomFilters({
         </button>
       </div>
 
-      {/* 2. Budget / Hourly Rate with Dynamic Frequency Histogram */}
+      {/* 2. Budget / Hourly Rate with Dynamic Frequency Histogram (in ₹ INR) */}
       <div className="pt-4 space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-900">Your budget (per hour)</span>
           <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-            ${maxHourlyRate ? `Up to $${maxHourlyRate}/hr` : '$25 – $110/hr'}
+            ₹{minRate} – ₹{activeRate}/hr
           </span>
         </div>
 
-        {/* Visual Frequency Histogram Bars */}
+        {/* Dynamic Visual Frequency Histogram Bars */}
         <div className="pt-1">
           <div className="flex items-end justify-between gap-1 h-10 px-1">
-            <div className="w-full bg-blue-100 hover:bg-blue-300 rounded-t transition-all h-[25%]" title="3 spaces ($20-30)"></div>
-            <div className="w-full bg-blue-200 hover:bg-blue-400 rounded-t transition-all h-[45%]" title="5 spaces ($30-45)"></div>
-            <div className="w-full bg-blue-500 hover:bg-blue-600 rounded-t transition-all h-[80%]" title="8 spaces ($45-60)"></div>
-            <div className="w-full bg-blue-600 hover:bg-blue-700 rounded-t transition-all h-[100%]" title="12 spaces ($60-75)"></div>
-            <div className="w-full bg-blue-500 hover:bg-blue-600 rounded-t transition-all h-[65%]" title="7 spaces ($75-90)"></div>
-            <div className="w-full bg-blue-300 hover:bg-blue-500 rounded-t transition-all h-[35%]" title="4 spaces ($90-105)"></div>
-            <div className="w-full bg-blue-200 hover:bg-blue-400 rounded-t transition-all h-[20%]" title="2 spaces ($105-120)"></div>
+            {histogramBuckets.length > 0 ? (
+              histogramBuckets.map((bucket, idx) => (
+                <div
+                  key={idx}
+                  className={`w-full rounded-t transition-all ${
+                    bucket.count > 0
+                      ? 'bg-blue-500 hover:bg-blue-600'
+                      : 'bg-slate-100'
+                  }`}
+                  style={{ height: `${Math.max(bucket.heightPct, 12)}%` }}
+                  title={`${bucket.count} room(s) (${bucket.label})`}
+                ></div>
+              ))
+            ) : (
+              <div className="w-full bg-blue-200 rounded-t h-[50%]"></div>
+            )}
           </div>
           
-          {/* Rate Range Slider */}
+          {/* Rate Range Slider (0 to maxRateLimit) */}
           <div className="relative mt-2">
             <input
               type="range"
-              min="25"
-              max="110"
-              step="5"
-              value={maxHourlyRate || 110}
-              onChange={(e) => onChangeMaxRate(Number(e.target.value))}
+              min={minRate}
+              max={maxRateLimit || 1000}
+              step={maxRateLimit > 500 ? 50 : 10}
+              value={activeRate}
+              onChange={(e) => onChangeMaxRate && onChangeMaxRate(Number(e.target.value))}
               className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
             <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1 font-medium">
-              <span>$25</span>
-              <span>$65</span>
-              <span>$110+</span>
+              <span>₹{minRate}</span>
+              <span>₹{Math.round(maxRateLimit / 2)}</span>
+              <span>₹{maxRateLimit}+</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Popular Filters */}
+      {/* 3. Popular Filters & Dynamic Amenities from Admin-created rooms */}
       <div className="pt-4 space-y-2.5">
-        <span className="text-xs font-bold text-slate-900 block">Popular filters</span>
-        <div className="space-y-2 text-xs">
-          {POPULAR_FILTERS.map((item) => {
-            const isChecked = item.isStatus ? availableOnly : selectedAmenities.includes(item.id);
+        <span className="text-xs font-bold text-slate-900 block">Popular Amenities</span>
+        <div className="space-y-2 text-xs max-h-60 overflow-y-auto pr-1">
+          {/* Available Status Toggle */}
+          <label className="flex items-center justify-between cursor-pointer group select-none">
+            <span className="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+              <input
+                type="checkbox"
+                checked={availableOnly}
+                onChange={() => onToggleAvailableOnly && onToggleAvailableOnly(!availableOnly)}
+                className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+              />
+              <span className="font-medium text-emerald-700">Available Right Now</span>
+            </span>
+          </label>
+
+          {/* Dynamic Amenities from real rooms */}
+          {availableAmenities.length > 0 ? (
+            availableAmenities.map((amenity) => {
+              const isChecked = selectedAmenities.includes(amenity.id);
+              return (
+                <label key={amenity.id} className="flex items-center justify-between cursor-pointer group select-none">
+                  <span className="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => onToggleAmenity && onToggleAmenity(amenity.id)}
+                      className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <span className="capitalize">{amenity.label}</span>
+                  </span>
+                  <span className="text-slate-400 font-medium text-[11px]">{amenity.count}</span>
+                </label>
+              );
+            })
+          ) : (
+            <p className="text-[11px] text-slate-400 italic">No amenities listed yet</p>
+          )}
+        </div>
+      </div>
+
+      {/* 4. Dynamic Locations / Area from available properties in the system */}
+      <div className="pt-4 space-y-2.5">
+        <span className="text-xs font-bold text-slate-900 block">Available Locations</span>
+        <div className="space-y-2 text-xs max-h-52 overflow-y-auto pr-1">
+          {/* All Locations Option */}
+          <label className="flex items-center justify-between cursor-pointer group select-none">
+            <span className="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+              <input
+                type="radio"
+                name="sidebar_location"
+                checked={locationFilter === 'all' || !locationFilter}
+                onChange={() => onChangeLocation && onChangeLocation('all')}
+                className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+              />
+              <span className={locationFilter === 'all' || !locationFilter ? 'font-semibold text-blue-700' : ''}>
+                All Locations
+              </span>
+            </span>
+          </label>
+
+          {/* Dynamic Property Locations */}
+          {availableLocations.map((loc) => {
+            const isSelected = locationFilter.toLowerCase() === loc.id.toLowerCase();
             return (
-              <label key={item.id} className="flex items-center justify-between cursor-pointer group select-none">
+              <label key={loc.id} className="flex items-center justify-between cursor-pointer group select-none">
                 <span className="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
                   <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => {
-                      if (item.isStatus) {
-                        onToggleAvailableOnly(!availableOnly);
-                      } else {
-                        onToggleAmenity(item.id);
-                      }
-                    }}
-                    className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                    type="radio"
+                    name="sidebar_location"
+                    checked={isSelected}
+                    onChange={() => onChangeLocation && onChangeLocation(loc.id)}
+                    className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
                   />
-                  <span>{item.label}</span>
+                  <span className={`capitalize ${isSelected ? 'font-semibold text-blue-700' : ''}`}>
+                    {loc.label}
+                  </span>
                 </span>
-                <span className="text-slate-400 font-medium text-[11px]">{item.count}</span>
+                <span className="text-slate-400 font-medium text-[11px]">{loc.count}</span>
               </label>
             );
           })}
-        </div>
-      </div>
-
-      {/* 4. Room Capacity & Format */}
-      <div className="pt-4 space-y-2.5">
-        <span className="text-xs font-bold text-slate-900 block">Room Capacity &amp; Format</span>
-        <div className="space-y-2 text-xs">
-          {CAPACITY_OPTIONS.map((cap) => (
-            <label key={cap.id} className="flex items-center justify-between cursor-pointer group select-none">
-              <span className="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
-                <input
-                  type="radio"
-                  name="capacity"
-                  checked={selectedCapacity === cap.id}
-                  onChange={() => onSelectCapacity(cap.id)}
-                  className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
-                />
-                <span className={selectedCapacity === cap.id ? 'font-semibold text-blue-700' : ''}>
-                  {cap.label}
-                </span>
-              </span>
-              <span className="text-slate-400 font-medium text-[11px]">{cap.count}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* 5. Acoustic Isolation (NRC) */}
-      <div className="pt-4 space-y-2.5">
-        <span className="text-xs font-bold text-slate-900 block">Acoustic Isolation (NRC)</span>
-        <div className="space-y-2 text-xs">
-          {ACOUSTIC_FILTERS.map((ac) => {
-            const isChecked = selectedAmenities.includes(ac.id);
-            return (
-              <label key={ac.id} className="flex items-center justify-between cursor-pointer group select-none">
-                <span className="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => onToggleAmenity(ac.id)}
-                    className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
-                  />
-                  <span>{ac.label}</span>
-                </span>
-                <span className="text-slate-400 font-medium text-[11px]">{ac.count}</span>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 6. Location / Area */}
-      <div className="pt-4 space-y-2.5">
-        <span className="text-xs font-bold text-slate-900 block">Location / Area</span>
-        <div className="space-y-2 text-xs">
-          {LOCATION_OPTIONS.map((loc) => (
-            <label key={loc.id} className="flex items-center justify-between cursor-pointer group select-none">
-              <span className="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
-                <input
-                  type="radio"
-                  name="location_area"
-                  checked={locationFilter === loc.id}
-                  onChange={() => onChangeLocation(loc.id)}
-                  className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
-                />
-                <span className={locationFilter === loc.id ? 'font-semibold text-blue-700' : ''}>
-                  {loc.label}
-                </span>
-              </span>
-              <span className="text-slate-400 font-medium text-[11px]">{loc.count}</span>
-            </label>
-          ))}
         </div>
       </div>
 

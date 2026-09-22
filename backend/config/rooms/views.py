@@ -89,6 +89,21 @@ class RoomViewSet(viewsets.ModelViewSet):
         if amenity:
             queryset = queryset.filter(amenities__icontains=amenity.strip())
 
+        # Filter by min_rate / max_rate
+        min_rate = self.request.query_params.get("min_rate")
+        if min_rate:
+            try:
+                queryset = queryset.filter(hourly_rate__gte=float(min_rate))
+            except ValueError:
+                raise ValidationError({"min_rate": "Must be a valid number."})
+
+        max_rate = self.request.query_params.get("max_rate")
+        if max_rate:
+            try:
+                queryset = queryset.filter(hourly_rate__lte=float(max_rate))
+            except ValueError:
+                raise ValidationError({"max_rate": "Must be a valid number."})
+
         # General search keyword in name or location
         search = self.request.query_params.get("search")
         if search:

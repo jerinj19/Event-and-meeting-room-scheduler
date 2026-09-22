@@ -5,7 +5,7 @@ import RoomFilters from '../components/rooms/RoomFilters';
 import RoomGrid from '../components/rooms/RoomGrid';
 import RoomDetailsModal from '../components/rooms/RoomDetailsModal';
 
-// Initial room data matching the Google Stitch design
+// Initial room data matching system blueprint (fallback if offline)
 const INITIAL_ROOMS = [
   {
     id: 'room-1',
@@ -13,10 +13,11 @@ const INITIAL_ROOMS = [
     location: 'Koramangala • 4th Floor (Innovyx Tower)',
     capacity: 14,
     area: '1,200 sq ft',
-    hourlyRate: 85,
+    hourlyRate: 850,
     status: 'Available',
     image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
-    amenities: ['4K Screen', 'Polycom Video', 'Whiteboard', 'WiFi 6', 'Coffee Bar', 'NRC'],
+    amenities: ['4K Screen', 'Polycom Video', 'Whiteboard', 'WiFi 6', 'Coffee Bar'],
+    is_active: true,
   },
   {
     id: 'room-2',
@@ -24,10 +25,11 @@ const INITIAL_ROOMS = [
     location: 'Indiranagar • 100ft Road',
     capacity: 8,
     area: '750 sq ft',
-    hourlyRate: 55,
+    hourlyRate: 550,
     status: 'Available',
     image: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80',
     amenities: ['Dual Display', 'Video Conf', 'Acoustic Baffles', 'Whiteboard', 'Coffee Bar'],
+    is_active: true,
   },
   {
     id: 'room-3',
@@ -35,10 +37,11 @@ const INITIAL_ROOMS = [
     location: 'MG Road • Trinity Circle',
     capacity: 18,
     area: '1,450 sq ft',
-    hourlyRate: 110,
+    hourlyRate: 1100,
     status: 'In-Maintenance',
     image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80',
     amenities: ['85" OLED', 'Audio Suite', 'Marble Table', 'WiFi 6', '4K'],
+    is_active: false,
   },
   {
     id: 'room-4',
@@ -46,10 +49,11 @@ const INITIAL_ROOMS = [
     location: 'Koramangala • 4th Block',
     capacity: 4,
     area: '280 sq ft',
-    hourlyRate: 30,
+    hourlyRate: 350,
     status: 'Available',
     image: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80',
     amenities: ['Display Screen', 'WiFi 6', 'Standing Desk'],
+    is_active: true,
   },
   {
     id: 'room-5',
@@ -57,10 +61,11 @@ const INITIAL_ROOMS = [
     location: 'Indiranagar • Defence Colony',
     capacity: 10,
     area: '900 sq ft',
-    hourlyRate: 65,
+    hourlyRate: 650,
     status: 'Available',
     image: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
-    amenities: ['Ultra-wide Screen', 'Glass Wall', 'Podcast Mic', 'WiFi 6', '4K'],
+    amenities: ['Ultra-wide Screen', 'Glass Wall', 'Podcast Mic', 'WiFi 6'],
+    is_active: true,
   },
   {
     id: 'room-6',
@@ -68,10 +73,11 @@ const INITIAL_ROOMS = [
     location: 'MG Road • Brigade Gateway',
     capacity: 2,
     area: '160 sq ft',
-    hourlyRate: 25,
+    hourlyRate: 250,
     status: 'Available',
     image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=800&q=80',
-    amenities: ['NRC 0.9 Felt', 'WiFi 6', 'Ergonomic', 'NRC'],
+    amenities: ['NRC 0.9 Felt', 'WiFi 6', 'Ergonomic'],
+    is_active: true,
   },
 ];
 
@@ -81,40 +87,159 @@ export default function RoomCatalog() {
   const [selectedModalRoom, setSelectedModalRoom] = useState(null);
 
   // Filter States
-  const [selectedCapacity, setSelectedCapacity] = useState('all');
+  const [locationQuery, setLocationQuery] = useState('');
+  const [selectedDate, setSelectedDate] = useState('2026-09-22');
+  const [bookedRoomIdsOnDate, setBookedRoomIdsOnDate] = useState(new Set());
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [availableOnly, setAvailableOnly] = useState(false);
   const [locationFilter, setLocationFilter] = useState('all');
-  const [maxHourlyRate, setMaxHourlyRate] = useState(110);
+  const [maxHourlyRate, setMaxHourlyRate] = useState(null);
   const [sortBy, setSortBy] = useState('recommended');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Optional fetch from DRF backend
+  // 1. Fetch Rooms from DRF Backend API
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/rooms/')
+    const token = localStorage.getItem('access_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    fetch('http://127.0.0.1:8000/api/rooms/', { headers })
       .then((res) => {
         if (res.ok) return res.json();
-        throw new Error('Backend not active');
+        throw new Error('Backend rooms endpoint not active');
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          // Merge API data with default imagery if needed
-          const formatted = data.map((r, i) => ({
-            ...r,
-            image: r.image || INITIAL_ROOMS[i % INITIAL_ROOMS.length].image,
-            area: r.area || '950 sq ft',
-            hourlyRate: r.hourlyRate || 75,
-            status: r.is_active ? 'Available' : 'In-Maintenance',
-            amenities: r.amenities || ['4K Screen', 'WiFi 6'],
-          }));
+        const list = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : []);
+        if (list.length > 0) {
+          const formatted = list.map((r, i) => {
+            const rawRate = Number(r.hourly_rate ?? r.hourlyRate ?? 500);
+            return {
+              id: r.id,
+              name: r.name,
+              location: r.location || 'Bangalore Workspace',
+              capacity: r.capacity || 4,
+              area: r.area || `${Math.round((r.capacity || 4) * 60 + 100)} sq ft`,
+              hourlyRate: rawRate,
+              hourly_rate: rawRate,
+              status: r.is_active ? 'Available' : 'In-Maintenance',
+              image: r.image 
+                ? (r.image.startsWith('http') ? r.image : `http://127.0.0.1:8000${r.image}`)
+                : INITIAL_ROOMS[i % INITIAL_ROOMS.length].image,
+              amenities: Array.isArray(r.amenities) ? r.amenities : [],
+              is_active: r.is_active !== undefined ? r.is_active : true,
+            };
+          });
           setRooms(formatted);
         }
       })
       .catch(() => {
-        // Fallback silently to initial mock rooms
+        // Fallback silently to initial rooms
       });
   }, []);
 
+  // 2. Query Confirmed Bookings for Selected Date (Option B: Zero bookings on that date)
+  useEffect(() => {
+    if (!selectedDate) {
+      setBookedRoomIdsOnDate(new Set());
+      return;
+    }
+
+    const token = localStorage.getItem('access_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    fetch(`http://127.0.0.1:8000/api/bookings/?date=${selectedDate}&status=CONFIRMED`, { headers })
+      .then((res) => {
+        if (res.ok) return res.json();
+        return [];
+      })
+      .then((data) => {
+        const list = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : []);
+        // Option B: Collect any room that has a confirmed booking on this date
+        const bookedIds = new Set();
+        list.forEach((b) => {
+          const rId = b.room || b.room_id;
+          if (rId) bookedIds.add(String(rId));
+        });
+        setBookedRoomIdsOnDate(bookedIds);
+      })
+      .catch(() => {
+        setBookedRoomIdsOnDate(new Set());
+      });
+  }, [selectedDate]);
+
+  // 3. Dynamic Amenities Extraction with Real Counts from System Rooms
+  const availableAmenities = useMemo(() => {
+    const counts = {};
+    rooms.forEach((r) => {
+      if (Array.isArray(r.amenities)) {
+        r.amenities.forEach((a) => {
+          if (a && typeof a === 'string') {
+            const clean = a.trim();
+            counts[clean] = (counts[clean] || 0) + 1;
+          }
+        });
+      }
+    });
+    return Object.entries(counts).map(([amenity, count]) => ({
+      id: amenity,
+      label: amenity,
+      count,
+    }));
+  }, [rooms]);
+
+  // 4. Dynamic Locations Extraction with Real Counts from System Rooms
+  const availableLocations = useMemo(() => {
+    const counts = {};
+    rooms.forEach((r) => {
+      if (r.location) {
+        const loc = r.location.trim();
+        counts[loc] = (counts[loc] || 0) + 1;
+      }
+    });
+    return Object.entries(counts).map(([loc, count]) => ({
+      id: loc,
+      label: loc,
+      count,
+    }));
+  }, [rooms]);
+
+  // 5. Dynamic Max Rate from System Rooms (Auto-expands when admin adds high-value property)
+  const maxPropertyRate = useMemo(() => {
+    if (!rooms.length) return 1000;
+    const max = Math.max(...rooms.map((r) => Number(r.hourlyRate || 0)));
+    return max > 0 ? max : 1000;
+  }, [rooms]);
+
+  // 6. Dynamic Visual Frequency Histogram Calculation
+  const histogramBuckets = useMemo(() => {
+    const numBuckets = 7;
+    const step = Math.max(1, Math.ceil(maxPropertyRate / numBuckets));
+    const buckets = Array.from({ length: numBuckets }, (_, i) => {
+      const start = i * step;
+      const end = (i + 1) * step;
+      return {
+        start,
+        end,
+        label: `₹${start}–₹${end}`,
+        count: 0,
+      };
+    });
+
+    rooms.forEach((r) => {
+      const rate = Number(r.hourlyRate || 0);
+      const idx = Math.min(Math.floor(rate / step), numBuckets - 1);
+      if (idx >= 0 && idx < numBuckets) {
+        buckets[idx].count += 1;
+      }
+    });
+
+    const maxCount = Math.max(...buckets.map((b) => b.count), 1);
+    return buckets.map((b) => ({
+      ...b,
+      heightPct: Math.round((b.count / maxCount) * 100),
+    }));
+  }, [rooms, maxPropertyRate]);
+
+  // Handlers
   const handleToggleAmenity = (amenityId) => {
     setSelectedAmenities((prev) =>
       prev.includes(amenityId) ? prev.filter((a) => a !== amenityId) : [...prev, amenityId]
@@ -122,49 +247,76 @@ export default function RoomCatalog() {
   };
 
   const handleResetFilters = () => {
-    setSelectedCapacity('all');
+    setLocationQuery('');
+    setSelectedDate('2026-09-22');
     setSelectedAmenities([]);
     setAvailableOnly(false);
     setLocationFilter('all');
-    setMaxHourlyRate(110);
+    setMaxHourlyRate(null);
     setSortBy('recommended');
   };
 
   // Filter Calculation
+  const effectiveMaxRate = maxHourlyRate !== null && maxHourlyRate !== undefined ? maxHourlyRate : maxPropertyRate;
+
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => {
-      // 1. Capacity filter
-      if (selectedCapacity === 'small' && (room.capacity < 2 || room.capacity > 4)) return false;
-      if (selectedCapacity === 'medium' && (room.capacity < 6 || room.capacity > 10)) return false;
-      if (selectedCapacity === 'large' && (room.capacity < 12 || room.capacity > 20)) return false;
-      if (selectedCapacity === 'boardroom' && room.capacity < 25) return false;
+      // Location Blankspace Keyword Search
+      if (locationQuery.trim()) {
+        const q = locationQuery.trim().toLowerCase();
+        const matchLoc = room.location && room.location.toLowerCase().includes(q);
+        const matchName = room.name && room.name.toLowerCase().includes(q);
+        if (!matchLoc && !matchName) return false;
+      }
 
-      // 2. Available Only filter
+      // Sidebar Location Filter
+      if (locationFilter !== 'all' && room.location) {
+        if (!room.location.toLowerCase().includes(locationFilter.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Date Availability Check (Option B: Must have 0 bookings on that date)
+      if (selectedDate && bookedRoomIdsOnDate.has(String(room.id))) {
+        return false;
+      }
+
+      // Available Only status filter
       if (availableOnly && room.status !== 'Available') return false;
 
-      // 3. Location filter
-      if (locationFilter !== 'all' && !room.location.includes(locationFilter)) return false;
+      // Budget Rate filter
+      if (room.hourlyRate > effectiveMaxRate) return false;
 
-      // 4. Rate filter
-      if (maxHourlyRate && room.hourlyRate > maxHourlyRate) return false;
-
-      // 5. Amenities filter
+      // Amenities filter (must match all selected amenities)
       if (selectedAmenities.length > 0) {
+        const roomAmenitiesLower = (room.amenities || []).map((a) => a.toLowerCase());
         const hasAll = selectedAmenities.every((selected) =>
-          room.amenities.some((a) => a.toLowerCase().includes(selected.toLowerCase()))
+          roomAmenitiesLower.some((a) => a.includes(selected.toLowerCase()))
         );
         if (!hasAll) return false;
       }
 
       return true;
     });
-  }, [rooms, selectedCapacity, availableOnly, locationFilter, maxHourlyRate, selectedAmenities]);
+  }, [
+    rooms,
+    locationQuery,
+    locationFilter,
+    selectedDate,
+    bookedRoomIdsOnDate,
+    availableOnly,
+    effectiveMaxRate,
+    selectedAmenities,
+  ]);
 
   // Sorting Calculation
   const sortedRooms = useMemo(() => {
     const list = [...filteredRooms];
     if (sortBy === 'rateAsc') {
       return list.sort((a, b) => a.hourlyRate - b.hourlyRate);
+    }
+    if (sortBy === 'rateDesc') {
+      return list.sort((a, b) => b.hourlyRate - a.hourlyRate);
     }
     if (sortBy === 'capacityDesc') {
       return list.sort((a, b) => b.capacity - a.capacity);
@@ -177,9 +329,8 @@ export default function RoomCatalog() {
   const maintenanceCount = rooms.filter((r) => r.status === 'In-Maintenance').length;
 
   const handleBook = (room) => {
-    // Passes room state into Srilaxmi's flow
     navigate(`/book?roomId=${room.id}&roomName=${encodeURIComponent(room.name)}`, {
-      state: { room },
+      state: { room, selectedDate },
     });
   };
 
@@ -194,16 +345,16 @@ export default function RoomCatalog() {
             <span>/</span>
             <span>Workspaces</span>
             <span>/</span>
-            <span className="text-blue-600 font-medium">Bangalore</span>
+            <span className="text-blue-600 font-medium">Catalog</span>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-                Book Meeting Rooms in Bangalore
+                Meeting Rooms &amp; Workspaces
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Explore and reserve high-tech conference rooms, boardrooms, and collaborative spaces.
+                Search, filter, and reserve high-tech meeting rooms and collaborative spaces in real-time.
               </p>
             </div>
 
@@ -222,19 +373,19 @@ export default function RoomCatalog() {
               </div>
               <div className="h-4 w-px bg-slate-200 hidden sm:block"></div>
               <div className="hidden sm:flex items-center gap-1.5">
-                <span className="text-slate-500">Total:</span>
+                <span className="text-slate-500">Total Properties:</span>
                 <span className="font-bold text-slate-800">{rooms.length}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Universal Search Command Bar with click-activated Calendar Popover */}
+        {/* Universal Search Command Bar with Location Keyword Input & Date Picker */}
         <SearchCommandBar
-          locationFilter={locationFilter}
-          onChangeLocation={setLocationFilter}
-          selectedCapacity={selectedCapacity}
-          onChangeCapacity={setSelectedCapacity}
+          locationQuery={locationQuery}
+          onChangeLocationQuery={setLocationQuery}
+          selectedDate={selectedDate}
+          onChangeDate={setSelectedDate}
           onSearch={() => {}}
         />
 
@@ -244,16 +395,19 @@ export default function RoomCatalog() {
           {/* Left Column: Faceted Filter Sidebar (3 cols, top-aligned) */}
           <div className="lg:col-span-3">
             <RoomFilters
-              selectedCapacity={selectedCapacity}
-              onSelectCapacity={setSelectedCapacity}
+              minRate={0}
+              maxRateLimit={maxPropertyRate}
+              currentMaxRate={effectiveMaxRate}
+              onChangeMaxRate={setMaxHourlyRate}
+              histogramBuckets={histogramBuckets}
+              availableAmenities={availableAmenities}
               selectedAmenities={selectedAmenities}
               onToggleAmenity={handleToggleAmenity}
               availableOnly={availableOnly}
               onToggleAvailableOnly={setAvailableOnly}
+              availableLocations={availableLocations}
               locationFilter={locationFilter}
               onChangeLocation={setLocationFilter}
-              maxHourlyRate={maxHourlyRate}
-              onChangeMaxRate={setMaxHourlyRate}
               onResetFilters={handleResetFilters}
             />
           </div>
@@ -265,31 +419,60 @@ export default function RoomCatalog() {
             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <span>Bengaluru Campus:</span>
-                  <span className="text-blue-600 font-extrabold">{sortedRooms.length} Meeting Spaces Found</span>
+                  <span>Results:</span>
+                  <span className="text-blue-600 font-extrabold">{sortedRooms.length} Spaces Found</span>
+                  {selectedDate && (
+                    <span className="text-xs font-normal text-slate-500">
+                      (Available on {selectedDate})
+                    </span>
+                  )}
                 </h2>
                 
                 {/* Active Filter Removable Tags */}
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  {locationFilter !== 'all' && (
+                  {locationQuery && (
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg border border-blue-100">
-                      <span>{locationFilter}</span>
+                      <span>Search: "{locationQuery}"</span>
                       <button
                         type="button"
-                        onClick={() => setLocationFilter('all')}
-                        className="text-blue-400 hover:text-blue-800 font-bold"
+                        onClick={() => setLocationQuery('')}
+                        className="text-blue-400 hover:text-blue-800 font-bold cursor-pointer"
                       >
                         ✕
                       </button>
                     </span>
                   )}
-                  {selectedCapacity !== 'all' && (
+                  {locationFilter !== 'all' && (
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg border border-blue-100">
-                      <span>Capacity: {selectedCapacity}</span>
+                      <span>Location: {locationFilter}</span>
                       <button
                         type="button"
-                        onClick={() => setSelectedCapacity('all')}
-                        className="text-blue-400 hover:text-blue-800 font-bold"
+                        onClick={() => setLocationFilter('all')}
+                        className="text-blue-400 hover:text-blue-800 font-bold cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                  {selectedDate && (
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-100">
+                      <span>Date: {selectedDate}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDate('')}
+                        className="text-indigo-400 hover:text-indigo-800 font-bold cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                  {maxHourlyRate !== null && maxHourlyRate < maxPropertyRate && (
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg border border-blue-100">
+                      <span>Up to ₹{maxHourlyRate}/hr</span>
+                      <button
+                        type="button"
+                        onClick={() => setMaxHourlyRate(null)}
+                        className="text-blue-400 hover:text-blue-800 font-bold cursor-pointer"
                       >
                         ✕
                       </button>
@@ -301,7 +484,7 @@ export default function RoomCatalog() {
                       <button
                         type="button"
                         onClick={() => setAvailableOnly(false)}
-                        className="text-emerald-400 hover:text-emerald-800 font-bold"
+                        className="text-emerald-400 hover:text-emerald-800 font-bold cursor-pointer"
                       >
                         ✕
                       </button>
@@ -309,11 +492,11 @@ export default function RoomCatalog() {
                   )}
                   {selectedAmenities.length > 0 && selectedAmenities.map((amenity) => (
                     <span key={amenity} className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200">
-                      <span>{amenity}</span>
+                      <span className="capitalize">{amenity}</span>
                       <button
                         type="button"
                         onClick={() => handleToggleAmenity(amenity)}
-                        className="text-slate-400 hover:text-slate-800 font-bold"
+                        className="text-slate-400 hover:text-slate-800 font-bold cursor-pointer"
                       >
                         ✕
                       </button>
@@ -332,6 +515,7 @@ export default function RoomCatalog() {
                 >
                   <option value="recommended">Recommended (Top picks)</option>
                   <option value="rateAsc">Hourly Rate: Low to High</option>
+                  <option value="rateDesc">Hourly Rate: High to Low</option>
                   <option value="capacityDesc">Capacity: High to Low</option>
                 </select>
               </div>
@@ -340,70 +524,26 @@ export default function RoomCatalog() {
             {/* Room Grid */}
             <RoomGrid
               rooms={sortedRooms}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
               onViewSpecs={(room) => setSelectedModalRoom(room)}
               onBook={handleBook}
-              onResetFilters={handleResetFilters}
             />
-
-            {/* Pagination Footer */}
-            {sortedRooms.length > 0 && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-slate-200 pt-6 pb-12">
-                <p className="text-xs text-slate-500 font-medium">
-                  Showing <span className="font-semibold text-slate-800">{sortedRooms.length}</span> of{' '}
-                  <span className="font-semibold text-slate-800">{rooms.length}</span> meeting rooms
-                </p>
-                <div className="flex items-center gap-1.5 self-center sm:self-auto">
-                  <button
-                    type="button"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-400 bg-slate-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold shadow-2xs"
-                  >
-                    1
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs font-medium text-slate-700 transition"
-                  >
-                    2
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs font-medium text-slate-700 transition"
-                  >
-                    3
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs font-medium text-slate-700 transition"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
 
           </section>
 
         </div>
 
-      </div>
+        {/* Room Specifications Modal */}
+        {selectedModalRoom && (
+          <RoomDetailsModal
+            room={selectedModalRoom}
+            onClose={() => setSelectedModalRoom(null)}
+            onBook={handleBook}
+          />
+        )}
 
-      {/* Interactive Room Details Modal */}
-      {selectedModalRoom && (
-        <RoomDetailsModal
-          room={selectedModalRoom}
-          onClose={() => setSelectedModalRoom(null)}
-          onBook={handleBook}
-        />
-      )}
+      </div>
     </main>
   );
 }

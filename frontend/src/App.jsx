@@ -4,6 +4,7 @@ import AuthView from './pages/AuthView';
 import DashboardWelcome from './pages/DashboardWelcome';
 import MyBookingsView from './pages/MyBookingsView';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminBookings from './pages/AdminBookings';
 import { useAuth } from './contexts/AuthContext';
 
 // Layout and Teammates' components
@@ -110,6 +111,16 @@ export default function App() {
                 <AdminRoomsPage />
               </AdminAppShell>
             </AdminRoute>
+          } 
+        />
+        <Route 
+          path="/admin/bookings" 
+          element={
+            <ProtectedRoute>
+              <AdminAppShell>
+                <AdminBookings />
+              </AdminAppShell>
+            </ProtectedRoute>
           } 
         />
         

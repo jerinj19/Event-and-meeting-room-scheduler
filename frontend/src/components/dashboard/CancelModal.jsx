@@ -10,7 +10,15 @@ const CancelModal = ({ isOpen, onClose, onConfirm, booking }) => {
         
         {/* Preview Image Banner with Overlaid Badges */}
         <div className="relative h-44 w-full overflow-hidden bg-slate-100 border-b border-[#e0e3e5]">
-          <img alt={booking?.roomName || "Room"} className="w-full h-full object-cover object-center" src={booking?.imageUrl || "https://lh3.googleusercontent.com/aida/AEtjO1WGfyOGlT6EUSoIkdaOWcfz5Z2NthWdPgZPqEWHIen3UbNuFZtx7amAW2okbSpRhOU-XYJygQh3MNADrw6kpClS76Jzj8a_2ad6Ipjk6tJArHXDJ9jRTqCP7FoV01zS87GKtxeED_lbpxJp2npmXRrfJ1z8j05DlerKmca30EG4Mx2zny9Sz2AP8K0dI_Qkt_l9bThvnSrRClTQU7pZnCkdZI5bGOspbulLvA_VCqtTiTEamEvlnaUKnY4"} />
+          <img
+            alt={booking?.roomName || "Room"}
+            className="w-full h-full object-cover object-center"
+            src={booking?.imageUrl || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80"}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80";
+            }}
+          />
           {/* Soft top and bottom architectural vignettes for high-contrast tag readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/30"></div>
           

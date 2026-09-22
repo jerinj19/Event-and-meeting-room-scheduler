@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useToast } from './ToastContext';
 
 const AuthContext = createContext(null);
@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     try {
       const response = await fetch('http://localhost:8000/api/auth/token/', {
         method: 'POST',
@@ -38,7 +38,6 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('refresh_token', data.refresh);
       }
       
-      // Extract user from token response
       const realUser = data.user;
       localStorage.setItem('user', JSON.stringify(realUser));
       
@@ -49,9 +48,9 @@ export const AuthProvider = ({ children }) => {
       toast.error(error.message || 'Failed to login');
       throw error;
     }
-  };
+  }, [toast]);
 
-  const register = async (email, password, firstName, lastName, department) => {
+  const register = useCallback(async (email, password, firstName, lastName, department) => {
     try {
       const response = await fetch('http://localhost:8000/api/auth/register/', {
         method: 'POST',
@@ -69,25 +68,28 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Registration failed. Email might already exist.');
       }
 
-      // Automatically log them in after registration
       await login(email, password);
     } catch (error) {
       toast.error(error.message || 'Failed to register');
       throw error;
     }
-  };
+  }, [login, toast]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     setIsAuthenticated(false);
     setUser(null);
     toast.info('You have been logged out.');
-  };
+  }, [toast]);
+
+  const value = React.useMemo(() => ({
+    isAuthenticated, user, login, register, logout
+  }), [isAuthenticated, user, login, register, logout]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

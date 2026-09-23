@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useNavigate } from 'react-router-dom';
 import ConfirmActionModal from '../components/admin/ConfirmActionModal';
 
 export default function AdminSettingsPage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'security', 'system'
 
@@ -21,6 +23,12 @@ export default function AdminSettingsPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Modal States
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // System State
   const [admins, setAdmins] = useState([]);
@@ -63,8 +71,12 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handleProfileSubmit = async (e) => {
+  const openProfileModal = (e) => {
     e.preventDefault();
+    setIsProfileModalOpen(true);
+  };
+
+  const confirmProfileSubmit = async () => {
     setSavingProfile(true);
     try {
       const token = localStorage.getItem('access_token');
@@ -90,16 +102,20 @@ export default function AdminSettingsPage() {
       toast.error(err.message);
     } finally {
       setSavingProfile(false);
+      setIsProfileModalOpen(false);
     }
   };
 
-  const handlePasswordSubmit = async (e) => {
+  const openPasswordModal = (e) => {
     e.preventDefault();
     if (newPassword !== confirmNewPassword) {
       toast.error('New passwords do not match.');
       return;
     }
-    
+    setIsPasswordModalOpen(true);
+  };
+
+  const confirmPasswordSubmit = async () => {
     setSavingPassword(true);
     try {
       const token = localStorage.getItem('access_token');
@@ -129,6 +145,40 @@ export default function AdminSettingsPage() {
       toast.error(err.message);
     } finally {
       setSavingPassword(false);
+      setIsPasswordModalOpen(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (user?.is_owner) {
+      toast.error("System owner cannot delete their account. Transfer ownership first.");
+      setIsDeleteModalOpen(false);
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:8000/api/auth/me/', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete account');
+      }
+
+      toast.success('Your account has been successfully deleted.');
+      setIsDeleteModalOpen(false);
+      logout();
+      navigate('/login');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -217,7 +267,7 @@ export default function AdminSettingsPage() {
           {activeTab === 'profile' && (
             <div className="max-w-2xl">
               <h2 className="text-lg font-semibold mb-6">Personal Details</h2>
-              <form onSubmit={handleProfileSubmit} className="space-y-5">
+              <form onSubmit={openProfileModal} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1">
                     <label className="text-label-sm font-semibold text-on-surface">First Name</label>
@@ -275,7 +325,7 @@ export default function AdminSettingsPage() {
           {activeTab === 'security' && (
             <div className="max-w-xl">
               <h2 className="text-lg font-semibold mb-6">Change Password</h2>
-              <form onSubmit={handlePasswordSubmit} className="space-y-5">
+              <form onSubmit={openPasswordModal} className="space-y-5">
                 <div className="space-y-1">
                   <label className="text-label-sm font-semibold text-on-surface">Current Password</label>
                   <div className="relative">
@@ -332,6 +382,25 @@ export default function AdminSettingsPage() {
                   </button>
                 </div>
               </form>
+
+              <hr className="my-8 border-outline-variant/30" />
+
+              <div className="flex items-start gap-4 p-4 bg-error-container/10 border border-error/20 rounded-xl">
+                <span className="material-symbols-outlined text-error" data-icon="warning">warning</span>
+                <div>
+                  <h3 className="font-semibold text-error mb-1">Danger Zone: Delete Account</h3>
+                  <p className="text-sm text-secondary leading-relaxed mb-4">
+                    Once you delete your account, there is no going back. Please be certain.
+                  </p>
+                  <button 
+                    type="button"
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="px-6 py-2 bg-error text-white hover:bg-error/90 rounded-lg font-medium text-sm shadow-sm transition-colors"
+                  >
+                    Delete Account
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -403,6 +472,48 @@ export default function AdminSettingsPage() {
         confirmText={transferring ? "Transferring..." : "Yes, Transfer Ownership"}
         confirmColorClass="bg-error hover:bg-error/90 text-white"
         noticeText={`You are about to transfer complete control of the system. You will lose the ability to manage other administrators. This cannot be undone.`}
+      />
+
+      <ConfirmActionModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+        onConfirm={confirmProfileSubmit}
+        title="Update Profile?"
+        subtitle="Account Settings"
+        icon="person"
+        iconColor="text-primary"
+        iconBg="bg-primary-container/20"
+        confirmText={savingProfile ? "Saving..." : "Yes, Update Profile"}
+        confirmColorClass="bg-primary hover:bg-primary/90 text-white"
+        noticeText={`Are you sure you want to save these changes to your personal details?`}
+      />
+
+      <ConfirmActionModal 
+        isOpen={isPasswordModalOpen} 
+        onClose={() => setIsPasswordModalOpen(false)} 
+        onConfirm={confirmPasswordSubmit}
+        title="Change Password?"
+        subtitle="Security Settings"
+        icon="lock"
+        iconColor="text-error"
+        iconBg="bg-error-container/20"
+        confirmText={savingPassword ? "Updating..." : "Yes, Change Password"}
+        confirmColorClass="bg-error hover:bg-error/90 text-white"
+        noticeText={`This will update your password and log you out of any other active sessions. Make sure you remember your new password.`}
+      />
+
+      <ConfirmActionModal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)} 
+        onConfirm={handleDeleteAccount}
+        title="Delete Account?"
+        subtitle="Irreversible Action"
+        icon="delete_forever"
+        iconColor="text-error"
+        iconBg="bg-error-container/20"
+        confirmText={deleting ? "Deleting..." : "Yes, Delete My Account"}
+        confirmColorClass="bg-error hover:bg-error/90 text-white"
+        noticeText={user?.is_owner ? "You are the system owner. You cannot delete your account without first transferring ownership." : "Are you absolutely sure you want to delete your account? This will immediately terminate your session and delete your data permanently."}
       />
 
     </div>

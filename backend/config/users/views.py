@@ -88,6 +88,16 @@ class MeView(APIView):
         user.save()
         return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
 
+    def delete(self, request):
+        user = request.user
+        if getattr(user, 'is_owner', False):
+            return Response(
+                {"error": "The system owner cannot delete their account. Transfer ownership first."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class ForgotPasswordView(APIView):
     """POST /api/auth/forgot-password/ — sends a reset link to the user's email."""

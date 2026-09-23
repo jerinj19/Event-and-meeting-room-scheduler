@@ -1,7 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 
 export default function RoomDetailsModal({ room, onClose, onBook }) {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+
+  // Compute normalized amenities for the room
+  const roomAmenities = useMemo(() => {
+    if (!room?.amenities) return [];
+    let list = [];
+    if (Array.isArray(room.amenities)) {
+      list = room.amenities;
+    } else if (typeof room.amenities === 'string') {
+      try {
+        const parsed = JSON.parse(room.amenities);
+        list = Array.isArray(parsed) ? parsed : [room.amenities];
+      } catch {
+        list = [room.amenities];
+      }
+    }
+    return list.map((a) => (typeof a === 'string' ? a.trim() : String(a))).filter(Boolean);
+  }, [room?.amenities]);
 
   // Support closing with Escape key
   useEffect(() => {
@@ -60,7 +77,7 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <span>{room.location} (Near Executive Elevators)</span>
+              <span>{room.location}</span>
             </p>
           </div>
 
@@ -163,27 +180,31 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
 
             {/* Amenities & Hospitality */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <span className="text-blue-600">☕</span>
-                Workplace Amenities & Hospitality
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="text-blue-600">☕</span>
+                  Workplace Amenities & Hospitality
+                </h4>
+                {roomAmenities.length > 0 && (
+                  <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/60 px-2 py-0.5 rounded-full">
+                    {roomAmenities.length} Included
+                  </span>
+                )}
+              </div>
               <ul className="space-y-2 text-xs text-slate-700">
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-600 font-bold">✓</span>
-                  8ft Magnetic Ultra-Clear Glass Whiteboard
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-600 font-bold">✓</span>
-                  Dedicated Wall-Mounted Touchscreen Thermostat
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-600 font-bold">✓</span>
-                  Motorized Automated Blackout & Solar Blinds
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-600 font-bold">✓</span>
-                  Nespresso Vertuo Coffee Bar & Chilled Water
-                </li>
+                {roomAmenities.length > 0 ? (
+                  roomAmenities.map((amenity, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <span className="text-emerald-600 font-bold shrink-0">✓</span>
+                      <span className="text-slate-700">{amenity}</span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="flex items-center gap-2 text-slate-400 italic">
+                    <span className="text-slate-400">ℹ</span>
+                    <span>Standard room amenities provided upon request.</span>
+                  </li>
+                )}
               </ul>
             </div>
           </div>

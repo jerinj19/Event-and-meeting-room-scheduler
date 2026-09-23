@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import roomService from '../../services/roomService';
+import { getIndianStates, getCitiesForState, parseLocation } from '../../data/indiaLocations';
 
 const PRESET_AMENITIES = [
   '4K Display Screen',
@@ -25,7 +26,8 @@ export default function AdminRoomModal({
   // Form State
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [location, setLocation] = useState('');
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
   const [capacity, setCapacity] = useState(4);
   const [billingRate, setBillingRate] = useState('');
   const [isActive, setIsActive] = useState(true);
@@ -64,7 +66,9 @@ export default function AdminRoomModal({
     if (room) {
       setName(room.name || '');
       setCode(room.code || `RM-${(room.name || '01').toUpperCase().replace(/\s+/g, '-').slice(0, 10)}`);
-      setLocation(room.location || '');
+      const parsedLoc = parseLocation(room.location || '');
+      setSelectedState(parsedLoc.state || '');
+      setSelectedCity(parsedLoc.city || '');
       setCapacity(room.capacity || 4);
       setBillingRate(
         room.hourly_rate !== undefined && room.hourly_rate !== null
@@ -84,7 +88,8 @@ export default function AdminRoomModal({
       // Default clean blank state for creating a new room
       setName('');
       setCode('');
-      setLocation('');
+      setSelectedState('');
+      setSelectedCity('');
       setCapacity(4);
       setBillingRate('');
       setIsActive(true);
@@ -93,6 +98,28 @@ export default function AdminRoomModal({
     }
     setErrors({});
   }, [room, isOpen]);
+
+  // Dynamically compute cities for selected state
+  const availableCities = useMemo(() => {
+    return getCitiesForState(selectedState);
+  }, [selectedState]);
+
+  const handleStateChange = (e) => {
+    const nextState = e.target.value;
+    setSelectedState(nextState);
+    setSelectedCity('');
+    if (errors.location) {
+      setErrors((prev) => ({ ...prev, location: null }));
+    }
+  };
+
+  const handleCityChange = (e) => {
+    const nextCity = e.target.value;
+    setSelectedCity(nextCity);
+    if (errors.location) {
+      setErrors((prev) => ({ ...prev, location: null }));
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -137,8 +164,10 @@ export default function AdminRoomModal({
     if (!name.trim()) {
       validationErrors.name = 'Room name is required.';
     }
-    if (!location.trim()) {
-      validationErrors.location = 'Location description is required.';
+    if (!selectedState) {
+      validationErrors.location = 'Please select a state.';
+    } else if (!selectedCity) {
+      validationErrors.location = 'Please select a city.';
     }
     if (!capacity || Number(capacity) <= 0) {
       validationErrors.capacity = 'Capacity must be greater than 0.';
@@ -150,11 +179,12 @@ export default function AdminRoomModal({
     }
 
     const rateNum = parseFloat(billingRate) || 0;
+    const formattedLocation = `${selectedCity}, ${selectedState}`;
 
     onSave({
       name: name.trim(),
       code: code.trim(),
-      location: location.trim(),
+      location: formattedLocation,
       capacity: parseInt(capacity, 10),
       amenities: selectedAmenities,
       is_active: isActive,
@@ -251,24 +281,98 @@ export default function AdminRoomModal({
               </div>
             </div>
 
-            {/* Location & Wing */}
+            {/* Location (Cascading State & City for India) */}
             <div>
-              <label className="block text-xs font-semibold text-on-surface mb-1.5">
-                Location & Wing <span className="text-error">*</span>
-              </label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm" data-icon="location_on">location_on</span>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Building A · Floor 4, West Executive Wing"
-                  className={`w-full pl-9 pr-3.5 py-2 rounded-xl border bg-surface-container-lowest text-on-surface text-sm placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 transition ${
-                    errors.location ? 'border-error ring-1 ring-error' : 'border-outline-variant'
-                  }`}
-                />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-on-surface">
+                  Room Location <span className="text-error">*</span>
+                </label>
+                <span className="text-[11px] font-medium text-secondary flex items-center gap-1.5 bg-surface-container-low px-2 py-0.5 rounded-full border border-outline-variant/50">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Country: India
+                </span>
               </div>
-              {errors.location && <p className="text-error text-xs mt-1">{errors.location}</p>}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* State Dropdown */}
+                <div>
+                  <label htmlFor="room-state-select" className="block text-[11px] font-medium text-secondary mb-1">
+                    State / Union Territory <span className="text-error">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm pointer-events-none" data-icon="map">
+                      map
+                    </span>
+                    <select
+                      id="room-state-select"
+                      value={selectedState}
+                      onChange={handleStateChange}
+                      className={`w-full pl-9 pr-8 py-2 rounded-xl border bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition appearance-none cursor-pointer ${
+                        errors.location && !selectedState ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                      }`}
+                    >
+                      <option value="">Select State / UT...</option>
+                      {getIndianStates().map((st) => (
+                        <option key={st} value={st}>
+                          {st}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary text-sm pointer-events-none" data-icon="expand_more">
+                      expand_more
+                    </span>
+                  </div>
+                </div>
+
+                {/* City Dropdown */}
+                <div>
+                  <label htmlFor="room-city-select" className="block text-[11px] font-medium text-secondary mb-1">
+                    City <span className="text-error">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm pointer-events-none" data-icon="location_city">
+                      location_city
+                    </span>
+                    <select
+                      id="room-city-select"
+                      value={selectedCity}
+                      onChange={handleCityChange}
+                      disabled={!selectedState}
+                      className={`w-full pl-9 pr-8 py-2 rounded-xl border bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface-container-low ${
+                        errors.location && !selectedCity ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                      }`}
+                    >
+                      <option value="">
+                        {selectedState ? 'Select City...' : 'Select State first'}
+                      </option>
+                      {availableCities.map((ct) => (
+                        <option key={ct} value={ct}>
+                          {ct}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary text-sm pointer-events-none" data-icon="expand_more">
+                      expand_more
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selected Location Live Feedback */}
+              {selectedState && selectedCity && (
+                <div className="mt-2.5 flex items-center gap-2 text-xs text-primary font-medium bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20">
+                  <span className="material-symbols-outlined text-[16px] text-primary" data-icon="pin_drop">pin_drop</span>
+                  <span>Configured Location: <strong className="font-semibold text-on-surface">{selectedCity}, {selectedState}</strong></span>
+                </div>
+              )}
+
+              {/* Validation Error */}
+              {errors.location && (
+                <p className="text-error text-xs mt-1.5 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">error</span>
+                  {errors.location}
+                </p>
+              )}
             </div>
           </div>
 

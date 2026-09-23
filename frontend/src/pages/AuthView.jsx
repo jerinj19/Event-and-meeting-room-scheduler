@@ -65,7 +65,8 @@ const AuthView = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [department, setDepartment] = useState('');
-  const { login, register, isAuthenticated, user } = useAuth();
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
+  const { login, register, loginWithMicrosoft, isAuthenticated, user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -78,6 +79,43 @@ const AuthView = () => {
       }
     }
   }, [isAuthenticated, user, navigate]);
+
+  const handleMicrosoftLogin = async () => {
+    setIsMicrosoftLoading(true);
+    try {
+      console.log('Initiating Microsoft 365 sign-in...');
+      const loggedUser = await loginWithMicrosoft();
+      console.log('Microsoft sign-in completed, user:', loggedUser);
+      if (loggedUser) {
+        if (loggedUser.is_staff) {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    } catch (err) {
+      console.error('Microsoft sign-in error:', err);
+      if (
+        err.code === 'USER_NOT_REGISTERED' || 
+        err.code === 'DOMAIN_NOT_ALLOWED' || 
+        err.code === 'USER_INACTIVE'
+      ) {
+        navigate('/access-denied', {
+          state: {
+            code: err.code,
+            email: err.email,
+            domain: err.domain,
+            message: err.message,
+            adminContact: err.adminContact,
+          }
+        });
+      } else {
+        toast.error(err.message || 'Failed to sign in with Microsoft.');
+      }
+    } finally {
+      setIsMicrosoftLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -164,9 +202,10 @@ const AuthView = () => {
               <button 
                 type="button" 
                 className="btn-social"
-                onClick={() => toast.info('Microsoft 365 SSO is coming soon!')}
+                onClick={handleMicrosoftLogin}
+                disabled={isMicrosoftLoading}
               >
-                <MicrosoftIcon /> Microsoft 365
+                <MicrosoftIcon /> {isMicrosoftLoading ? 'Connecting...' : 'Microsoft 365'}
               </button>
             </div>
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AuthView from './pages/AuthView';
+import AccessDenied from './pages/AccessDenied';
 import DashboardWelcome from './pages/DashboardWelcome';
 import MyBookingsView from './pages/MyBookingsView';
 import AdminDashboard from './pages/AdminDashboard';
@@ -38,6 +39,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<AuthView />} />
+        <Route path="/access-denied" element={<AccessDenied />} />
         
         <Route 
           path="/dashboard" 

@@ -244,3 +244,16 @@ LOGGING = {
 
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
 
+# Microsoft 365 / Entra ID SSO Configuration
+MICROSOFT_CLIENT_ID = os.environ.get('MICROSOFT_CLIENT_ID', '')
+MICROSOFT_TENANT_ID = os.environ.get('MICROSOFT_TENANT_ID', 'common')
+MICROSOFT_ALLOWED_DOMAINS = [
+    d.strip().lower()
+    for d in os.environ.get('MICROSOFT_ALLOWED_DOMAINS', '').split(',')
+    if d.strip()
+]
+MICROSOFT_REQUIRE_REGISTERED_USER = os.environ.get(
+    'MICROSOFT_REQUIRE_REGISTERED_USER', 'True'
+).lower() in ('true', '1', 'yes')
+ADMIN_CONTACT_EMAIL = os.environ.get('ADMIN_CONTACT_EMAIL', 'admin@innovyx.com')
+

@@ -11,8 +11,11 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
+
+IS_TESTING = 'test' in sys.argv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -214,12 +217,14 @@ LOGGING = {
             'formatter': 'standard',
         },
         'file': {
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': LOG_DIR / 'api.log',
-            'when': 'midnight',
-            'backupCount': 14,
-            'encoding': 'utf-8',
-            'formatter': 'standard',
+            'class': 'logging.NullHandler' if IS_TESTING else 'logging.handlers.TimedRotatingFileHandler',
+            **({} if IS_TESTING else {
+                'filename': LOG_DIR / 'api.log',
+                'when': 'midnight',
+                'backupCount': 14,
+                'encoding': 'utf-8',
+                'formatter': 'standard',
+            }),
         },
     },
     'loggers': {

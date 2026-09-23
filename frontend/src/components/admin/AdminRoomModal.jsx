@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import roomService from '../../services/roomService';
 
 const PRESET_AMENITIES = [
   '4K Display Screen',
@@ -9,29 +10,6 @@ const PRESET_AMENITIES = [
   'Beamforming Mic Array',
   'Conference Phone Station',
   'Coffee / Refreshment Bar',
-];
-
-const CURATED_IMAGES = [
-  {
-    name: 'Executive Boardroom Alpha',
-    url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
-    tag: 'Boardroom / Executive'
-  },
-  {
-    name: 'Collaborative Innovation Hub',
-    url: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80',
-    tag: 'Workshop / Hub'
-  },
-  {
-    name: 'Acoustic Sprint Pod',
-    url: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80',
-    tag: 'Focus / Sprint'
-  },
-  {
-    name: 'Creative Studio Media Lab',
-    url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
-    tag: 'Studio / Creative'
-  },
 ];
 
 export default function AdminRoomModal({
@@ -48,12 +26,13 @@ export default function AdminRoomModal({
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [location, setLocation] = useState('');
-  const [capacity, setCapacity] = useState(8);
-  const [billingRate, setBillingRate] = useState('65.00');
+  const [capacity, setCapacity] = useState(4);
+  const [billingRate, setBillingRate] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [customAmenity, setCustomAmenity] = useState('');
-  const [selectedImageUrl, setSelectedImageUrl] = useState(CURATED_IMAGES[0].url);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [selectedImageUrl, setSelectedImageUrl] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [errors, setErrors] = useState({});
@@ -61,32 +40,56 @@ export default function AdminRoomModal({
   useEffect(() => {
     setImageFile(null);
     setImagePreviewUrl(null);
+
+    // Fetch previous uploaded images from backend
+    if (isOpen) {
+      roomService.getGallery()
+        .then((items) => {
+          if (Array.isArray(items) && items.length > 0) {
+            const formatted = items.map((it) => ({
+              name: it.room_name || 'Room Photo',
+              url: it.image_url,
+              tag: it.room_name || 'Previous Upload',
+            }));
+            setGalleryImages(formatted);
+          } else {
+            setGalleryImages([]);
+          }
+        })
+        .catch(() => {
+          setGalleryImages([]);
+        });
+    }
+
     if (room) {
       setName(room.name || '');
       setCode(room.code || `RM-${(room.name || '01').toUpperCase().replace(/\s+/g, '-').slice(0, 10)}`);
       setLocation(room.location || '');
-      setCapacity(room.capacity || 8);
-      setBillingRate(room.hourlyRate || room.billing_rate || '75.00');
+      setCapacity(room.capacity || 4);
+      setBillingRate(
+        room.hourly_rate !== undefined && room.hourly_rate !== null
+          ? String(room.hourly_rate)
+          : (room.hourlyRate !== undefined ? String(room.hourlyRate) : '')
+      );
       setIsActive(room.is_active !== undefined ? room.is_active : true);
       setSelectedAmenities(Array.isArray(room.amenities) ? room.amenities : []);
-      setSelectedImageUrl(room.image || CURATED_IMAGES[0].url);
+      setSelectedImageUrl(room.image || '');
       if (room.image) {
-        setImagePreviewUrl(room.image);
+        const fullUrl = typeof room.image === 'string' && room.image.startsWith('/media/')
+          ? `http://localhost:8000${room.image}`
+          : room.image;
+        setImagePreviewUrl(fullUrl);
       }
     } else {
-      // Default initial state for creating a room
+      // Default clean blank state for creating a new room
       setName('');
-      setCode('RM-NEW-01');
-      setLocation('Building A • Floor 2, East Collaborative Wing');
-      setCapacity(10);
-      setBillingRate('55.00');
+      setCode('');
+      setLocation('');
+      setCapacity(4);
+      setBillingRate('');
       setIsActive(true);
-      setSelectedAmenities([
-        '4K Display Screen',
-        'Polycom PTZ Video Conf',
-        'High-Speed Wi-Fi 6E',
-      ]);
-      setSelectedImageUrl(CURATED_IMAGES[0].url);
+      setSelectedAmenities([]);
+      setSelectedImageUrl('');
     }
     setErrors({});
   }, [room, isOpen]);
@@ -100,7 +103,7 @@ export default function AdminRoomModal({
   };
 
   const handleAddCustomAmenity = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const trimmed = customAmenity.trim();
     if (trimmed && !selectedAmenities.includes(trimmed)) {
       setSelectedAmenities((prev) => [...prev, trimmed]);
@@ -146,6 +149,8 @@ export default function AdminRoomModal({
       return;
     }
 
+    const rateNum = parseFloat(billingRate) || 0;
+
     onSave({
       name: name.trim(),
       code: code.trim(),
@@ -155,7 +160,9 @@ export default function AdminRoomModal({
       is_active: isActive,
       image: imagePreviewUrl || selectedImageUrl,
       imageFile: imageFile,
-      billingRate: parseFloat(billingRate) || 0,
+      hourly_rate: rateNum,
+      hourlyRate: rateNum,
+      billingRate: rateNum,
     });
   };
 
@@ -297,19 +304,21 @@ export default function AdminRoomModal({
               {/* Billing Rate */}
               <div>
                 <label className="block text-xs font-semibold text-on-surface mb-1.5">
-                  Internal Billing Rate / Cost Center
+                  Internal Billing Rate / Cost Center (₹ / hr)
                 </label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm" data-icon="payments">payments</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary font-bold text-sm">₹</span>
                   <input
-                    type="text"
+                    type="number"
+                    min="0"
+                    step="50"
                     value={billingRate}
                     onChange={(e) => setBillingRate(e.target.value)}
-                    placeholder="e.g. 85.00 / hr"
-                    className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                    placeholder="e.g. 500"
+                    className="w-full pl-8 pr-3.5 py-2 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
                   />
                 </div>
-                <p className="text-[11px] text-secondary mt-1">Enter 0.00 for complimentary internal space</p>
+                <p className="text-[11px] text-secondary mt-1">Enter 0 for complimentary internal space</p>
               </div>
             </div>
           </div>
@@ -381,26 +390,37 @@ export default function AdminRoomModal({
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
-              {PRESET_AMENITIES.map((amenity) => {
-                const isSelected = selectedAmenities.includes(amenity);
-                return (
+              {/* Active Selected Amenities Chips */}
+              {selectedAmenities.map((amenity) => (
+                <span
+                  key={amenity}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-container/15 text-primary border border-primary/30 shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+                  <span>{amenity}</span>
                   <button
-                    key={amenity}
                     type="button"
                     onClick={() => handleToggleAmenity(amenity)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                      isSelected
-                        ? 'bg-primary-container/15 text-primary border border-primary/30 shadow-sm'
-                        : 'bg-surface-container-low text-secondary border border-outline-variant/40 hover:bg-surface-container hover:text-on-surface'
-                    }`}
+                    className="hover:text-error ml-0.5 text-secondary hover:bg-black/5 rounded px-1 transition text-sm leading-none"
+                    title="Remove amenity"
                   >
-                    <span className="material-symbols-outlined text-[14px]" data-icon={isSelected ? 'check' : 'add'}>
-                      {isSelected ? 'check' : 'add'}
-                    </span>
-                    <span>{amenity}</span>
+                    ×
                   </button>
-                );
-              })}
+                </span>
+              ))}
+
+              {/* Unselected Presets */}
+              {PRESET_AMENITIES.filter((a) => !selectedAmenities.includes(a)).map((amenity) => (
+                <button
+                  key={amenity}
+                  type="button"
+                  onClick={() => handleToggleAmenity(amenity)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-container-low text-secondary border border-outline-variant/40 hover:bg-surface-container hover:text-on-surface transition"
+                >
+                  <span className="material-symbols-outlined text-[14px]" data-icon="add">add</span>
+                  <span>{amenity}</span>
+                </button>
+              ))}
             </div>
 
             {/* Custom Amenity Adder */}
@@ -409,7 +429,7 @@ export default function AdminRoomModal({
                 type="text"
                 value={customAmenity}
                 onChange={(e) => setCustomAmenity(e.target.value)}
-                placeholder="Add custom amenity (e.g. Dual 85-inch OLED)..."
+                placeholder="Type and add new custom amenity (e.g. 4K Laser Projector, Smart Board)..."
                 className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-1 focus:ring-primary/30"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -421,9 +441,9 @@ export default function AdminRoomModal({
               <button
                 type="button"
                 onClick={handleAddCustomAmenity}
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface-container-low border border-outline-variant hover:bg-surface-container text-on-surface transition"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 transition shadow-sm"
               >
-                + Add
+                + Add Amenity
               </button>
             </div>
           </div>
@@ -504,43 +524,51 @@ export default function AdminRoomModal({
             </div>
 
             <p className="text-[11px] text-secondary font-medium pt-1">
-              Or pick from curated workspace photography presets:
+              Or pick from previously uploaded room photography:
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {CURATED_IMAGES.map((img, idx) => {
-                const isSelected = selectedImageUrl === img.url && !imageFile;
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      setSelectedImageUrl(img.url);
-                      setImagePreviewUrl(img.url);
-                      setImageFile(null);
-                    }}
-                    className={`group relative rounded-xl overflow-hidden border-2 cursor-pointer transition ${
-                      isSelected
-                        ? 'border-primary ring-2 ring-primary/20 shadow-md'
-                        : 'border-outline-variant/40 hover:border-primary/40'
-                    }`}
-                  >
-                    <img
-                      src={img.url}
-                      alt={img.name}
-                      className="w-full h-20 object-cover group-hover:scale-105 transition duration-200"
-                    />
-                    <div className="p-1.5 bg-surface-container-lowest text-[10px] truncate font-medium text-on-surface">
-                      {img.tag}
-                    </div>
-                    {isSelected && (
-                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow">
-                        <span className="material-symbols-outlined text-xs" data-icon="check">check</span>
+            {galleryImages.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-56 overflow-y-auto p-1">
+                {galleryImages.map((img, idx) => {
+                  const isSelected = (selectedImageUrl === img.url || imagePreviewUrl === img.url) && !imageFile;
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setSelectedImageUrl(img.url);
+                        setImagePreviewUrl(img.url);
+                        setImageFile(null);
+                      }}
+                      className={`group relative rounded-xl overflow-hidden border-2 cursor-pointer transition ${
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary/20 shadow-md'
+                          : 'border-outline-variant/40 hover:border-primary/40'
+                      }`}
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        className="w-full h-20 object-cover group-hover:scale-105 transition duration-200"
+                      />
+                      <div className="p-1.5 bg-surface-container-lowest text-[10px] truncate font-medium text-on-surface">
+                        {img.tag}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      {isSelected && (
+                        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shadow">
+                          <span className="material-symbols-outlined text-xs" data-icon="check">check</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-4 px-3 rounded-xl bg-surface-container-low/40 border border-outline-variant/30 text-center">
+                <p className="text-xs text-secondary">
+                  No previous room photos found in the database. Use the upload box above to add a photo.
+                </p>
+              </div>
+            )}
           </div>
 
         </form>

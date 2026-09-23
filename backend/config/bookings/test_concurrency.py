@@ -85,10 +85,11 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
             }
             # Wait for all threads to synchronize so requests are fired simultaneously
             start_barrier.wait(timeout=10)
-            res = client.post("/api/bookings/", payload, format="json")
-            # Close connection for this thread
-            connection.close()
-            return res.status_code, res.data
+            try:
+                res = client.post("/api/bookings/", payload, format="json")
+                return res.status_code, res.data
+            finally:
+                connection.close()
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             future1 = executor.submit(make_booking_request, self.user1, "Meeting Alice")
@@ -156,7 +157,6 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
             future2 = executor.submit(create_booking_direct, self.user2, "Direct Insert 2")
             results = [future1.result(), future2.result()]
 
-        # Exactly one should have None (success) and the other should have IntegrityError or OperationalError
         errors = [r for r in results if r is not None]
         successes = [r for r in results if r is None]
 
@@ -207,10 +207,12 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
                 "end_time": end_t.isoformat(),
                 "attendees_count": 2,
             }
-            start_barrier.wait(timeout=10)
-            res = client.post("/api/bookings/", payload, format="json")
-            connection.close()
-            return res.status_code
+            try:
+                start_barrier.wait(timeout=10)
+                res = client.post("/api/bookings/", payload, format="json")
+                return res.status_code
+            finally:
+                connection.close()
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = [

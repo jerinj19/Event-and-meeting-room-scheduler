@@ -199,7 +199,7 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
         {/* Modal Sticky Footer Action Bar */}
         <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-5 sm:px-6 py-4 rounded-b-2xl sm:rounded-b-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="text-xs text-slate-500 font-medium">
-            Hourly Rate: <strong className="text-slate-800">${room.hourlyRate || '85'}/hr</strong> • Complimentary for Internal Teams
+            Hourly Rate: <strong className="text-slate-800">₹{room.hourlyRate ?? room.hourly_rate ?? '500'}/hr</strong> • Complimentary for Internal Teams
           </p>
           <div className="flex items-center gap-2.5 justify-end">
             <button

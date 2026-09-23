@@ -70,7 +70,7 @@ ALLOWED_HOSTS = [
 
 ALLOWED_EMAIL_DOMAINS = [
     domain.strip().lower()
-    for domain in os.environ.get('ALLOWED_EMAIL_DOMAINS', 'innovyx.com,innovyxtechlabs.com').split(',')
+    for domain in os.environ.get('ALLOWED_EMAIL_DOMAINS', 'innovyxtechlabs.com').split(',')
     if domain.strip()
 ]
 
@@ -251,3 +251,10 @@ LOGGING = {
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Tell Django to read these from your .env file
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'your_password_here')

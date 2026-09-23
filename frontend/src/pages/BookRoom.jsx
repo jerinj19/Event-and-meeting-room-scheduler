@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation, Link } from 'react-router-dom';
 import TimeSlotPicker from '../components/booking/TimeSlotPicker';
-import { isSlotPastOrCurrent } from '../components/booking/bookingConstants';
+import { isSlotCompleted } from '../components/booking/bookingConstants';
 import BookingForm from '../components/booking/BookingForm';
 import ConflictBanner from '../components/booking/ConflictBanner';
 import { fetchWithAuth } from '../services/apiClient';
@@ -199,7 +199,7 @@ export default function BookRoom() {
   // Deselect current slot if it is in the past/ongoing or booked on the selected day
   useEffect(() => {
     if (selectedSlot) {
-      if (isSlotPastOrCurrent(selectedSlot, selectedDate)) {
+      if (isSlotCompleted(selectedSlot, selectedDate)) {
         setSelectedSlot(null);
         return;
       }

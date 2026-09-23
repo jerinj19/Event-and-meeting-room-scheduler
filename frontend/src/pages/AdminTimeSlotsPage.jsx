@@ -19,7 +19,7 @@ export default function AdminTimeSlotsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sessionFilter, setSessionFilter] = useState('all'); // 'all' | 'morning' | 'afternoon' | 'evening'
   const [roomFilter, setRoomFilter] = useState('all'); // 'all' | 'global' | roomId
-  const [periodFilter, setPeriodFilter] = useState('all'); // 'all' | 'recurring' | 'dated' | 'this_week' | 'this_month' | 'custom'
+  const [periodFilter, setPeriodFilter] = useState('all'); // 'all' | 'this_week' | 'this_month' | 'custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
@@ -99,10 +99,6 @@ export default function AdminTimeSlotsPage() {
         params.period = 'custom';
         if (customStartDate) params.start_date = customStartDate;
         if (customEndDate) params.end_date = customEndDate;
-      } else if (periodFilter === 'recurring') {
-        params.date_type = 'recurring';
-      } else if (periodFilter === 'dated') {
-        params.date_type = 'dated';
       }
 
       const res = await timeSlotService.getTimeSlots(params);
@@ -376,7 +372,7 @@ export default function AdminTimeSlotsPage() {
             Time Slots Management
           </h1>
           <p className="text-xs sm:text-sm text-secondary mt-1">
-            Configure dynamic recurring intervals and calendar-specific slots with granular room applicability.
+            Configure calendar time slots with granular room applicability.
           </p>
         </div>
 
@@ -554,9 +550,7 @@ export default function AdminTimeSlotsPage() {
               }}
               className="px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
-              <option value="all">📅 All Periods / Dates</option>
-              <option value="recurring">🔁 Daily Recurring Templates Only</option>
-              <option value="dated">📅 Specific Calendar Dates Only</option>
+              <option value="all">📅 All Dates</option>
               <option value="this_week">📆 This Week</option>
               <option value="this_month">🗓️ This Month</option>
               <option value="custom">⚙️ Custom Date Range...</option>
@@ -677,15 +671,10 @@ export default function AdminTimeSlotsPage() {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {getPeriodBadge(slot.period)}
-                      {slot.date ? (
+                      {slot.date && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
                           <span className="material-symbols-outlined text-xs">calendar_today</span>
                           {slot.date}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200">
-                          <span className="material-symbols-outlined text-xs">all_inclusive</span>
-                          Daily
                         </span>
                       )}
                     </div>
@@ -716,7 +705,7 @@ export default function AdminTimeSlotsPage() {
                         disabled={isToggling}
                         className="sr-only peer"
                       />
-                      <div className="w-8 h-4.5 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
+                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
                       <span className="ml-2 text-[11px] font-semibold text-secondary">
                         {isToggling ? 'Updating...' : slot.is_active ? 'Active' : 'Disabled'}
                       </span>
@@ -754,7 +743,7 @@ export default function AdminTimeSlotsPage() {
               <thead>
                 <tr className="border-b border-outline-variant/40 bg-surface-container-low/40 text-secondary font-semibold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Display Label</th>
-                  <th className="py-3 px-4">Date Scope</th>
+                  <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Start Time</th>
                   <th className="py-3 px-4">End Time</th>
                   <th className="py-3 px-4">Duration</th>
@@ -773,17 +762,10 @@ export default function AdminTimeSlotsPage() {
                         {slot.label || slot.formatted_label}
                       </td>
                       <td className="py-3 px-4">
-                        {slot.date ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
-                            <span className="material-symbols-outlined text-[13px]">calendar_today</span>
-                            {slot.date}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600">
-                            <span className="material-symbols-outlined text-[13px]">all_inclusive</span>
-                            Daily Recurring
-                          </span>
-                        )}
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
+                          <span className="material-symbols-outlined text-[13px]">calendar_today</span>
+                          {slot.date || '—'}
+                        </span>
                       </td>
                       <td className="py-3 px-4 font-mono font-semibold text-primary">{slot.start}</td>
                       <td className="py-3 px-4 font-mono font-semibold text-primary">{slot.end}</td>
@@ -797,16 +779,33 @@ export default function AdminTimeSlotsPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={slot.is_active}
-                            onChange={() => handleToggleStatus(slot)}
-                            disabled={isToggling}
-                            className="sr-only peer"
-                          />
-                          <div className="w-8 h-4.5 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
-                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(slot)}
+                          disabled={isToggling}
+                          className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold transition border cursor-pointer select-none ${
+                            slot.is_active
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200'
+                          }`}
+                          title={`Click to ${slot.is_active ? 'Disable' : 'Activate'}`}
+                        >
+                          {/* Mini Toggle Track & Thumb */}
+                          <span
+                            className={`w-7 h-4 rounded-full transition-colors relative inline-block ${
+                              slot.is_active ? 'bg-emerald-600' : 'bg-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`w-3 h-3 rounded-full bg-white transition-all absolute top-0.5 shadow-xs ${
+                                slot.is_active ? 'left-3.5' : 'left-0.5'
+                              }`}
+                            />
+                          </span>
+                          <span>
+                            {isToggling ? 'Updating...' : slot.is_active ? 'Active' : 'Disabled'}
+                          </span>
+                        </button>
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="inline-flex items-center gap-1">

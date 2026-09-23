@@ -143,10 +143,11 @@ class BookingSerializer(serializers.ModelSerializer):
             if end_time <= start_time:
                 raise serializers.ValidationError({"end_time": "End time must be strictly after start time."})
 
-        # 2. Prevent creating bookings in the past (allow 5-minute latency tolerance)
-        if not self.instance and start_time:
-            grace_period = timezone.now() - timedelta(minutes=5)
-            if start_time < grace_period:
+        # 2. Prevent creating bookings in the past / completed time slots
+        if not self.instance:
+            if end_time and end_time <= timezone.now():
+                raise serializers.ValidationError({"end_time": "Cannot book a time slot that has already completed."})
+            if start_time and start_time < timezone.now() - timedelta(hours=12):
                 raise serializers.ValidationError({"start_time": "Cannot book a time slot in the past."})
 
         # 3. Room active check

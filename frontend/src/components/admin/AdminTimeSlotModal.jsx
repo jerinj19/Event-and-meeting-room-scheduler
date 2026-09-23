@@ -14,7 +14,7 @@ export default function AdminTimeSlotModal({
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [period, setPeriod] = useState('auto');
-  const [dateMode, setDateMode] = useState('recurring'); // 'recurring' | 'dates'
+  const [isEveryDay, setIsEveryDay] = useState(true);
   const [selectedDates, setSelectedDates] = useState([]);
   const [newDateInput, setNewDateInput] = useState('');
   const [scopeType, setScopeType] = useState('global'); // 'global' | 'multiple'
@@ -23,15 +23,18 @@ export default function AdminTimeSlotModal({
   const [sortOrder, setSortOrder] = useState(0);
   const [error, setError] = useState('');
 
+  const getTodayStr = () => new Date().toISOString().slice(0, 10);
+
   useEffect(() => {
     if (slot) {
       setLabel(slot.label || '');
       setStartTime(slot.start || (slot.start_time ? slot.start_time.slice(0, 5) : '09:00'));
       setEndTime(slot.end || (slot.end_time ? slot.end_time.slice(0, 5) : '10:00'));
       setPeriod(slot.period || 'morning');
-      setDateMode(slot.date ? 'dates' : 'recurring');
-      setSelectedDates(slot.date ? [slot.date] : []);
-      setNewDateInput(slot.date || '');
+      const isDaily = !slot.date;
+      setIsEveryDay(isDaily);
+      setSelectedDates(slot.date ? [slot.date] : [getTodayStr()]);
+      setNewDateInput(slot.date || getTodayStr());
       setScopeType(slot.room ? 'multiple' : 'global');
       setSelectedRoomIds(slot.room ? [slot.room] : []);
       setIsActive(slot.is_active !== undefined ? slot.is_active : true);
@@ -42,8 +45,8 @@ export default function AdminTimeSlotModal({
       setStartTime('09:00');
       setEndTime('10:00');
       setPeriod('auto');
-      setDateMode('recurring');
-      setSelectedDates([]);
+      setIsEveryDay(true);
+      setSelectedDates([getTodayStr()]);
       setNewDateInput('');
       setScopeType('global');
       setSelectedRoomIds([]);
@@ -106,8 +109,8 @@ export default function AdminTimeSlotModal({
       return;
     }
 
-    if (dateMode === 'dates' && selectedDates.length === 0) {
-      setError('Please add at least one specific date or switch to Daily Recurring.');
+    if (!isEveryDay && selectedDates.length === 0) {
+      setError('Please select at least one calendar date or choose Every Day.');
       return;
     }
 
@@ -116,10 +119,39 @@ export default function AdminTimeSlotModal({
       return;
     }
 
+    if (isEveryDay) {
+      if (isEditMode) {
+        onSave({
+          label: label.trim(),
+          date: null,
+          start_time: startTime,
+          end_time: endTime,
+          period: computedPeriod,
+          room: scopeType === 'global' ? null : selectedRoomIds[0] || null,
+          is_active: isActive,
+          sort_order: Number(sortOrder) || 0,
+        });
+      } else {
+        onSave({
+          label: label.trim(),
+          dates: [null],
+          date: null,
+          start_time: startTime,
+          end_time: endTime,
+          period: computedPeriod,
+          room_ids: scopeType === 'multiple' ? selectedRoomIds : [],
+          room: scopeType === 'global' ? null : (selectedRoomIds[0] || null),
+          is_active: isActive,
+          sort_order: Number(sortOrder) || 0,
+        });
+      }
+      return;
+    }
+
     if (isEditMode) {
       onSave({
         label: label.trim(),
-        date: dateMode === 'dates' ? (selectedDates[0] || null) : null,
+        date: selectedDates[0],
         start_time: startTime,
         end_time: endTime,
         period: computedPeriod,
@@ -130,8 +162,8 @@ export default function AdminTimeSlotModal({
     } else {
       onSave({
         label: label.trim(),
-        dates: dateMode === 'dates' ? selectedDates : [],
-        date: dateMode === 'dates' && selectedDates.length === 1 ? selectedDates[0] : null,
+        dates: selectedDates,
+        date: selectedDates[0],
         start_time: startTime,
         end_time: endTime,
         period: computedPeriod,
@@ -259,125 +291,136 @@ export default function AdminTimeSlotModal({
               </select>
             </div>
 
-            {/* Calendar Date Scope: Recurring Daily vs Specific Dates */}
+            {/* Date Applicability Section */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-secondary">
-                  Calendar Date Scope
-                </label>
-                <span className="text-[11px] font-medium text-secondary">
-                  {dateMode === 'recurring'
-                    ? '🔁 Daily Recurring (All Dates)'
-                    : `📅 ${selectedDates.length} date${selectedDates.length === 1 ? '' : 's'} selected`}
-                </span>
-              </div>
-
+              <label className="block text-xs font-semibold text-secondary">
+                Date Applicability
+              </label>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setDateMode('recurring');
-                    setSelectedDates([]);
-                  }}
+                  onClick={() => setIsEveryDay(true)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border flex items-center gap-1.5 cursor-pointer ${
-                    dateMode === 'recurring'
+                    isEveryDay
                       ? 'bg-primary text-white border-primary shadow-xs'
                       : 'bg-surface-container-low text-secondary border-outline-variant/60 hover:text-on-surface'
                   }`}
                 >
                   <span className="material-symbols-outlined text-[16px]">all_inclusive</span>
-                  <span>🔁 Daily Recurring</span>
+                  <span>Every Day (All Dates)</span>
                 </button>
-
                 <button
                   type="button"
-                  onClick={() => {
-                    setDateMode('dates');
-                    if (selectedDates.length === 0) {
-                      const todayStr = new Date().toISOString().slice(0, 10);
-                      setSelectedDates([todayStr]);
-                    }
-                  }}
+                  onClick={() => setIsEveryDay(false)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border flex items-center gap-1.5 cursor-pointer ${
-                    dateMode === 'dates'
+                    !isEveryDay
                       ? 'bg-primary text-white border-primary shadow-xs'
                       : 'bg-surface-container-low text-secondary border-outline-variant/60 hover:text-on-surface'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                  <span>📅 Specific Date(s) {selectedDates.length > 0 ? `(${selectedDates.length})` : ''}</span>
+                  <span className="material-symbols-outlined text-[16px]">event</span>
+                  <span>Specific Date(s)</span>
                 </button>
               </div>
 
-              {dateMode === 'dates' && (
-                <div className="p-3 bg-surface-container-low border border-outline-variant/50 rounded-xl space-y-2.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="date"
-                      value={newDateInput}
-                      onChange={(e) => setNewDateInput(e.target.value)}
-                      className="px-2.5 py-1.5 text-xs bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface outline-none focus:border-primary"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddDate}
-                      className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-semibold transition"
-                    >
-                      + Add Date
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const today = new Date().toISOString().slice(0, 10);
-                        if (!selectedDates.includes(today)) setSelectedDates([...selectedDates, today].sort());
-                      }}
-                      className="px-2 py-1 text-[11px] bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary"
-                    >
-                      Today
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const tmrw = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-                        if (!selectedDates.includes(tmrw)) setSelectedDates([...selectedDates, tmrw].sort());
-                      }}
-                      className="px-2 py-1 text-[11px] bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary"
-                    >
-                      Tomorrow
-                    </button>
-                    {selectedDates.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDates([])}
-                        className="text-[11px] text-error hover:underline ml-auto"
-                      >
-                        Clear
-                      </button>
-                    )}
+              {isEveryDay ? (
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl text-xs text-primary flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base">info</span>
+                  <span>This slot will be automatically available for booking on <strong>each and every day</strong> across the calendar.</span>
+                </div>
+              ) : isEditMode ? (
+                <div>
+                  <label className="block text-xs font-semibold text-secondary mb-1.5">
+                    Calendar Date <span className="text-error">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDates[0] || ''}
+                    onChange={(e) => setSelectedDates(e.target.value ? [e.target.value] : [])}
+                    required
+                    className="w-full px-3 py-2 text-sm bg-surface-container-low border border-outline-variant/60 rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-secondary">
+                      Calendar Date(s) <span className="text-error">*</span>
+                    </label>
+                    <span className="text-[11px] font-medium text-secondary">
+                      📅 {selectedDates.length} date{selectedDates.length === 1 ? '' : 's'} selected
+                    </span>
                   </div>
 
-                  {/* Chips for Selected Dates */}
-                  {selectedDates.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {selectedDates.map((dStr) => (
-                        <span
-                          key={dStr}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-container-lowest border border-primary/30 text-primary rounded-lg text-xs font-semibold shadow-2xs"
+                  <div className="p-3 bg-surface-container-low border border-outline-variant/50 rounded-xl space-y-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="date"
+                        value={newDateInput}
+                        onChange={(e) => setNewDateInput(e.target.value)}
+                        className="px-2.5 py-1.5 text-xs bg-surface-container-lowest border border-outline-variant rounded-lg text-on-surface outline-none focus:border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddDate}
+                        className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-semibold transition cursor-pointer"
+                      >
+                        + Add Date
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const today = new Date().toISOString().slice(0, 10);
+                          if (!selectedDates.includes(today)) setSelectedDates([...selectedDates, today].sort());
+                        }}
+                        className="px-2 py-1 text-[11px] bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary cursor-pointer"
+                      >
+                        Today
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const tmrw = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+                          if (!selectedDates.includes(tmrw)) setSelectedDates([...selectedDates, tmrw].sort());
+                        }}
+                        className="px-2 py-1 text-[11px] bg-surface-container-lowest hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary cursor-pointer"
+                      >
+                        Tomorrow
+                      </button>
+                      {selectedDates.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDates([])}
+                          className="text-[11px] text-error hover:underline ml-auto cursor-pointer"
                         >
-                          <span>📅 {dStr}</span>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedDates(selectedDates.filter((x) => x !== dStr))}
-                            className="text-secondary hover:text-error ml-0.5 text-xs font-bold"
-                          >
-                            ✕
-                          </button>
-                        </span>
-                      ))}
+                          Clear
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-xs text-secondary italic">Pick a calendar date above to attach this slot to specific days.</p>
-                  )}
+
+                    {/* Chips for Selected Dates */}
+                    {selectedDates.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {selectedDates.map((dStr) => (
+                          <span
+                            key={dStr}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-container-lowest border border-primary/30 text-primary rounded-lg text-xs font-semibold shadow-2xs"
+                          >
+                            <span>📅 {dStr}</span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedDates(selectedDates.filter((x) => x !== dStr))}
+                              className="text-secondary hover:text-error ml-0.5 text-xs font-bold cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-error italic">Please select or add at least one calendar date.</p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

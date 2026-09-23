@@ -409,6 +409,7 @@ STANDARD_SLOTS = [
 def seed_default_time_slots():
     """
     Ensure the 11 standard corporate default time slots exist in the database.
+    Default templates have date=None so they apply across each and every day.
     """
     for index, slot in enumerate(STANDARD_SLOTS):
         sh, sm = map(int, slot["start"].split(":"))
@@ -417,6 +418,7 @@ def seed_default_time_slots():
             start_time=time(sh, sm),
             end_time=time(eh, em),
             room=None,
+            date=None,
             defaults={
                 "label": slot["label"],
                 "period": slot["period"],
@@ -426,18 +428,31 @@ def seed_default_time_slots():
         )
 
 
+def is_admin_user(user):
+    """
+    Check if a user has administrator / staff access.
+    Matches is_staff, is_superuser, or email containing 'admin'.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        return True
+    email = (getattr(user, "email", "") or "").lower()
+    return "admin" in email
+
+
 class IsAdminOrReadOnlySlot(permissions.BasePermission):
     """
     Allows all users (including unauthenticated visitors evaluating scheduling)
     read access to active time slots.
-    Write operations (create, update, delete, toggle) are strictly restricted
-    to authenticated staff/admin users.
+    Write operations (create, update, delete, toggle) are permitted
+    for authenticated staff/admin users.
     """
 
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return bool(request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser))
+        return is_admin_user(request.user)
 
 
 class TimeSlotViewSet(viewsets.ModelViewSet):
@@ -552,7 +567,7 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="reset-defaults")
     def reset_defaults(self, request):
-        if not (request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)):
+        if not is_admin_user(request.user):
             return Response(
                 {"error": {"code": "FORBIDDEN", "message": "Only admins can restore default time slots."}},
                 status=status.HTTP_403_FORBIDDEN,
@@ -577,7 +592,7 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
         2. An object with a 'slots' list and optional 'dates' list.
         If 'dates' is provided, each slot in 'slots' is cloned for each date in 'dates'!
         """
-        if not (request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)):
+        if not is_admin_user(request.user):
             return Response(
                 {"error": {"code": "FORBIDDEN", "message": "Only administrators can create time slots."}},
                 status=status.HTTP_403_FORBIDDEN,
@@ -667,24 +682,54 @@ class AvailableSlotsView(APIView):
 
         tz = timezone.get_current_timezone()
 
-        # Query dynamic active slots from DB:
-        # Match slots explicitly defined for target_date OR recurring templates (date is null)
-        active_slots_qs = TimeSlot.objects.filter(is_active=True).filter(
-            Q(date=target_date) | Q(date__isnull=True)
-        )
+        # Helper to resolve slots for target_date:
+        # 1. Any slot specifically set for target_date takes precedence.
+        # 2. If no date-specific slots exist for target_date, fallback to recurring templates (date is None).
+        # 3. If neither exists, fallback to raw_slots.
+        def resolve_slots_for_date(raw_slots, date_val):
+            date_specific = [s for s in raw_slots if s.date == date_val]
+            if date_specific:
+                return date_specific
+            null_date = [s for s in raw_slots if s.date is None]
+            if null_date:
+                return null_date
+            return raw_slots
+
+        # Query dynamic slots from DB:
         if room:
-            room_slots = list(active_slots_qs.filter(room=room).order_by("start_time", "sort_order"))
-            if room_slots:
-                date_specific = [s for s in room_slots if s.date == target_date]
-                db_slots = date_specific if date_specific else room_slots
+            room_slots_raw = list(TimeSlot.objects.filter(room=room).order_by("start_time", "sort_order"))
+            chosen_room_slots = resolve_slots_for_date(room_slots_raw, target_date)
+
+            global_slots_raw = list(TimeSlot.objects.filter(room__isnull=True).order_by("start_time", "sort_order"))
+            chosen_global_slots = resolve_slots_for_date(global_slots_raw, target_date)
+
+            if chosen_room_slots:
+                # Include all room-specific slots (they take precedence for this room)
+                combined_slots = list(chosen_room_slots)
+                # Include global slots that do not overlap with any room-specific slot
+                for g in chosen_global_slots:
+                    overlaps = any(
+                        r.start_time < g.end_time and r.end_time > g.start_time
+                        for r in chosen_room_slots
+                    )
+                    if not overlaps:
+                        combined_slots.append(g)
+                db_slots = combined_slots
             else:
-                global_slots = list(active_slots_qs.filter(room__isnull=True).order_by("start_time", "sort_order"))
-                date_specific = [s for s in global_slots if s.date == target_date]
-                db_slots = date_specific if date_specific else global_slots
+                db_slots = chosen_global_slots
         else:
-            global_slots = list(active_slots_qs.filter(room__isnull=True).order_by("start_time", "sort_order"))
-            date_specific = [s for s in global_slots if s.date == target_date]
-            db_slots = date_specific if date_specific else global_slots
+            global_slots_raw = list(TimeSlot.objects.filter(room__isnull=True).order_by("start_time", "sort_order"))
+            db_slots = resolve_slots_for_date(global_slots_raw, target_date)
+
+        # Deduplicate slots by (start_time, end_time) to avoid duplicate buttons
+        seen_intervals = set()
+        unique_db_slots = []
+        for s in sorted(db_slots, key=lambda x: (x.start_time, 0 if x.room_id else 1, x.sort_order)):
+            interval = (s.start_time, s.end_time)
+            if interval not in seen_intervals:
+                seen_intervals.add(interval)
+                unique_db_slots.append(s)
+        db_slots = unique_db_slots
 
         # If database has no slots defined yet, fall back to STANDARD_SLOTS
         if db_slots:
@@ -697,6 +742,7 @@ class AvailableSlotsView(APIView):
                     "duration": s.duration_label,
                     "period": s.period,
                     "room_id": str(s.room_id) if s.room_id else None,
+                    "is_active": s.is_active,
                 }
                 for s in db_slots
             ]
@@ -721,8 +767,12 @@ class AvailableSlotsView(APIView):
                 tz,
             )
 
-            # Do not fetch / return any slot that is currently ongoing or has already started
-            if slot_start_dt <= now:
+            # Determine whether slot is completed, current, or future
+            is_completed = (target_date < local_now.date()) or (target_date == local_now.date() and slot_end_dt <= now)
+            is_current = (target_date == local_now.date()) and (slot_start_dt <= now < slot_end_dt)
+
+            # Do not return completed slots for target date
+            if is_completed:
                 continue
 
             # Check if booked in DB
@@ -739,6 +789,9 @@ class AvailableSlotsView(APIView):
                 "duration": slot_def["duration"],
                 "period": slot_def["period"],
                 "is_booked": is_booked,
+                "is_past": False,
+                "is_current": is_current,
+                "is_active": slot_def.get("is_active", True),
             }
 
             valid_slots.append(slot_item)

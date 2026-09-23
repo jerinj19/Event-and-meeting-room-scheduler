@@ -198,6 +198,22 @@ export const timeSlotService = {
 
     return handleResponse(response);
   },
+
+  /**
+   * Fetch dynamic available slots for a given date and optional room
+   */
+  async getAvailableSlots(date, roomId) {
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    if (roomId) params.append('room_id', roomId);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+
+    const response = await fetch(`${API_BASE_URL}/available-slots/${queryString}`, {
+      headers: getAuthHeaders(),
+    });
+
+    return handleResponse(response);
+  },
 };
 
 export default timeSlotService;

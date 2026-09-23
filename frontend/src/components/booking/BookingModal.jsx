@@ -173,6 +173,7 @@ export default function BookingModal({ isOpen, room, onClose, onSuccess }) {
 
           {/* Time Slot Picker Grid */}
           <TimeSlotPicker
+            roomId={room?.id}
             selectedDate={selectedDate}
             onSelectDate={(date) => {
               setSelectedDate(date);

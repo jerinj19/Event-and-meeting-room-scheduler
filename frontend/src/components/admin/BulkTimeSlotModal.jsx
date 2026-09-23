@@ -11,12 +11,12 @@ export default function BulkTimeSlotModal({
   const [error, setError] = useState('');
 
   // 1. Generator Parameters
+  const [genEveryDay, setGenEveryDay] = useState(true);
   const [genStart, setGenStart] = useState('09:00');
   const [genEnd, setGenEnd] = useState('18:00');
   const [genDuration, setGenDuration] = useState(60); // minutes
   const [genBreak, setGenBreak] = useState(0); // minutes
-  const [genDateMode, setGenDateMode] = useState('recurring'); // 'recurring' | 'dates'
-  const [genSelectedDates, setGenSelectedDates] = useState([]); // array of date strings 'YYYY-MM-DD'
+  const [genSelectedDates, setGenSelectedDates] = useState([new Date().toISOString().slice(0, 10)]); // array of date strings 'YYYY-MM-DD'
   const [genNewDateInput, setGenNewDateInput] = useState('');
   const [genScopeType, setGenScopeType] = useState('global'); // 'global' | 'multiple'
   const [genSelectedRooms, setGenSelectedRooms] = useState([]); // array of room IDs
@@ -24,8 +24,8 @@ export default function BulkTimeSlotModal({
 
   // 2. Slots List (Editable rows before committing)
   const [rows, setRows] = useState([
-    { id: '1', date: null, start: '09:00', end: '10:00', label: '', period: 'morning', room: '', is_active: true },
-    { id: '2', date: null, start: '10:00', end: '11:00', label: '', period: 'morning', room: '', is_active: true },
+    { id: '1', date: '', start: '09:00', end: '10:00', label: '', period: 'morning', room: '', is_active: true },
+    { id: '2', date: '', start: '10:00', end: '11:00', label: '', period: 'morning', room: '', is_active: true },
   ]);
 
   // Date helper methods
@@ -95,8 +95,8 @@ export default function BulkTimeSlotModal({
       return;
     }
 
-    if (genDateMode === 'dates' && genSelectedDates.length === 0) {
-      setError('Please add at least one specific date or switch to Daily Recurring.');
+    if (!genEveryDay && genSelectedDates.length === 0) {
+      setError('Please add at least one specific date or choose Every Day.');
       return;
     }
 
@@ -121,7 +121,7 @@ export default function BulkTimeSlotModal({
             };
           });
 
-    const targetDates = genDateMode === 'dates' ? genSelectedDates : [null];
+    const targetDates = genEveryDay ? [''] : genSelectedDates;
 
     while (cur + genDuration <= endMin) {
       const slotStart = minutesToTime(cur);
@@ -169,7 +169,7 @@ export default function BulkTimeSlotModal({
     const defaultRoom =
       genScopeType === 'multiple' && genSelectedRooms.length === 1 ? genSelectedRooms[0] : '';
     const defaultDate =
-      genDateMode === 'dates' && genSelectedDates.length > 0 ? genSelectedDates[0] : null;
+      genSelectedDates.length > 0 ? genSelectedDates[0] : new Date().toISOString().slice(0, 10);
 
     setRows((prev) => [
       ...prev,
@@ -218,6 +218,10 @@ export default function BulkTimeSlotModal({
     // Validation
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
+      if (!r.date) {
+        setError(`Row ${i + 1} has missing calendar date.`);
+        return;
+      }
       if (!r.start || !r.end) {
         setError(`Row ${i + 1} has missing start or end time.`);
         return;
@@ -231,7 +235,7 @@ export default function BulkTimeSlotModal({
     }
 
     const payload = rows.map((r, idx) => ({
-      date: r.date || null,
+      date: r.date,
       start_time: r.start,
       end_time: r.end,
       label: r.label?.trim() || '',
@@ -264,7 +268,7 @@ export default function BulkTimeSlotModal({
                 Add Multiple Time Slots at Once
               </h2>
               <p className="text-xs text-secondary">
-                Generate recurring intervals or add a batch of custom meeting slots in bulk.
+                Generate interval-based slots or add a batch of custom meeting slots in bulk.
               </p>
             </div>
           </div>
@@ -387,128 +391,124 @@ export default function BulkTimeSlotModal({
 
               {/* Calendar Date Scope Selection */}
               <div className="pt-2 border-t border-outline-variant/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-secondary">
-                    Calendar Date Scope
-                  </label>
-                  <span className="text-[11px] font-medium text-secondary">
-                    {genDateMode === 'recurring'
-                      ? '🔁 Daily Recurring (All Dates)'
-                      : `📅 Generating for ${genSelectedDates.length} date${genSelectedDates.length === 1 ? '' : 's'}`}
-                  </span>
-                </div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-secondary">
+                  Date Applicability
+                </label>
 
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setGenDateMode('recurring');
-                      setGenSelectedDates([]);
-                    }}
+                    onClick={() => setGenEveryDay(true)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border flex items-center gap-1.5 cursor-pointer ${
-                      genDateMode === 'recurring'
+                      genEveryDay
                         ? 'bg-primary text-white border-primary shadow-xs'
-                        : 'bg-surface-container-lowest text-secondary border-outline-variant/60 hover:text-on-surface hover:bg-surface-container-low'
+                        : 'bg-surface-container-low text-secondary border-outline-variant/60 hover:text-on-surface'
                     }`}
                   >
                     <span className="material-symbols-outlined text-[16px]">all_inclusive</span>
-                    <span>🔁 Daily Recurring</span>
+                    <span>Every Day (All Dates)</span>
                   </button>
-
                   <button
                     type="button"
-                    onClick={() => {
-                      setGenDateMode('dates');
-                      if (genSelectedDates.length === 0) {
-                        const todayStr = new Date().toISOString().slice(0, 10);
-                        setGenSelectedDates([todayStr]);
-                      }
-                    }}
+                    onClick={() => setGenEveryDay(false)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border flex items-center gap-1.5 cursor-pointer ${
-                      genDateMode === 'dates'
+                      !genEveryDay
                         ? 'bg-primary text-white border-primary shadow-xs'
-                        : 'bg-surface-container-lowest text-secondary border-outline-variant/60 hover:text-on-surface hover:bg-surface-container-low'
+                        : 'bg-surface-container-low text-secondary border-outline-variant/60 hover:text-on-surface'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                    <span>📅 Specific Date(s) {genSelectedDates.length > 0 ? `(${genSelectedDates.length})` : ''}</span>
+                    <span className="material-symbols-outlined text-[16px]">event</span>
+                    <span>Specific Date(s)</span>
                   </button>
                 </div>
 
-                {genDateMode === 'dates' && (
-                  <div className="p-3 bg-surface-container-lowest border border-outline-variant/50 rounded-xl space-y-2.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <input
-                        type="date"
-                        value={genNewDateInput}
-                        onChange={(e) => setGenNewDateInput(e.target.value)}
-                        className="px-2.5 py-1.5 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface outline-none focus:border-primary"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddGenDate}
-                        className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-semibold transition cursor-pointer"
-                      >
-                        + Add Date
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAddQuickDate(0)}
-                        className="px-2 py-1 text-[11px] bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary cursor-pointer"
-                      >
-                        Today
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAddQuickDate(1)}
-                        className="px-2 py-1 text-[11px] bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary cursor-pointer"
-                      >
-                        Tomorrow
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleAddNext7Days}
-                        className="px-2 py-1 text-[11px] bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary cursor-pointer"
-                      >
-                        + Next 7 Days
-                      </button>
-                      {genSelectedDates.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setGenSelectedDates([])}
-                          className="text-[11px] text-error hover:underline ml-auto cursor-pointer"
-                        >
-                          Clear
-                        </button>
-                      )}
+                {genEveryDay ? (
+                  <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-xl text-xs text-primary flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base">info</span>
+                    <span>Generated slots will automatically be available for booking on <strong>each and every day</strong> across the calendar.</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-secondary">
+                        📅 Generating for {genSelectedDates.length} date{genSelectedDates.length === 1 ? '' : 's'}
+                      </span>
                     </div>
 
-                    {genSelectedDates.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {genSelectedDates.map((dStr) => (
-                          <span
-                            key={dStr}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-container-low border border-primary/30 text-primary rounded-lg text-xs font-semibold shadow-2xs"
+                    <div className="p-3 bg-surface-container-lowest border border-outline-variant/50 rounded-xl space-y-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="date"
+                          value={genNewDateInput}
+                          onChange={(e) => setGenNewDateInput(e.target.value)}
+                          className="px-2.5 py-1.5 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface outline-none focus:border-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddGenDate}
+                          className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-semibold transition cursor-pointer"
+                        >
+                          + Add Date
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddQuickDate(0)}
+                          className="px-2 py-1 text-[11px] bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary cursor-pointer"
+                        >
+                          Today
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddQuickDate(1)}
+                          className="px-2 py-1 text-[11px] bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary cursor-pointer"
+                        >
+                          Tomorrow
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAddNext7Days}
+                          className="px-2 py-1 text-[11px] bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 rounded-md text-secondary cursor-pointer"
+                        >
+                          + Next 7 Days
+                        </button>
+                        {genSelectedDates.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setGenSelectedDates([])}
+                            className="text-[11px] text-error hover:underline ml-auto cursor-pointer"
                           >
-                            <span>📅 {dStr}</span>
-                            <button
-                              type="button"
-                              onClick={() => setGenSelectedDates(genSelectedDates.filter((x) => x !== dStr))}
-                              className="text-secondary hover:text-error ml-0.5 text-xs font-bold cursor-pointer"
-                            >
-                              ✕
-                            </button>
-                          </span>
-                        ))}
+                            Clear
+                          </button>
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-xs text-secondary italic">Pick a calendar date above to attach slots to specific days.</p>
-                    )}
-                  </div>
-                )}
-              </div>
 
-              <div className="pt-2 border-t border-outline-variant/30 space-y-3">
+                  {genSelectedDates.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {genSelectedDates.map((dStr) => (
+                        <span
+                          key={dStr}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-container-low border border-primary/30 text-primary rounded-lg text-xs font-semibold shadow-2xs"
+                        >
+                          <span>📅 {dStr}</span>
+                          <button
+                            type="button"
+                            onClick={() => setGenSelectedDates(genSelectedDates.filter((x) => x !== dStr))}
+                            className="text-secondary hover:text-error ml-0.5 text-xs font-bold cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-error italic">Please select or add at least one calendar date to generate slots for.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-2 border-t border-outline-variant/30 space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-secondary">
@@ -698,9 +698,10 @@ export default function BulkTimeSlotModal({
                             <input
                               type="date"
                               value={row.date || ''}
-                              onChange={(e) => handleRowChange(row.id, 'date', e.target.value || null)}
+                              onChange={(e) => handleRowChange(row.id, 'date', e.target.value)}
                               className="px-2 py-1 bg-surface-container-low border border-outline-variant/50 rounded text-xs w-[125px]"
-                              title="Leave empty for Daily Recurring"
+                              required
+                              title="Slot Date"
                             />
                           </td>
                           <td className="py-1.5 px-2">

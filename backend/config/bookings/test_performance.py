@@ -144,7 +144,7 @@ class NPlusOneQueryTests(TestCase):
         # If N+1 existed, this would run 2 + 14 (rooms) + 14 (users) = 30 queries!
         # With select_related('room', 'user'), it must stay exactly 2 queries.
         with self.assertNumQueries(2):
-            res = self.client.get("/api/bookings/")
+            res = self.client.get("/api/bookings/?page_size=20")
             self.assertEqual(res.status_code, status.HTTP_200_OK)
             self.assertEqual(len(res.data["results"]), 15)
 

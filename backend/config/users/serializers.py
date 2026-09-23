@@ -12,10 +12,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True, required=True, validators=[validate_password]
     )
+    confirm_password = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "department", "password"]
+        fields = ["id", "email", "first_name", "last_name", "department", "password", "confirm_password"]
         read_only_fields = ["id"]
 
     def validate_email(self, value):
@@ -24,7 +25,13 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("A user with this email already exists.")
         return value
 
+    def validate(self, attrs):
+        if attrs.get("password") != attrs.get("confirm_password"):
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+        return attrs
+
     def create(self, validated_data):
+        validated_data.pop("confirm_password", None)
         password = validated_data.pop("password")
         user = User(**validated_data)
         user.set_password(password)
@@ -34,10 +41,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """Read-only representation of the authenticated user (used for /api/me/ style responses)."""
-
+    
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "department", "is_staff"]
+        fields = ["id", "email", "first_name", "last_name", "department", "is_active", "is_staff", "date_joined", "is_owner"]
         read_only_fields = fields
 
 

@@ -1,0 +1,484 @@
+{
+	"id": "aebe9d38-a8c4-4776-98cb-8b05d3b3acb9",
+	"name": "Start_To_End",
+	"timestamp": "2026-09-20T04:22:05.930Z",
+	"collection_id": "43284381-30a8150e-af85-4ae8-b462-f15e5fd64fc5",
+	"folder_id": 0,
+	"environment_id": "0",
+	"totalPass": 0,
+	"delay": 0,
+	"persist": true,
+	"status": "finished",
+	"startedAt": "2026-09-20T04:21:59.004Z",
+	"totalFail": 0,
+	"results": [
+		{
+			"id": "a02ea994-4692-4b3c-80c2-1ff4d35e94d0",
+			"name": "1. Register User",
+			"url": "http://127.0.0.1:8080/api/auth/register/",
+			"time": 1273,
+			"responseCode": {
+				"code": 201,
+				"name": "Created"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				1273
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "098542e8-4878-4bc6-943d-c0f65a1716a4",
+			"name": "2. Login User",
+			"url": "http://127.0.0.1:8080/api/auth/token/",
+			"time": 1258,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				1258
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "6aa157af-db58-4a34-8cd6-d5c495a2672c",
+			"name": "3. Admin Login",
+			"url": "http://127.0.0.1:8080/api/auth/token/",
+			"time": 1347,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				1347
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "a1d05dbd-76d8-4781-910d-45ebe7f9f267",
+			"name": "4. Refresh Token (User)",
+			"url": "http://127.0.0.1:8080/api/auth/token/refresh/",
+			"time": 162,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				162
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "4eefa6da-8fdd-4202-9156-2055ce794572",
+			"name": "5. Get Current User (Me)",
+			"url": "http://127.0.0.1:8080/api/auth/me/",
+			"time": 57,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				57
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "65a5ecc1-d263-4af3-8974-1f26219be47e",
+			"name": "6. List Rooms",
+			"url": "http://127.0.0.1:8080/api/rooms/",
+			"time": 54,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				54
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "6e415cec-9417-4b05-a0a3-327ff9590bac",
+			"name": "7. Create Room (Admin Only)",
+			"url": "http://127.0.0.1:8080/api/rooms/",
+			"time": 62,
+			"responseCode": {
+				"code": 201,
+				"name": "Created"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				62
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "e100e743-a69f-4227-9d5f-dfea8844aeef",
+			"name": "8. Retrieve Room Details",
+			"url": "http://127.0.0.1:8080/api/rooms/b444b41b-633a-4cbb-a5cb-e948d77d84b0/",
+			"time": 54,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				54
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "a2a11b9f-03f6-4c9c-aa01-63f65fb3a970",
+			"name": "9. Update Room (Full) (Admin Only)",
+			"url": "http://127.0.0.1:8080/api/rooms/b444b41b-633a-4cbb-a5cb-e948d77d84b0/",
+			"time": 61,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				61
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "d5541b65-6ce7-4a76-b92c-442aab985a62",
+			"name": "10. Update Room (Partial) (Admin Only)",
+			"url": "http://127.0.0.1:8080/api/rooms/b444b41b-633a-4cbb-a5cb-e948d77d84b0/",
+			"time": 54,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				54
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "fa481b01-5b3c-48a8-9867-7d91b4e4c9d5",
+			"name": "11. Check Availability",
+			"url": "http://127.0.0.1:8080/api/bookings/check-availability/?room_id=b444b41b-633a-4cbb-a5cb-e948d77d84b0&start_time=2026-10-10T09:00:00Z&end_time=2026-10-10T10:00:00Z",
+			"time": 61,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				61
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "19856d7d-318a-4d64-b9ef-815cc74af1e0",
+			"name": "12. Create Booking",
+			"url": "http://127.0.0.1:8080/api/bookings/",
+			"time": 65,
+			"responseCode": {
+				"code": 201,
+				"name": "Created"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				65
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "c1896c85-da47-42fa-b327-14cc2889e57b",
+			"name": "13. List All Bookings",
+			"url": "http://127.0.0.1:8080/api/bookings/",
+			"time": 57,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				57
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "97b8199a-09ac-491c-bcbb-e61fcfabf5ad",
+			"name": "14. Retrieve Booking Details",
+			"url": "http://127.0.0.1:8080/api/bookings/cbfc572a-8d6c-450a-93fb-262f2fcb1c30/",
+			"time": 57,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				57
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "24e7ec71-2d67-4e8a-be10-a176758d8f1d",
+			"name": "15. Update Booking (Partial)",
+			"url": "http://127.0.0.1:8080/api/bookings/cbfc572a-8d6c-450a-93fb-262f2fcb1c30/",
+			"time": 65,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				65
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "378ef642-c6b1-4454-b57c-32522d1a94c9",
+			"name": "16. Get My Bookings",
+			"url": "http://127.0.0.1:8080/api/my-bookings/",
+			"time": 62,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				62
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "dcb37f90-a010-4907-849a-f8ff5a4f794e",
+			"name": "17. Cancel Booking",
+			"url": "http://127.0.0.1:8080/api/bookings/cbfc572a-8d6c-450a-93fb-262f2fcb1c30/cancel/",
+			"time": 64,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				64
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "ddb48841-2cb9-405e-9f7a-165699151a82",
+			"name": "18. Delete Booking",
+			"url": "http://127.0.0.1:8080/api/bookings/cbfc572a-8d6c-450a-93fb-262f2fcb1c30/",
+			"time": 59,
+			"responseCode": {
+				"code": 204,
+				"name": "No Content"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				59
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "d6ff93b4-7e84-4366-93d0-5d5db415df96",
+			"name": "19. Get Booking Stats",
+			"url": "http://127.0.0.1:8080/api/bookings/stats/",
+			"time": 53,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				53
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "70178083-ad15-49db-9633-ff36e84c97ae",
+			"name": "20. Delete Room (Admin Only)",
+			"url": "http://127.0.0.1:8080/api/rooms/b444b41b-633a-4cbb-a5cb-e948d77d84b0/",
+			"time": 60,
+			"responseCode": {
+				"code": 204,
+				"name": "No Content"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				60
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "fd4b9871-8d89-47ed-b126-26d3b67c1486",
+			"name": "21. User Logout",
+			"url": "http://127.0.0.1:8080/api/auth/logout/",
+			"time": 62,
+			"responseCode": {
+				"code": 205,
+				"name": "Reset Content"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				62
+			],
+			"allTests": [
+				{}
+			]
+		}
+	],
+	"count": 1,
+	"totalTime": 5047,
+	"collection": {
+		"requests": [
+			{
+				"id": "a02ea994-4692-4b3c-80c2-1ff4d35e94d0",
+				"method": "POST"
+			},
+			{
+				"id": "098542e8-4878-4bc6-943d-c0f65a1716a4",
+				"method": "POST"
+			},
+			{
+				"id": "6aa157af-db58-4a34-8cd6-d5c495a2672c",
+				"method": "POST"
+			},
+			{
+				"id": "a1d05dbd-76d8-4781-910d-45ebe7f9f267",
+				"method": "POST"
+			},
+			{
+				"id": "4eefa6da-8fdd-4202-9156-2055ce794572",
+				"method": "GET"
+			},
+			{
+				"id": "65a5ecc1-d263-4af3-8974-1f26219be47e",
+				"method": "GET"
+			},
+			{
+				"id": "6e415cec-9417-4b05-a0a3-327ff9590bac",
+				"method": "POST"
+			},
+			{
+				"id": "e100e743-a69f-4227-9d5f-dfea8844aeef",
+				"method": "GET"
+			},
+			{
+				"id": "a2a11b9f-03f6-4c9c-aa01-63f65fb3a970",
+				"method": "PUT"
+			},
+			{
+				"id": "d5541b65-6ce7-4a76-b92c-442aab985a62",
+				"method": "PATCH"
+			},
+			{
+				"id": "fa481b01-5b3c-48a8-9867-7d91b4e4c9d5",
+				"method": "GET"
+			},
+			{
+				"id": "19856d7d-318a-4d64-b9ef-815cc74af1e0",
+				"method": "POST"
+			},
+			{
+				"id": "c1896c85-da47-42fa-b327-14cc2889e57b",
+				"method": "GET"
+			},
+			{
+				"id": "97b8199a-09ac-491c-bcbb-e61fcfabf5ad",
+				"method": "GET"
+			},
+			{
+				"id": "24e7ec71-2d67-4e8a-be10-a176758d8f1d",
+				"method": "PATCH"
+			},
+			{
+				"id": "378ef642-c6b1-4454-b57c-32522d1a94c9",
+				"method": "GET"
+			},
+			{
+				"id": "dcb37f90-a010-4907-849a-f8ff5a4f794e",
+				"method": "POST"
+			},
+			{
+				"id": "ddb48841-2cb9-405e-9f7a-165699151a82",
+				"method": "DELETE"
+			},
+			{
+				"id": "d6ff93b4-7e84-4366-93d0-5d5db415df96",
+				"method": "GET"
+			},
+			{
+				"id": "70178083-ad15-49db-9633-ff36e84c97ae",
+				"method": "DELETE"
+			},
+			{
+				"id": "fd4b9871-8d89-47ed-b126-26d3b67c1486",
+				"method": "POST"
+			}
+		]
+	}
+}

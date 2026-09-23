@@ -239,3 +239,4 @@ LOGGING = {
 
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

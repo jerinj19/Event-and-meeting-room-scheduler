@@ -17,6 +17,18 @@ export const AuthProvider = ({ children }) => {
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
+      // Silently refresh the latest user data from server to catch role/ownership changes
+      fetch('http://localhost:8000/api/auth/me/', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => {
+        localStorage.setItem('user', JSON.stringify(data));
+        setUser(data);
+      })
+      .catch(() => {
+        // If token is invalid, we might want to log out, but for now we rely on interceptors
+      });
     }
   }, []);
 
@@ -50,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [toast]);
 
-  const register = useCallback(async (email, password, firstName, lastName, department) => {
+  const register = useCallback(async (email, password, confirmPassword, firstName, lastName, department) => {
     try {
       const response = await fetch('http://localhost:8000/api/auth/register/', {
         method: 'POST',
@@ -58,6 +70,7 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ 
           email, 
           password, 
+          confirm_password: confirmPassword,
           first_name: firstName, 
           last_name: lastName, 
           department 
@@ -84,9 +97,14 @@ export const AuthProvider = ({ children }) => {
     toast.info('You have been logged out.');
   }, [toast]);
 
+  const updateUser = useCallback((updatedUserData) => {
+    localStorage.setItem('user', JSON.stringify(updatedUserData));
+    setUser(updatedUserData);
+  }, []);
+
   const value = React.useMemo(() => ({
-    isAuthenticated, user, login, register, logout
-  }), [isAuthenticated, user, login, register, logout]);
+    isAuthenticated, user, login, register, logout, updateUser
+  }), [isAuthenticated, user, login, register, logout, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>

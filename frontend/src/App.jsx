@@ -5,6 +5,11 @@ import DashboardWelcome from './pages/DashboardWelcome';
 import MyBookingsView from './pages/MyBookingsView';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminBookings from './pages/AdminBookings';
+import AdminRoomsPage from './pages/AdminRoomsPage';
+import AdminUserManagementPage from './pages/AdminUserManagementPage';
+import AdminSettingsPage from './pages/AdminSettingsPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { useAuth } from './contexts/AuthContext';
 
 // Layout and Teammates' components
@@ -12,7 +17,6 @@ import AppShell from './components/layout/AppShell';
 import AdminAppShell from './components/admin/AdminAppShell';
 import BookRoom from './pages/BookRoom';
 import RoomCatalog from './pages/RoomCatalog';
-import AdminRoomsPage from './pages/AdminRoomsPage';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -39,6 +43,9 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<AuthView />} />
+        <Route path="/login" element={<AuthView />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         
         <Route 
           path="/dashboard" 
@@ -94,6 +101,18 @@ export default function App() {
           } 
         />
         <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <AdminSettingsPage />
+              </AppShell>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Admin Routes */}
+        <Route 
           path="/admin" 
           element={
             <AdminRoute>
@@ -103,6 +122,18 @@ export default function App() {
             </AdminRoute>
           } 
         />
+        
+        <Route 
+          path="/admin/bookings" 
+          element={
+            <AdminRoute>
+              <AdminAppShell>
+                <AdminBookings />
+              </AdminAppShell>
+            </AdminRoute>
+          } 
+        />
+
         <Route 
           path="/admin/rooms" 
           element={
@@ -113,14 +144,26 @@ export default function App() {
             </AdminRoute>
           } 
         />
+
         <Route 
-          path="/admin/bookings" 
+          path="/admin/users" 
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminAppShell>
-                <AdminBookings />
+                <AdminUserManagementPage />
               </AdminAppShell>
-            </ProtectedRoute>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/settings" 
+          element={
+            <AdminRoute>
+              <AdminAppShell>
+                <AdminSettingsPage />
+              </AdminAppShell>
+            </AdminRoute>
           } 
         />
         

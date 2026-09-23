@@ -370,9 +370,27 @@
   cursor: pointer;
 }
 
+.toggle-password {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.toggle-password:hover {
+  color: #475569;
+}
+
 .input-wrapper input {
   width: 100%;
-  padding: 12px 14px 12px 42px;
+  padding: 12px 42px 12px 42px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-family: 'Inter', sans-serif;

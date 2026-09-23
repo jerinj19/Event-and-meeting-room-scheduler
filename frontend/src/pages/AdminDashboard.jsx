@@ -1,9 +1,6 @@
-import React, { useState } from 'react';
-import CreateAdminModal from '../components/admin/CreateAdminModal';
+import React from 'react';
 
 const AdminDashboard = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   return (
     <div className="min-h-full bg-surface text-on-surface p-4 md:p-8 font-body-md">
       <main className="max-w-[1580px] mx-auto space-y-8">
@@ -32,14 +29,6 @@ const AdminDashboard = () => {
             <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-medium text-sm transition-colors duration-150" type="button">
               <span className="material-symbols-outlined" data-icon="ios_share">ios_share</span>
               <span>Export Operations Log</span>
-            </button>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary-container text-on-primary font-medium text-sm hover:bg-primary shadow-sm hover:shadow transition-all duration-150" 
-              type="button"
-            >
-              <span className="material-symbols-outlined" data-icon="person_add">person_add</span>
-              <span>Create New Admin</span>
             </button>
           </div>
         </header>
@@ -578,8 +567,6 @@ const AdminDashboard = () => {
         </section>
 
       </main>
-
-      <CreateAdminModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };

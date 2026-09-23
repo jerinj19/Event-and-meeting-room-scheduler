@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './AuthView.css';
 
 const GoogleIcon = () => (
@@ -31,11 +31,11 @@ const LockIcon = () => (
 );
 
 const EyeIcon = () => (
-  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+  <span className="material-symbols-outlined text-[18px]" data-icon="visibility">visibility</span>
 );
 
 const EyeOffIcon = () => (
-  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+  <span className="material-symbols-outlined text-[18px]" data-icon="visibility_off">visibility_off</span>
 );
 
 const ShieldIcon = () => (
@@ -60,8 +60,10 @@ const TopRightArrow = () => (
 const AuthView = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [department, setDepartment] = useState('');
@@ -84,7 +86,11 @@ const AuthView = () => {
     if (isLogin) {
       await login(email, password);
     } else {
-      await register(email, password, firstName, lastName, department);
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+      await register(email, password, confirmPassword, firstName, lastName, department);
     }
   };
 
@@ -244,7 +250,7 @@ const AuthView = () => {
               <div className="form-group">
                 <div className="label-row">
                   <label>Password</label>
-                  {isLogin && <a href="#" className="forgot-password">Forgot password?</a>}
+                  {isLogin && <Link to="/forgot-password" className="forgot-password">Forgot password?</Link>}
                 </div>
                 <div className="input-wrapper">
                   <span className="input-icon"><LockIcon /></span>
@@ -252,18 +258,43 @@ const AuthView = () => {
                     type={showPassword ? "text" : "password"} 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••" 
+                    placeholder="••••••••" 
                     required 
                   />
-                  <span 
-                    className="input-icon right" 
+                  <button 
+                    type="button" 
+                    className="toggle-password" 
                     onClick={() => setShowPassword(!showPassword)}
-                    style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                    tabIndex="-1"
                   >
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                  </span>
+                  </button>
                 </div>
               </div>
+
+              {!isLogin && (
+                <div className="form-group">
+                  <label>Confirm Password</label>
+                  <div className="input-wrapper">
+                    <span className="input-icon"><LockIcon /></span>
+                    <input 
+                      type={showConfirmPassword ? "text" : "password"} 
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••" 
+                      required 
+                    />
+                    <button 
+                      type="button" 
+                      className="toggle-password" 
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      tabIndex="-1"
+                    >
+                      {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {isLogin && (
                 <div className="checkbox-group">
@@ -273,7 +304,7 @@ const AuthView = () => {
               )}
 
               <button type="submit" className="btn-primary">
-                {isLogin ? 'Log In' : 'Register'} <ArrowRight />
+                {isLogin ? 'Secure Log In' : 'Create Account'} <ArrowRight />
               </button>
             </form>
 

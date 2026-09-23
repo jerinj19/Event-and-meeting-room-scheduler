@@ -4,7 +4,9 @@ from rest_framework.test import APITestCase
 
 from .models import User
 
+from django.test import override_settings
 
+@override_settings(ALLOWED_EMAIL_DOMAINS=[])
 class AuthenticationTests(APITestCase):
 	password = 'A-secure-test-password-123'
 

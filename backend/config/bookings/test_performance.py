@@ -232,12 +232,12 @@ class NPlusOneQueryTests(TestCase):
     def test_booking_stats_query_count(self):
         """
         Audit queries executed by GET /api/bookings/stats/.
-        Current implementation runs 5 COUNT queries for:
-        (total, confirmed, cancelled, today, upcoming).
+        Current implementation runs 8 queries including active rooms
+        count and today's bookings list for advanced metrics.
         """
         self.client.force_authenticate(user=self.user)
 
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(8):
             res = self.client.get("/api/bookings/stats/")
             self.assertEqual(res.status_code, status.HTTP_200_OK)
             self.assertIn("total_bookings", res.data)

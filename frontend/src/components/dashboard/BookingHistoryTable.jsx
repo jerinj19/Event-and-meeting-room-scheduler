@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import CancelModal from './CancelModal';
 import { useToast } from '../../contexts/ToastContext';
+import { fetchWithAuth } from '../../services/apiClient';
 
 const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -12,11 +13,9 @@ const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
 
   const confirmCancel = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/bookings/${selectedBooking.id}/cancel/`, {
+      const response = await fetchWithAuth(`http://localhost:8000/api/bookings/${selectedBooking.id}/cancel/`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -87,16 +86,17 @@ const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
                     {isCancelled ? (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-label-xs font-semibold bg-error-container text-on-error-container border border-error/20">
                         <span className="w-1.5 h-1.5 rounded-full bg-error mr-1.5"></span>
-                        • CANCELLED
+                        CANCELLED
                       </span>
                     ) : isConfirmed ? (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-label-xs font-semibold bg-[#ecfdf5] text-[#047857] border border-[#a7f3d0]">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#047857] mr-1.5"></span>
-                        • CONFIRMED
+                        CONFIRMED
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-label-xs font-semibold bg-surface-container-high text-secondary border border-outline-variant/40">
-                        • {booking.status}
+                        <span className="w-1.5 h-1.5 rounded-full bg-outline mr-1.5"></span>
+                        {booking.status}
                       </span>
                     )}
                   </td>
@@ -109,9 +109,6 @@ const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
                           Cancel Booking
                         </button>
                       )}
-                      <button className="p-1.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors" title="Quick Options">
-                        <span className="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
-                      </button>
                     </div>
                   </td>
                 </tr>

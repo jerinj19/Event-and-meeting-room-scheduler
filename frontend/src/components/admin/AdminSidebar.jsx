@@ -77,6 +77,23 @@ export default function AdminSidebar({ isOpen, onClose }) {
               <span>Manage Rooms</span>
             </div>
           </NavLink>
+
+          <NavLink
+            to="/admin/time-slots"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition ${
+                isActive
+                  ? 'text-primary bg-primary-container/10 border-l-4 border-primary shadow-sm font-semibold'
+                  : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'
+              }`
+            }
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-[20px]" data-icon="schedule">schedule</span>
+              <span>Time Slots</span>
+            </div>
+          </NavLink>
           
           <button
             type="button"

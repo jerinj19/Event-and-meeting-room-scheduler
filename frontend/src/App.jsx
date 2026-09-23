@@ -13,6 +13,7 @@ import AdminAppShell from './components/admin/AdminAppShell';
 import BookRoom from './pages/BookRoom';
 import RoomCatalog from './pages/RoomCatalog';
 import AdminRoomsPage from './pages/AdminRoomsPage';
+import AdminTimeSlotsPage from './pages/AdminTimeSlotsPage';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -109,6 +110,16 @@ export default function App() {
             <AdminRoute>
               <AdminAppShell>
                 <AdminRoomsPage />
+              </AdminAppShell>
+            </AdminRoute>
+          } 
+        />
+        <Route 
+          path="/admin/time-slots" 
+          element={
+            <AdminRoute>
+              <AdminAppShell>
+                <AdminTimeSlotsPage />
               </AdminAppShell>
             </AdminRoute>
           } 

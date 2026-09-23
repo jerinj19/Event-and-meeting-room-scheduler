@@ -64,9 +64,9 @@ export default function RoomCard({ room, onViewSpecs, onBook }) {
                 <span className="truncate">{room.location}</span>
               </p>
             </div>
-            {room.hourlyRate && (
+            {(room.hourlyRate !== undefined || room.hourly_rate !== undefined) && (
               <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded shrink-0">
-                ${room.hourlyRate}
+                ₹{room.hourlyRate ?? room.hourly_rate}
                 <span className="text-slate-400 font-normal">/hr</span>
               </span>
             )}

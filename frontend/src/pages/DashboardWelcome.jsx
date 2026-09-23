@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import BookingHistoryTable from '../components/dashboard/BookingHistoryTable';
 import { useToast } from '../contexts/ToastContext';
+import { fetchWithAuth } from '../services/apiClient';
 
 const DashboardWelcome = () => {
   const { user } = useAuth();
@@ -16,12 +17,7 @@ const DashboardWelcome = () => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8000/api/my-bookings/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetchWithAuth('http://localhost:8000/api/my-bookings/');
       if (!response.ok) throw new Error('Failed to fetch bookings');
       const resData = await response.json();
       const data = resData.results ? resData.results : resData;
@@ -36,71 +32,17 @@ const DashboardWelcome = () => {
         
         return {
           id: b.id,
-          roomName: b.room?.name || 'Unknown Room',
-          location: b.room?.location || 'Unknown Location',
+          roomName: b.room_name || b.room?.name || 'Meeting Room',
+          location: b.room_location || b.room?.location || 'Bangalore Campus',
           date: startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
           time: `${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
-          duration: Math.round((endDate - startDate) / 60000),
+          duration: Math.max(15, Math.round((endDate - startDate) / 60000)),
           status: b.status,
-          capacity: b.room?.capacity || 8,
-          imageUrl: b.room?.image_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
+          capacity: b.room_capacity || b.room?.capacity || 8,
+          imageUrl: b.room_image || b.room?.image_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
           isPast: isPast
         }
       });
-
-      if (formatted.length === 0) {
-        formatted = [
-          {
-            id: 'dummy-1',
-            roomName: 'Executive Boardroom Alpha',
-            location: 'Floor 42, West Wing • London HQ',
-            date: 'Today, Oct 24, 2025',
-            time: '10:00 AM – 11:30 AM',
-            duration: 90,
-            status: 'CONFIRMED',
-            capacity: 16,
-            imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
-            isPast: false
-          },
-          {
-            id: 'dummy-2',
-            roomName: 'Creative Collaboration Lab',
-            location: 'Floor 18, Innovation Hub • Tech Center',
-            date: 'Tomorrow, Oct 25, 2025',
-            time: '02:00 PM – 03:30 PM',
-            duration: 90,
-            status: 'CONFIRMED',
-            capacity: 8,
-            imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
-            isPast: false
-          },
-          {
-            id: 'dummy-3',
-            roomName: 'Acoustic Focus Pod B-04',
-            location: 'Floor 12, Quiet Zone • North Tower',
-            date: 'Oct 28, 2025',
-            time: '09:00 AM – 10:00 AM',
-            duration: 60,
-            status: 'CONFIRMED',
-            capacity: 2,
-            imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
-            isPast: false
-          },
-          {
-            id: 'dummy-4',
-            roomName: 'Skyview Conference Hall',
-            location: 'Floor 50, Tower Summit • Global HQ',
-            date: 'Oct 18, 2025',
-            time: '01:00 PM – 03:00 PM',
-            duration: 120,
-            status: 'CANCELLED',
-            capacity: 30,
-            imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
-            isPast: true
-          }
-        ];
-        setTotalCount(22); // Mock 22 total bookings to match KPI 18 past + 4 upcoming
-      }
 
       setBookings(formatted);
       
@@ -120,7 +62,7 @@ const DashboardWelcome = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [user?.id, user?.email]);
 
   const upcomingBookings = bookings.filter(b => !b.isPast && b.status !== 'CANCELLED');
   const pastBookings = bookings.filter(b => b.isPast || b.status === 'CANCELLED');

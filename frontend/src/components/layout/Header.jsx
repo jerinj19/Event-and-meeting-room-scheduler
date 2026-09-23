@@ -80,12 +80,27 @@ export default function Header({ onToggleSidebar }) {
         {/* User Badge */}
         <div className="flex items-center gap-2.5 pl-1">
           <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-semibold flex items-center justify-center text-xs sm:text-sm ring-2 ring-blue-500/30">
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            {user?.name ? user.name.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'U')}
           </div>
           <div className="hidden lg:block text-left">
-            <p className="text-sm font-semibold leading-tight text-slate-900">{user?.name || 'User'}</p>
+            <p className="text-sm font-semibold leading-tight text-slate-900">{user?.name || user?.full_name || 'User'}</p>
             <p className="text-[11px] text-slate-500">{user?.email || 'user@example.com'}</p>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+              localStorage.removeItem('user');
+              window.location.href = '/';
+            }}
+            title="Sign Out"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
         </div>
       </div>
     </header>

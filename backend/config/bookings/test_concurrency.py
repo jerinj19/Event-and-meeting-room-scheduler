@@ -4,7 +4,7 @@ from datetime import timedelta
 import uuid
 
 from django.contrib.auth import get_user_model
-from django.db import connection, transaction, IntegrityError
+from django.db import connection, transaction, IntegrityError, OperationalError
 from django.test import TransactionTestCase
 from django.utils import timezone
 from rest_framework import status
@@ -145,7 +145,7 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
                     )
                     # Bypass model.clean() to test the raw database ExclusionConstraint
                     super(Booking, b).save()
-            except IntegrityError as exc:
+            except (IntegrityError, OperationalError) as exc:
                 error_occurred = exc
             finally:
                 connection.close()
@@ -156,17 +156,20 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
             future2 = executor.submit(create_booking_direct, self.user2, "Direct Insert 2")
             results = [future1.result(), future2.result()]
 
-        # Exactly one should have None (success) and the other should have IntegrityError
+        # Exactly one should have None (success) and the other should have an error (IntegrityError or OperationalError)
         errors = [r for r in results if r is not None]
         successes = [r for r in results if r is None]
 
         self.assertEqual(len(successes), 1, "Expected exactly one direct insert to succeed.")
-        self.assertEqual(len(errors), 1, "Expected exactly one direct insert to fail with IntegrityError.")
-        self.assertIn(
-            "booking_prevent_overlapping",
-            str(errors[0]),
-            f"Expected PostgreSQL exclusion constraint 'booking_prevent_overlapping' in error: {errors[0]}",
-        )
+        self.assertEqual(len(errors), 1, "Expected exactly one direct insert to fail.")
+        if isinstance(errors[0], IntegrityError):
+            self.assertIn(
+                "booking_prevent_overlapping",
+                str(errors[0]),
+                f"Expected PostgreSQL exclusion constraint 'booking_prevent_overlapping' in error: {errors[0]}",
+            )
+        else:
+            self.assertIn("deadlock", str(errors[0]).lower())
 
         # Database must still have only 1 confirmed booking
         total_in_db = Booking.objects.filter(

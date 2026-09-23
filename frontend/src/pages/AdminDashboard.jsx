@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import CreateAdminModal from '../components/admin/CreateAdminModal';
 
 const AdminDashboard = () => {
@@ -33,6 +34,13 @@ const AdminDashboard = () => {
               <span className="material-symbols-outlined" data-icon="ios_share">ios_share</span>
               <span>Export Operations Log</span>
             </button>
+            <Link
+              to="/admin/time-slots"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-medium text-sm transition-colors duration-150"
+            >
+              <span className="material-symbols-outlined text-primary" data-icon="schedule">schedule</span>
+              <span>Manage Time Slots</span>
+            </Link>
             <button 
               onClick={() => setIsModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary-container text-on-primary font-medium text-sm hover:bg-primary shadow-sm hover:shadow transition-all duration-150" 

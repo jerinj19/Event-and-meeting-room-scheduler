@@ -1,11 +1,11 @@
-from datetime import timedelta
+from datetime import time, timedelta
 
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException
 from rooms.models import Room
 
-from .models import Booking
+from .models import Booking, TimeSlot
 
 
 class BookingConflictException(APIException):
@@ -50,8 +50,37 @@ class BookingSerializer(serializers.ModelSerializer):
     room_name = serializers.ReadOnlyField(source="room.name")
     room_location = serializers.ReadOnlyField(source="room.location")
     room_capacity = serializers.ReadOnlyField(source="room.capacity")
+    room_image = serializers.SerializerMethodField()
     user_email = serializers.ReadOnlyField(source="user.email")
     user_name = serializers.ReadOnlyField(source="user.full_name")
+    session = serializers.SerializerMethodField()
+    time_slot_label = serializers.SerializerMethodField()
+
+    def get_room_image(self, obj):
+        if obj.room and obj.room.image:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.room.image.url)
+            return obj.room.image.url
+        return None
+
+    def get_session(self, obj):
+        if not obj.start_time:
+            return "morning"
+        local_dt = timezone.localtime(obj.start_time)
+        t = local_dt.time()
+        if t < time(12, 0):
+            return "morning"
+        elif t < time(17, 0):
+            return "afternoon"
+        return "evening"
+
+    def get_time_slot_label(self, obj):
+        if not obj.start_time or not obj.end_time:
+            return ""
+        local_start = timezone.localtime(obj.start_time)
+        local_end = timezone.localtime(obj.end_time)
+        return f"{local_start.strftime('%I:%M %p')} – {local_end.strftime('%I:%M %p')}".replace(" 0", " ")
 
     class Meta:
         model = Booking
@@ -61,6 +90,7 @@ class BookingSerializer(serializers.ModelSerializer):
             "room_name",
             "room_location",
             "room_capacity",
+            "room_image",
             "user",
             "user_email",
             "user_name",
@@ -68,6 +98,8 @@ class BookingSerializer(serializers.ModelSerializer):
             "description",
             "start_time",
             "end_time",
+            "session",
+            "time_slot_label",
             "attendees_count",
             "status",
             "created_at",
@@ -81,6 +113,9 @@ class BookingSerializer(serializers.ModelSerializer):
             "room_name",
             "room_location",
             "room_capacity",
+            "room_image",
+            "session",
+            "time_slot_label",
             "status",
             "created_at",
             "updated_at",
@@ -194,3 +229,58 @@ class CheckAvailabilitySerializer(serializers.Serializer):
             raise serializers.ValidationError({"room_id": "Specified room does not exist."})
 
         return attrs
+
+
+class TimeSlotSerializer(serializers.ModelSerializer):
+    """
+    Serializer for managing TimeSlot entities dynamically.
+    Provides formatted start/end strings, calculated duration, room name,
+    and validates logical time ordering.
+    """
+
+    start = serializers.SerializerMethodField()
+    end = serializers.SerializerMethodField()
+    duration = serializers.ReadOnlyField(source="duration_label")
+    duration_minutes = serializers.ReadOnlyField()
+    formatted_label = serializers.ReadOnlyField()
+    room_name = serializers.ReadOnlyField(source="room.name")
+    is_recurring = serializers.ReadOnlyField()
+
+    class Meta:
+        model = TimeSlot
+        fields = [
+            "id",
+            "label",
+            "date",
+            "is_recurring",
+            "start_time",
+            "end_time",
+            "start",
+            "end",
+            "period",
+            "duration",
+            "duration_minutes",
+            "formatted_label",
+            "room",
+            "room_name",
+            "is_active",
+            "sort_order",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_start(self, obj):
+        return obj.start_time.strftime("%H:%M") if obj.start_time else ""
+
+    def get_end(self, obj):
+        return obj.end_time.strftime("%H:%M") if obj.end_time else ""
+
+    def validate(self, attrs):
+        start_time = attrs.get("start_time", getattr(self.instance, "start_time", None))
+        end_time = attrs.get("end_time", getattr(self.instance, "end_time", None))
+
+        if start_time and end_time and end_time <= start_time:
+            raise serializers.ValidationError({"end_time": "End time must be after start time."})
+
+        return attrs
+

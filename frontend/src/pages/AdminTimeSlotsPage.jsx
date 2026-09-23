@@ -90,7 +90,6 @@ export default function AdminTimeSlotsPage() {
         params.room = 'global';
       } else if (roomFilter !== 'all') {
         params.room = roomFilter;
-        params.exact_room = true;
       }
 
       if (periodFilter === 'this_month' || periodFilter === 'this_week') {
@@ -329,6 +328,18 @@ export default function AdminTimeSlotsPage() {
     }
   };
 
+  // Helper to format 24h string to 12h AM/PM
+  const formatTime12h = (timeStr) => {
+    if (!timeStr) return '';
+    const parts = timeStr.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parts[1] ? parts[1].slice(0, 2) : '00';
+    if (isNaN(h)) return timeStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${String(h12).padStart(2, '0')}:${m} ${ampm}`;
+  };
+
   // Helper for Period Pill color
   const getPeriodBadge = (period) => {
     switch (period) {
@@ -363,7 +374,7 @@ export default function AdminTimeSlotsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300">
+    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-6 animate-in fade-in duration-300">
       {/* 1. Header & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -489,10 +500,10 @@ export default function AdminTimeSlotsPage() {
         </div>
 
         {/* Row 2: Room Dropdown, Period Filter, Session Dropdown, Status Filter & Reset */}
-        <div className="flex flex-wrap items-center gap-2.5 pt-1 border-t border-outline-variant/30">
+        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-outline-variant/30">
           {/* Room Dropdown Filter */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
               Room:
             </label>
             <select
@@ -501,7 +512,7 @@ export default function AdminTimeSlotsPage() {
                 setRoomFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
               <option value="all">🏢 All Scopes (Global + All Rooms)</option>
               <option value="global">🌐 Global Only (All Rooms)</option>
@@ -518,8 +529,8 @@ export default function AdminTimeSlotsPage() {
           </div>
 
           {/* Session Dropdown Filter */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
               Session:
             </label>
             <select
@@ -528,7 +539,7 @@ export default function AdminTimeSlotsPage() {
                 setSessionFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
               <option value="all">All Status (Morning, Afternoon, Evening)</option>
               <option value="morning">Morning</option>
@@ -538,8 +549,8 @@ export default function AdminTimeSlotsPage() {
           </div>
 
           {/* Period Filter Dropdown */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
               Period / Date:
             </label>
             <select
@@ -548,7 +559,7 @@ export default function AdminTimeSlotsPage() {
                 setPeriodFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
               <option value="all">📅 All Dates</option>
               <option value="this_week">📆 This Week</option>
@@ -559,7 +570,7 @@ export default function AdminTimeSlotsPage() {
 
           {/* Custom Date Range Inputs */}
           {periodFilter === 'custom' && (
-            <div className="flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1 rounded-lg border border-outline-variant/60">
+            <div className="flex flex-wrap items-center gap-1.5 bg-surface-container-low px-2.5 py-1.5 rounded-lg border border-outline-variant/60 w-full sm:w-auto">
               <input
                 type="date"
                 value={customStartDate}
@@ -567,7 +578,7 @@ export default function AdminTimeSlotsPage() {
                   setCustomStartDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="text-xs bg-surface-container-lowest border border-outline-variant/40 rounded px-1.5 py-0.5 text-on-surface outline-none"
+                className="text-xs bg-surface-container-lowest border border-outline-variant/40 rounded px-1.5 py-0.5 text-on-surface outline-none flex-1 sm:flex-initial"
                 title="Start Date"
               />
               <span className="text-secondary text-xs">to</span>
@@ -578,15 +589,15 @@ export default function AdminTimeSlotsPage() {
                   setCustomEndDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="text-xs bg-surface-container-lowest border border-outline-variant/40 rounded px-1.5 py-0.5 text-on-surface outline-none"
+                className="text-xs bg-surface-container-lowest border border-outline-variant/40 rounded px-1.5 py-0.5 text-on-surface outline-none flex-1 sm:flex-initial"
                 title="End Date"
               />
             </div>
           )}
 
           {/* Status Filter */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
               Status:
             </label>
             <select
@@ -595,7 +606,7 @@ export default function AdminTimeSlotsPage() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
               <option value="all">All Status</option>
               <option value="active">Active Only</option>
@@ -608,7 +619,7 @@ export default function AdminTimeSlotsPage() {
             <button
               type="button"
               onClick={handleClearFilters}
-              className="px-2.5 py-1 text-xs font-semibold text-error hover:bg-error-container/20 rounded-lg transition ml-auto flex items-center gap-1 cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold text-error hover:bg-error-container/20 rounded-lg transition w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-1 cursor-pointer border border-error/30 sm:border-transparent"
             >
               <span className="material-symbols-outlined text-[14px]">filter_alt_off</span>
               <span>Clear Filters</span>
@@ -660,44 +671,76 @@ export default function AdminTimeSlotsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {slots.map((slot) => {
               const isToggling = actionLoadingId === slot.id;
+              const startTime12 = formatTime12h(slot.start || slot.start_time);
+              const endTime12 = formatTime12h(slot.end || slot.end_time);
+
+              // Check if slot has a custom descriptive label (e.g. "Sprint Sync")
+              const hasCustomLabel = slot.label && !slot.label.includes(slot.start) && slot.label !== slot.formatted_label;
+
               return (
                 <div
                   key={slot.id}
-                  className={`bg-surface-container-lowest border rounded-2xl p-4.5 shadow-xs transition hover:shadow-md flex flex-col justify-between gap-3 ${
-                    slot.is_active ? 'border-outline-variant/40' : 'border-slate-200 opacity-70 bg-slate-50/50'
+                  className={`group bg-surface-container-lowest border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-3 h-full ${
+                    slot.is_active
+                      ? 'border-outline-variant/40 hover:border-primary/40'
+                      : 'border-slate-200 opacity-75 bg-slate-50/60'
                   }`}
                 >
                   {/* Top: Category Badge, Date Badge & Room Scope */}
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 border-b border-outline-variant/20 pb-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {getPeriodBadge(slot.period)}
                       {slot.date && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
-                          <span className="material-symbols-outlined text-xs">calendar_today</span>
-                          {slot.date}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-200 shadow-2xs">
+                          <span className="material-symbols-outlined text-[12px]">calendar_today</span>
+                          <span>{slot.date}</span>
                         </span>
                       )}
                     </div>
-                    <span className="text-[11px] font-medium text-secondary truncate max-w-[120px]" title={slot.room_name || 'Global'}>
-                      {slot.room_name ? `📍 ${slot.room_name}` : '🌐 Global'}
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium truncate max-w-[125px] border shadow-2xs ${
+                        slot.room_name
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}
+                      title={slot.room_name || 'Global (All Rooms)'}
+                    >
+                      <span>{slot.room_name ? '📍' : '🌐'}</span>
+                      <span className="truncate">{slot.room_name || 'Global'}</span>
                     </span>
                   </div>
 
-                  {/* Middle: Slot Time & Label */}
-                  <div className="space-y-1">
-                    <div className="text-base font-bold text-on-surface tracking-tight">
-                      {slot.label || slot.formatted_label}
+                  {/* Middle: Prominent Centered Time Showcase */}
+                  <div className="my-auto py-3.5 px-3 rounded-xl bg-surface-container-low/60 border border-outline-variant/30 flex flex-col items-center justify-center text-center transition group-hover:bg-primary/[0.03] group-hover:border-primary/25">
+                    {hasCustomLabel && (
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 line-clamp-1" title={slot.label}>
+                        {slot.label}
+                      </span>
+                    )}
+
+                    {/* Centered Large Time Display */}
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-base sm:text-[17px] font-bold text-on-surface font-mono tracking-tight">
+                        {startTime12}
+                      </span>
+                      <span className="text-primary font-bold text-sm">→</span>
+                      <span className="text-base sm:text-[17px] font-bold text-on-surface font-mono tracking-tight">
+                        {endTime12}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-secondary">
-                      <span className="font-semibold text-primary">{slot.start} – {slot.end}</span>
-                      <span>•</span>
-                      <span>{slot.duration || `${slot.duration_minutes || 60} mins`}</span>
+
+                    {/* Centered Duration Pill */}
+                    <div className="mt-2 flex items-center justify-center">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-surface-container-lowest text-secondary border border-outline-variant/50 shadow-2xs">
+                        <span className="material-symbols-outlined text-[13px] text-primary">schedule</span>
+                        <span>{slot.duration || `${slot.duration_minutes || 60} mins`}</span>
+                      </span>
                     </div>
                   </div>
 
                   {/* Bottom: Active Toggle & Actions */}
-                  <div className="pt-3 border-t border-outline-variant/30 flex items-center justify-between">
-                    <label className="relative inline-flex items-center cursor-pointer">
+                  <div className="pt-2.5 border-t border-outline-variant/30 flex items-center justify-between">
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={slot.is_active}
@@ -706,7 +749,7 @@ export default function AdminTimeSlotsPage() {
                         className="sr-only peer"
                       />
                       <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-                      <span className="ml-2 text-[11px] font-semibold text-secondary">
+                      <span className={`ml-2 text-[11px] font-bold ${slot.is_active ? 'text-emerald-700' : 'text-slate-400'}`}>
                         {isToggling ? 'Updating...' : slot.is_active ? 'Active' : 'Disabled'}
                       </span>
                     </label>
@@ -935,7 +978,7 @@ export default function AdminTimeSlotsPage() {
 
       {/* Reset Defaults Confirmation Modal */}
       {isResetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
           <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold flex-shrink-0">

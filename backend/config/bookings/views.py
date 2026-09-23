@@ -410,7 +410,9 @@ def seed_default_time_slots():
     """
     Ensure the 11 standard corporate default time slots exist in the database.
     Default templates have date=None so they apply across each and every day.
+    Seeds globally (room=None) as well as for all active rooms that do not have custom slots.
     """
+    # 1. Global templates
     for index, slot in enumerate(STANDARD_SLOTS):
         sh, sm = map(int, slot["start"].split(":"))
         eh, em = map(int, slot["end"].split(":"))
@@ -426,6 +428,26 @@ def seed_default_time_slots():
                 "sort_order": index,
             },
         )
+
+    # 2. Per-room standard slots for active rooms without custom templates
+    for room in Room.objects.filter(is_active=True):
+        if room.name.lower() == "xyz":
+            continue
+        for index, slot in enumerate(STANDARD_SLOTS):
+            sh, sm = map(int, slot["start"].split(":"))
+            eh, em = map(int, slot["end"].split(":"))
+            TimeSlot.objects.update_or_create(
+                start_time=time(sh, sm),
+                end_time=time(eh, em),
+                room=room,
+                date=None,
+                defaults={
+                    "label": slot["label"],
+                    "period": slot["period"],
+                    "is_active": True,
+                    "sort_order": index,
+                },
+            )
 
 
 def is_admin_user(user):

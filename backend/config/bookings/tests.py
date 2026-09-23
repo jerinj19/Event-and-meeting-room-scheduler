@@ -978,6 +978,35 @@ class BookingAPITests(TestCase):
                 self.assertEqual(item["session"], "morning")
                 self.assertIn("AM", item["time_slot_label"])
 
+    def test_booking_timezone_header_support(self):
+        """Verify that X-Timezone header activates client timezone for time_slot_label and session."""
+        self.client.force_authenticate(user=self.admin)
+        from datetime import timezone as dt_tz
+        dt_start = datetime(2026, 9, 23, 15, 0, 0, tzinfo=dt_tz.utc)
+        dt_end = datetime(2026, 9, 23, 16, 30, 0, tzinfo=dt_tz.utc)
+
+        b = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Late Sync",
+            start_time=dt_start,
+            end_time=dt_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        # 1. With X-Timezone: Asia/Kolkata (UTC+5:30) -> 15:00 UTC is 20:30 IST (08:30 PM, Evening)
+        res_ist = self.client.get(f"/api/bookings/{b.id}/", HTTP_X_TIMEZONE="Asia/Kolkata")
+        self.assertEqual(res_ist.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_ist.data["session"], "evening")
+        self.assertIn("8:30 PM", res_ist.data["time_slot_label"])
+        self.assertIn("10:00 PM", res_ist.data["time_slot_label"])
+
+        # 2. Without X-Timezone header -> defaults to UTC (03:00 PM, Afternoon)
+        res_utc = self.client.get(f"/api/bookings/{b.id}/")
+        self.assertEqual(res_utc.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_utc.data["session"], "afternoon")
+        self.assertIn("3:00 PM", res_utc.data["time_slot_label"])
+
 
 class TimeSlotModelAndAPITests(TestCase):
     """

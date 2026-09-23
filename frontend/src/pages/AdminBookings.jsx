@@ -127,32 +127,42 @@ export default function AdminBookings() {
         setTotalPages(pages);
 
         if (apiList.length > 0) {
-          const mapped = apiList.map((b) => ({
-            id: b.id,
-            code: `#BKG-${String(b.id).slice(0, 4).toUpperCase()}`,
-            title: b.title,
-            description: b.description || 'No additional agenda provided.',
-            roomName: b.room_name || b.room?.name || 'Meeting Room',
-            location: b.room_location || b.room?.location || 'Main Campus',
-            capacity: b.room_capacity || b.room?.capacity || 10,
-            amenities: b.room?.amenities || ['Dual 4K Displays', 'Polycom Video Bar', 'Gigabit WiFi'],
-            imageUrl: b.room_image || b.room?.image_url || FALLBACK_ROOM_IMAGE,
-            organizerName: b.user_name || b.user_email?.split('@')[0] || b.user?.email?.split('@')[0] || 'Organizer',
-            organizerEmail: b.user_email || b.user?.email || 'user@innovyx.com',
-            organizerRole: 'Team Member',
-            department: 'General Operations',
-            phone: '+1 (555) 019-0000',
-            session: b.session || 'morning',
-            date: new Date(b.start_time).toLocaleDateString('en-US', {
+          const mapped = apiList.map((b) => {
+            const startDate = new Date(b.start_time);
+            const endDate = new Date(b.end_time);
+            const hour = startDate.getHours();
+            const localSession = hour < 12 ? 'morning' : (hour < 17 ? 'afternoon' : 'evening');
+            const localTimeStr = `${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            const localDateStr = startDate.toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
-            }),
-            time: b.time_slot_label || `${new Date(b.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${new Date(b.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-            duration: Math.max(15, Math.round((new Date(b.end_time) - new Date(b.start_time)) / (1000 * 60))),
-            attendees: b.attendees_count || 1,
-            status: b.status,
-          }));
+            });
+            const durationMins = Math.max(15, Math.round((endDate - startDate) / (1000 * 60)));
+
+            return {
+              id: b.id,
+              code: `#BKG-${String(b.id).slice(0, 4).toUpperCase()}`,
+              title: b.title,
+              description: b.description || 'No additional agenda provided.',
+              roomName: b.room_name || b.room?.name || 'Meeting Room',
+              location: b.room_location || b.room?.location || 'Main Campus',
+              capacity: b.room_capacity || b.room?.capacity || 10,
+              amenities: b.room?.amenities || ['Dual 4K Displays', 'Polycom Video Bar', 'Gigabit WiFi'],
+              imageUrl: b.room_image || b.room?.image_url || FALLBACK_ROOM_IMAGE,
+              organizerName: b.user_name || b.user_email?.split('@')[0] || b.user?.email?.split('@')[0] || 'Organizer',
+              organizerEmail: b.user_email || b.user?.email || 'user@innovyx.com',
+              organizerRole: 'Team Member',
+              department: 'General Operations',
+              phone: '+1 (555) 019-0000',
+              session: localSession,
+              date: localDateStr,
+              time: localTimeStr,
+              duration: durationMins,
+              attendees: b.attendees_count || 1,
+              status: b.status,
+            };
+          });
           setBookings(mapped);
           setSelectedBooking((prev) => (prev ? mapped.find((m) => m.id === prev.id) || mapped[0] : mapped[0]));
         } else {

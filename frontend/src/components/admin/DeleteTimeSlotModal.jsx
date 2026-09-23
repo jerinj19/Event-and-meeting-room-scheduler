@@ -4,7 +4,7 @@ export default function DeleteTimeSlotModal({ isOpen, onClose, onConfirm, slot, 
   if (!isOpen || !slot) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div 
         className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
         role="dialog"

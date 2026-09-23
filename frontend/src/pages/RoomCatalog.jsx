@@ -4,6 +4,7 @@ import SearchCommandBar from '../components/rooms/SearchCommandBar';
 import RoomFilters from '../components/rooms/RoomFilters';
 import RoomGrid from '../components/rooms/RoomGrid';
 import RoomDetailsModal from '../components/rooms/RoomDetailsModal';
+import { getTodayDateString, formatDisplayDate } from '../utils/dateUtils';
 
 export default function RoomCatalog() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function RoomCatalog() {
 
   // Filter States
   const [locationQuery, setLocationQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState('2026-09-22');
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString());
   const [bookedRoomIdsOnDate, setBookedRoomIdsOnDate] = useState(new Set());
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [availableOnly, setAvailableOnly] = useState(false);
@@ -183,7 +184,7 @@ export default function RoomCatalog() {
 
   const handleResetFilters = () => {
     setLocationQuery('');
-    setSelectedDate('2026-09-22');
+    setSelectedDate(getTodayDateString());
     setSelectedAmenities([]);
     setAvailableOnly(false);
     setLocationFilter('all');
@@ -394,7 +395,7 @@ export default function RoomCatalog() {
                   )}
                   {selectedDate && (
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-100">
-                      <span>Date: {selectedDate}</span>
+                      <span>Date: {formatDisplayDate(selectedDate)}</span>
                       <button
                         type="button"
                         onClick={() => setSelectedDate('')}

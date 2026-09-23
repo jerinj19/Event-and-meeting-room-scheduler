@@ -130,7 +130,8 @@ export const AuthProvider = ({ children }) => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.error || 'Invalid email or password');
+        const message = errorData.error?.message || errorData.detail || errorData.error || 'Invalid email or password';
+        throw new Error(typeof message === 'object' ? JSON.stringify(message) : message);
       }
 
       const data = await response.json();
@@ -161,7 +162,8 @@ export const AuthProvider = ({ children }) => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.detail || 'Google Login Failed');
+        const message = errorData.error?.message || errorData.detail || errorData.error || 'Google Login Failed';
+        throw new Error(typeof message === 'object' ? JSON.stringify(message) : message);
       }
 
       const data = await response.json();

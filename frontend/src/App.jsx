@@ -8,6 +8,7 @@ import AdminBookings from './pages/AdminBookings';
 import AdminRoomsPage from './pages/AdminRoomsPage';
 import AdminUserManagementPage from './pages/AdminUserManagementPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
+import AdminTimeSlotsPage from './pages/AdminTimeSlotsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import { useAuth } from './contexts/AuthContext';
@@ -152,6 +153,15 @@ export default function App() {
               <AdminAppShell>
                 <AdminUserManagementPage />
               </AdminAppShell>
+            </AdminRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/timeslots" 
+          element={
+            <AdminRoute>
+              <AdminTimeSlotsPage />
             </AdminRoute>
           } 
         />

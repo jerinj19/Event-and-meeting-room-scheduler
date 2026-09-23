@@ -275,10 +275,48 @@ class BookingStatsView(APIView):
         total = Booking.objects.count()
         confirmed = Booking.objects.filter(status=Booking.STATUS_CONFIRMED).count()
         cancelled = Booking.objects.filter(status=Booking.STATUS_CANCELLED).count()
-        today_count = (
-            Booking.objects.filter(start_time__date=today, status=Booking.STATUS_CONFIRMED).count()
-        )
+        today_qs = Booking.objects.filter(start_time__date=today)
+        today_count = today_qs.filter(status=Booking.STATUS_CONFIRMED).count()
         upcoming = Booking.objects.filter(start_time__gte=now, status=Booking.STATUS_CONFIRMED).count()
+
+        # KPIs Calculation
+        confirmed_hours = 0.0
+        cancelled_hours = 0.0
+        
+        for b in today_qs:
+            duration = (b.end_time - b.start_time).total_seconds() / 3600.0
+            if b.status == Booking.STATUS_CONFIRMED:
+                confirmed_hours += duration
+            elif b.status == Booking.STATUS_CANCELLED:
+                cancelled_hours += duration
+
+        active_rooms_count = Room.objects.filter(is_active=True).count()
+        available_hours = active_rooms_count * 8.0 # 8 hour day per room
+        
+        utilization_rate = 0.0
+        if available_hours > 0:
+            utilization_rate = round(min((confirmed_hours / available_hours) * 100, 100.0), 1)
+            
+        efficiency_rate = 100.0
+        if (confirmed_hours + cancelled_hours) > 0:
+            efficiency_rate = round((confirmed_hours / (confirmed_hours + cancelled_hours)) * 100, 1)
+
+        # Peak time
+        peak_time_str = "No bookings today"
+        if today_qs.filter(status=Booking.STATUS_CONFIRMED).exists():
+            hours_count = {}
+            for b in today_qs.filter(status=Booking.STATUS_CONFIRMED):
+                # get hour in local time context if possible, but start_time is UTC here.
+                # using timezone.localtime to group correctly based on django settings
+                local_time = timezone.localtime(b.start_time)
+                h = local_time.hour
+                hours_count[h] = hours_count.get(h, 0) + 1
+            
+            if hours_count:
+                peak_hour = max(hours_count, key=hours_count.get)
+                peak_start = f"{peak_hour % 12 or 12}:00 {'AM' if peak_hour < 12 else 'PM'}"
+                peak_end = f"{(peak_hour + 1) % 12 or 12}:00 {'AM' if (peak_hour + 1) < 12 else 'PM'}"
+                peak_time_str = f"{peak_start} - {peak_end}"
 
         return Response(
             {
@@ -287,6 +325,10 @@ class BookingStatsView(APIView):
                 "cancelled_bookings": cancelled,
                 "today_bookings": today_count,
                 "upcoming_bookings": upcoming,
+                "utilization_rate": utilization_rate,
+                "efficiency_rate": efficiency_rate,
+                "cancelled_hours": round(cancelled_hours, 1),
+                "peak_time": peak_time_str
             },
             status=status.HTTP_200_OK,
         )

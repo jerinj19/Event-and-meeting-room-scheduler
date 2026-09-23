@@ -48,59 +48,6 @@ const DashboardWelcome = () => {
         }
       });
 
-      if (formatted.length === 0) {
-        formatted = [
-          {
-            id: 'dummy-1',
-            roomName: 'Executive Boardroom Alpha',
-            location: 'Floor 42, West Wing • London HQ',
-            date: 'Today, Oct 24, 2025',
-            time: '10:00 AM – 11:30 AM',
-            duration: 90,
-            status: 'CONFIRMED',
-            capacity: 16,
-            imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
-            isPast: false
-          },
-          {
-            id: 'dummy-2',
-            roomName: 'Creative Collaboration Lab',
-            location: 'Floor 18, Innovation Hub • Tech Center',
-            date: 'Tomorrow, Oct 25, 2025',
-            time: '02:00 PM – 03:30 PM',
-            duration: 90,
-            status: 'CONFIRMED',
-            capacity: 8,
-            imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
-            isPast: false
-          },
-          {
-            id: 'dummy-3',
-            roomName: 'Acoustic Focus Pod B-04',
-            location: 'Floor 12, Quiet Zone • North Tower',
-            date: 'Oct 28, 2025',
-            time: '09:00 AM – 10:00 AM',
-            duration: 60,
-            status: 'CONFIRMED',
-            capacity: 2,
-            imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
-            isPast: false
-          },
-          {
-            id: 'dummy-4',
-            roomName: 'Skyview Conference Hall',
-            location: 'Floor 50, Tower Summit • Global HQ',
-            date: 'Oct 18, 2025',
-            time: '01:00 PM – 03:00 PM',
-            duration: 120,
-            status: 'CANCELLED',
-            capacity: 30,
-            imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
-            isPast: true
-          }
-        ];
-        setTotalCount(22); // Mock 22 total bookings to match KPI 18 past + 4 upcoming
-      }
 
       setBookings(formatted);
       
@@ -136,7 +83,7 @@ const DashboardWelcome = () => {
             <span className="px-2.5 py-0.5 rounded-full text-label-xs font-label-xs bg-primary-fixed text-on-primary-fixed-variant font-medium">Enterprise HQ Sync</span>
             <span className="text-label-sm font-label-sm text-secondary">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span>
           </div>
-          <h1 className="text-headline-md font-headline-md text-on-surface font-bold tracking-tight">Welcome back, {user?.name?.split(' ')[0] || 'User'}</h1>
+          <h1 className="text-headline-md font-headline-md text-on-surface font-bold tracking-tight">Welcome, {user?.first_name || 'User'}</h1>
           <p className="text-body-md font-body-md text-secondary max-w-2xl">
             You have <strong className="text-on-surface font-semibold">{upcomingBookings.length} upcoming reservations</strong>. Automated badge access is synchronized.
           </p>

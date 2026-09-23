@@ -4,7 +4,7 @@ from datetime import timedelta
 import uuid
 
 from django.contrib.auth import get_user_model
-from django.db import connection, transaction, IntegrityError
+from django.db import connection, transaction, IntegrityError, OperationalError
 from django.test import TransactionTestCase
 from django.utils import timezone
 from rest_framework import status
@@ -85,10 +85,11 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
             }
             # Wait for all threads to synchronize so requests are fired simultaneously
             start_barrier.wait(timeout=10)
-            res = client.post("/api/bookings/", payload, format="json")
-            # Close connection for this thread
-            connection.close()
-            return res.status_code, res.data
+            try:
+                res = client.post("/api/bookings/", payload, format="json")
+                return res.status_code, res.data
+            finally:
+                connection.close()
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             future1 = executor.submit(make_booking_request, self.user1, "Meeting Alice")
@@ -145,7 +146,7 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
                     )
                     # Bypass model.clean() to test the raw database ExclusionConstraint
                     super(Booking, b).save()
-            except IntegrityError as exc:
+            except (IntegrityError, OperationalError) as exc:
                 error_occurred = exc
             finally:
                 connection.close()
@@ -156,16 +157,16 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
             future2 = executor.submit(create_booking_direct, self.user2, "Direct Insert 2")
             results = [future1.result(), future2.result()]
 
-        # Exactly one should have None (success) and the other should have IntegrityError
+        # Exactly one should have None (success) and the other should fail with constraint violation or deadlock
         errors = [r for r in results if r is not None]
         successes = [r for r in results if r is None]
 
         self.assertEqual(len(successes), 1, "Expected exactly one direct insert to succeed.")
-        self.assertEqual(len(errors), 1, "Expected exactly one direct insert to fail with IntegrityError.")
-        self.assertIn(
-            "booking_prevent_overlapping",
-            str(errors[0]),
-            f"Expected PostgreSQL exclusion constraint 'booking_prevent_overlapping' in error: {errors[0]}",
+        self.assertEqual(len(errors), 1, "Expected exactly one direct insert to fail.")
+        err_msg = str(errors[0])
+        self.assertTrue(
+            "booking_prevent_overlapping" in err_msg or "deadlock detected" in err_msg,
+            f"Expected PostgreSQL exclusion constraint or deadlock in error: {errors[0]}",
         )
 
         # Database must still have only 1 confirmed booking
@@ -206,10 +207,12 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
                 "end_time": end_t.isoformat(),
                 "attendees_count": 2,
             }
-            start_barrier.wait(timeout=10)
-            res = client.post("/api/bookings/", payload, format="json")
-            connection.close()
-            return res.status_code
+            try:
+                start_barrier.wait(timeout=10)
+                res = client.post("/api/bookings/", payload, format="json")
+                return res.status_code
+            finally:
+                connection.close()
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = [

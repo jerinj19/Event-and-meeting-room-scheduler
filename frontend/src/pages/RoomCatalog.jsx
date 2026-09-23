@@ -1,89 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import SearchCommandBar from '../components/rooms/SearchCommandBar';
 import RoomFilters from '../components/rooms/RoomFilters';
 import RoomGrid from '../components/rooms/RoomGrid';
 import RoomDetailsModal from '../components/rooms/RoomDetailsModal';
 
-// Initial room data matching system blueprint (fallback if offline)
-const INITIAL_ROOMS = [
-  {
-    id: 'room-1',
-    name: 'Boardroom Alpha',
-    location: 'Koramangala • 4th Floor (Innovyx Tower)',
-    capacity: 14,
-    area: '1,200 sq ft',
-    hourlyRate: 850,
-    status: 'Available',
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
-    amenities: ['4K Screen', 'Polycom Video', 'Whiteboard', 'WiFi 6', 'Coffee Bar'],
-    is_active: true,
-  },
-  {
-    id: 'room-2',
-    name: 'Innovation Hub',
-    location: 'Indiranagar • 100ft Road',
-    capacity: 8,
-    area: '750 sq ft',
-    hourlyRate: 550,
-    status: 'Available',
-    image: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80',
-    amenities: ['Dual Display', 'Video Conf', 'Acoustic Baffles', 'Whiteboard', 'Coffee Bar'],
-    is_active: true,
-  },
-  {
-    id: 'room-3',
-    name: 'Executive Suite 301',
-    location: 'MG Road • Trinity Circle',
-    capacity: 18,
-    area: '1,450 sq ft',
-    hourlyRate: 1100,
-    status: 'In-Maintenance',
-    image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80',
-    amenities: ['85" OLED', 'Audio Suite', 'Marble Table', 'WiFi 6', '4K'],
-    is_active: false,
-  },
-  {
-    id: 'room-4',
-    name: 'Focus Pod Gamma',
-    location: 'Koramangala • 4th Block',
-    capacity: 4,
-    area: '280 sq ft',
-    hourlyRate: 350,
-    status: 'Available',
-    image: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80',
-    amenities: ['Display Screen', 'WiFi 6', 'Standing Desk'],
-    is_active: true,
-  },
-  {
-    id: 'room-5',
-    name: 'Creative Studio Delta',
-    location: 'Indiranagar • Defence Colony',
-    capacity: 10,
-    area: '900 sq ft',
-    hourlyRate: 650,
-    status: 'Available',
-    image: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
-    amenities: ['Ultra-wide Screen', 'Glass Wall', 'Podcast Mic', 'WiFi 6'],
-    is_active: true,
-  },
-  {
-    id: 'room-6',
-    name: 'Acoustic Sprint Pod 102',
-    location: 'MG Road • Brigade Gateway',
-    capacity: 2,
-    area: '160 sq ft',
-    hourlyRate: 250,
-    status: 'Available',
-    image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=800&q=80',
-    amenities: ['NRC 0.9 Felt', 'WiFi 6', 'Ergonomic'],
-    is_active: true,
-  },
-];
-
 export default function RoomCatalog() {
   const navigate = useNavigate();
-  const [rooms, setRooms] = useState(INITIAL_ROOMS);
+  const [rooms, setRooms] = useState([]);
   const [selectedModalRoom, setSelectedModalRoom] = useState(null);
 
   // Filter States
@@ -96,6 +20,15 @@ export default function RoomCatalog() {
   const [maxHourlyRate, setMaxHourlyRate] = useState(null);
   const [sortBy, setSortBy] = useState('recommended');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams] = useSearchParams();
+
+  // Synchronize search query from navbar URL param
+  const urlSearch = searchParams.get('search');
+  useEffect(() => {
+    if (urlSearch !== null && urlSearch !== undefined) {
+      setLocationQuery(urlSearch);
+    }
+  }, [urlSearch]);
 
   // 1. Fetch Rooms from DRF Backend API
   useEffect(() => {
@@ -123,16 +56,18 @@ export default function RoomCatalog() {
               status: r.is_active ? 'Available' : 'In-Maintenance',
               image: r.image 
                 ? (r.image.startsWith('http') ? r.image : `http://127.0.0.1:8000${r.image}`)
-                : INITIAL_ROOMS[i % INITIAL_ROOMS.length].image,
+                : 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
               amenities: Array.isArray(r.amenities) ? r.amenities : [],
               is_active: r.is_active !== undefined ? r.is_active : true,
             };
           });
           setRooms(formatted);
+        } else {
+          setRooms([]);
         }
       })
       .catch(() => {
-        // Fallback silently to initial rooms
+        setRooms([]);
       });
   }, []);
 
@@ -261,12 +196,15 @@ export default function RoomCatalog() {
 
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => {
-      // Location Blankspace Keyword Search
+      // Keyword Search (Location, Room Name, Amenities)
       if (locationQuery.trim()) {
         const q = locationQuery.trim().toLowerCase();
         const matchLoc = room.location && room.location.toLowerCase().includes(q);
         const matchName = room.name && room.name.toLowerCase().includes(q);
-        if (!matchLoc && !matchName) return false;
+        const matchAmenity =
+          Array.isArray(room.amenities) &&
+          room.amenities.some((a) => typeof a === 'string' && a.toLowerCase().includes(q));
+        if (!matchLoc && !matchName && !matchAmenity) return false;
       }
 
       // Sidebar Location Filter

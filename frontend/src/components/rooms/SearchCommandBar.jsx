@@ -1,14 +1,46 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { getTodayDateString, formatDisplayDate } from '../../utils/dateUtils';
 
 export default function SearchCommandBar({
   locationQuery = '',
   onChangeLocationQuery,
-  selectedDate = '2026-09-22',
+  selectedDate = getTodayDateString(),
   onChangeDate,
   onSearch,
 }) {
   const [isDateOpen, setIsDateOpen] = useState(false);
   const datePopoverRef = useRef(null);
+
+  const todayStr = getTodayDateString(0);
+  const tomorrowStr = getTodayDateString(1);
+
+  // Dynamic calendar view state
+  const [viewYear, setViewYear] = useState(() => {
+    if (selectedDate) {
+      const parts = selectedDate.split('-');
+      if (parts.length === 3) return parseInt(parts[0], 10);
+    }
+    return new Date().getFullYear();
+  });
+
+  const [viewMonth, setViewMonth] = useState(() => {
+    if (selectedDate) {
+      const parts = selectedDate.split('-');
+      if (parts.length === 3) return parseInt(parts[1], 10) - 1;
+    }
+    return new Date().getMonth();
+  });
+
+  // Sync calendar view month when selectedDate or popover opens
+  useEffect(() => {
+    if (selectedDate) {
+      const parts = selectedDate.split('-');
+      if (parts.length === 3) {
+        setViewYear(parseInt(parts[0], 10));
+        setViewMonth(parseInt(parts[1], 10) - 1);
+      }
+    }
+  }, [selectedDate, isDateOpen]);
 
   // Close calendar popover on click outside
   useEffect(() => {
@@ -25,19 +57,26 @@ export default function SearchCommandBar({
     };
   }, [isDateOpen]);
 
-  // Format display text for date
-  const getDateDisplay = () => {
-    if (!selectedDate) return 'Any Date (Click to choose)';
-    if (selectedDate === '2026-09-22') return 'Today, 22 Sep 2026';
-    const parts = selectedDate.split('-');
-    if (parts.length === 3) {
-      const year = parts[0];
-      const monthNum = parseInt(parts[1], 10);
-      const day = parseInt(parts[2], 10);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return `${day} ${months[monthNum - 1]} ${year}`;
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewYear((y) => y - 1);
+      setViewMonth(11);
+    } else {
+      setViewMonth((m) => m - 1);
     }
-    return selectedDate;
+  };
+
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewYear((y) => y + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  };
+
+  const getDateDisplay = () => {
+    return formatDisplayDate(selectedDate);
   };
 
   const handleSelectDate = (dateStr) => {
@@ -47,7 +86,7 @@ export default function SearchCommandBar({
   };
 
   const handleClearDate = (e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     if (onChangeDate) {
       onChangeDate('');
     }
@@ -136,30 +175,86 @@ export default function SearchCommandBar({
               aria-label="Date Availability Picker"
             >
               {/* Popover Header */}
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+              <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-100">
                 <span className="font-semibold text-xs text-slate-700">Select Date for Availability</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleClearDate}
-                    className="text-[11px] text-blue-600 hover:text-blue-800 font-medium cursor-pointer hover:underline"
-                  >
-                    All Dates
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsDateOpen(false)}
-                    className="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded cursor-pointer"
-                  >
-                    Done
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDateOpen(false)}
+                  className="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded cursor-pointer"
+                >
+                  Done
+                </button>
               </div>
 
-              {/* Month 1: Sep 2026 */}
-              <div className="text-xs font-bold text-slate-800 mb-1.5 flex items-center justify-between">
-                <span>Sep 2026</span>
-                <span className="text-[10px] text-slate-400 font-normal">IST</span>
+              {/* Quick Shortcuts: Today, Tomorrow, All Dates */}
+              <div className="flex items-center gap-1.5 mb-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectDate(todayStr);
+                    const now = new Date();
+                    setViewYear(now.getFullYear());
+                    setViewMonth(now.getMonth());
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    selectedDate === todayStr
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectDate(tomorrowStr);
+                    const tm = new Date();
+                    tm.setDate(tm.getDate() + 1);
+                    setViewYear(tm.getFullYear());
+                    setViewMonth(tm.getMonth());
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    selectedDate === tomorrowStr
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Tomorrow
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearDate}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ml-auto cursor-pointer ${
+                    !selectedDate
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  All Dates
+                </button>
+              </div>
+
+              {/* Month Navigation Header */}
+              <div className="text-xs font-bold text-slate-800 mb-2 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={handlePrevMonth}
+                  aria-label="Previous month"
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 cursor-pointer font-bold"
+                >
+                  ‹
+                </button>
+                <span className="font-semibold text-sm text-slate-800">
+                  {new Date(viewYear, viewMonth).toLocaleString('default', { month: 'short' })} {viewYear}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleNextMonth}
+                  aria-label="Next month"
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 cursor-pointer font-bold"
+                >
+                  ›
+                </button>
               </div>
 
               {/* Days of Week Header */}
@@ -167,47 +262,26 @@ export default function SearchCommandBar({
                 <div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
               </div>
 
-              {/* September Days Grid */}
+              {/* Dynamic Month Days Grid */}
               <div className="grid grid-cols-7 gap-1 text-center text-xs mb-3">
-                <span className="p-1 text-slate-300"></span>
-                <span className="p-1 text-slate-300"></span>
-                <span className="p-1 text-slate-300"></span>
-                <span className="p-1 text-slate-400 select-none">18</span>
-                <span className="p-1 text-slate-400 select-none">19</span>
-                <span className="p-1 text-slate-400 select-none">20</span>
-                <button
-                  type="button"
-                  onClick={() => handleSelectDate('2026-09-21')}
-                  className={`p-1 rounded-full cursor-pointer transition-colors ${
-                    selectedDate === '2026-09-21'
-                      ? 'w-7 h-7 mx-auto flex items-center justify-center bg-blue-600 text-white font-bold shadow-xs'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  21
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSelectDate('2026-09-22')}
-                  className={`p-1 rounded-full cursor-pointer transition-colors ${
-                    selectedDate === '2026-09-22'
-                      ? 'w-7 h-7 mx-auto flex items-center justify-center bg-blue-600 text-white font-bold shadow-xs'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  22
-                </button>
-                {[23, 24, 25, 26, 27, 28, 29, 30].map((day) => {
-                  const dateStr = `2026-09-${day}`;
+                {Array.from({ length: (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7 }).map((_, idx) => (
+                  <span key={`blank-${idx}`} className="p-1"></span>
+                ))}
+                {Array.from({ length: new Date(viewYear, viewMonth + 1, 0).getDate() }, (_, i) => i + 1).map((day) => {
+                  const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                   const isSelected = selectedDate === dateStr;
+                  const isToday = todayStr === dateStr;
+
                   return (
                     <button
-                      key={day}
+                      key={dateStr}
                       type="button"
                       onClick={() => handleSelectDate(dateStr)}
-                      className={`p-1 rounded-full cursor-pointer transition-colors ${
+                      className={`h-7 w-7 mx-auto rounded-full cursor-pointer transition-colors flex items-center justify-center text-xs ${
                         isSelected
-                          ? 'w-7 h-7 mx-auto flex items-center justify-center bg-blue-600 text-white font-bold shadow-xs'
+                          ? 'bg-blue-600 text-white font-bold shadow-xs'
+                          : isToday
+                          ? 'border border-blue-500 text-blue-600 font-bold hover:bg-blue-50'
                           : 'text-slate-700 hover:bg-slate-100'
                       }`}
                     >
@@ -217,35 +291,16 @@ export default function SearchCommandBar({
                 })}
               </div>
 
-              {/* Month 2: Oct 2026 Snippet */}
-              <div className="text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
-                <span>Oct 2026</span>
-              </div>
-              <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2 text-slate-600">
-                {[1, 2, 3, 4, 5, 6, 7].map((day) => {
-                  const dateStr = `2026-10-0${day}`;
-                  const isSelected = selectedDate === dateStr;
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => handleSelectDate(dateStr)}
-                      className={`p-1 rounded-full cursor-pointer transition-colors ${
-                        isSelected
-                          ? 'w-7 h-7 mx-auto flex items-center justify-center bg-blue-600 text-white font-bold shadow-xs'
-                          : 'text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      {day}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 text-center">
-                <span className="text-[11px] text-slate-400">
-                  Select a date to filter rooms with zero confirmed bookings
-                </span>
+              {/* Footer with direct date input fallback */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <span className="truncate">Zero-booking filter</span>
+                <input
+                  type="date"
+                  value={selectedDate || ''}
+                  onChange={(e) => handleSelectDate(e.target.value)}
+                  className="text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                  title="Direct date input"
+                />
               </div>
             </div>
           )}

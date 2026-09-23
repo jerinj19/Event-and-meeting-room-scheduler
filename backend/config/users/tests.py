@@ -25,6 +25,7 @@ class AuthenticationTests(APITestCase):
 				'last_name': 'Member',
 				'department': 'Engineering',
 				'password': self.password,
+				'confirm_password': self.password,
 			},
 			format='json',
 		)
@@ -41,6 +42,7 @@ class AuthenticationTests(APITestCase):
 				'first_name': 'Duplicate',
 				'last_name': 'Member',
 				'password': self.password,
+				'confirm_password': self.password,
 			},
 			format='json',
 		)

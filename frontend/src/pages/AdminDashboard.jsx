@@ -12,6 +12,7 @@ const AdminDashboard = () => {
   const [recentBookings, setRecentBookings] = useState([]);
   const [totalRoomsCount, setTotalRoomsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [notifying, setNotifying] = useState(false);
   const [timeRange, setTimeRange] = useState(30);
 
   const handleExportCSV = () => {
@@ -44,6 +45,27 @@ const AdminDashboard = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleNotifyHosts = async () => {
+    try {
+      setNotifying(true);
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:8000/api/rooms/notify-maintenance/', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message);
+      } else {
+        toast.error(data.error || 'Failed to notify hosts');
+      }
+    } catch (err) {
+      toast.error('An error occurred while notifying hosts');
+    } finally {
+      setNotifying(false);
+    }
   };
 
   useEffect(() => {
@@ -470,7 +492,13 @@ const AdminDashboard = () => {
                 </div>
                 <div className="mt-4 pt-2 border-t border-outline-variant/30 flex items-center justify-between text-xs">
                   <span className="text-secondary font-medium">Technician: Pending</span>
-                  <span className="text-primary font-semibold hover:underline cursor-pointer">Notify Hosts</span>
+                  <button 
+                    onClick={handleNotifyHosts} 
+                    disabled={notifying}
+                    className="text-primary font-semibold hover:underline cursor-pointer disabled:opacity-50"
+                  >
+                    {notifying ? 'Notifying...' : 'Notify Hosts'}
+                  </button>
                 </div>
               </div>
             )) : (

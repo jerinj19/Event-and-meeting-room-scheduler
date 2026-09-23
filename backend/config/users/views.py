@@ -7,6 +7,9 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+import os
 
 from .serializers import EmailTokenObtainPairSerializer, RegisterSerializer, UserSerializer
 
@@ -55,6 +58,54 @@ class EmailTokenObtainPairView(TokenObtainPairView):
 
     permission_classes = [permissions.AllowAny]
     serializer_class = EmailTokenObtainPairSerializer
+
+
+class GoogleLoginView(APIView):
+    """POST /api/auth/google/ — accepts an id_token, verifies it, creates/gets user, returns JWTs."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        token = request.data.get('id_token')
+        if not token:
+            return Response({'error': 'id_token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            client_id = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID')
+            idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+
+            email = idinfo.get('email')
+            first_name = idinfo.get('given_name', '')
+            last_name = idinfo.get('family_name', '')
+
+            domain = email.split('@')[-1].lower() if email else ''
+            from django.conf import settings
+            if settings.ALLOWED_EMAIL_DOMAINS and domain not in settings.ALLOWED_EMAIL_DOMAINS:
+                return Response({'error': 'Contact admin to get access, you are not from this organisation.'}, status=status.HTTP_403_FORBIDDEN)
+
+            # Get or create user
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'department': 'Other'
+                }
+            )
+            
+            # If the user was created but didn't have a password set, they can't login via email yet, 
+            # but they can login via Google.
+
+            # Generate JWT tokens
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_200_OK)
+
+        except ValueError:
+            return Response({'error': 'Invalid Google token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class MeView(APIView):

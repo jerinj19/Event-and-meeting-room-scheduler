@@ -129,7 +129,8 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Invalid email or password');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.error || 'Invalid email or password');
       }
 
       const data = await response.json();
@@ -146,6 +147,37 @@ export const AuthProvider = ({ children }) => {
       toast.success('Successfully logged in!');
     } catch (error) {
       toast.error(error.message || 'Failed to login');
+      throw error;
+    }
+  }, [toast]);
+
+  const googleLogin = useCallback(async (credential) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/auth/google/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token: credential })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.detail || 'Google Login Failed');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('access_token', data.access);
+      if (data.refresh) {
+        localStorage.setItem('refresh_token', data.refresh);
+      }
+      
+      const realUser = data.user;
+      localStorage.setItem('user', JSON.stringify(realUser));
+      
+      setUser(realUser);
+      setIsAuthenticated(true);
+      toast.success('Successfully logged in with Google!');
+    } catch (error) {
+      toast.error(error.message || 'Failed to login with Google');
       throw error;
     }
   }, [toast]);
@@ -182,8 +214,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const value = React.useMemo(() => ({
-    isAuthenticated, user, login, register, logout, updateUser
-  }), [isAuthenticated, user, login, register, logout, updateUser]);
+    isAuthenticated, user, login, googleLogin, register, logout, updateUser
+  }), [isAuthenticated, user, login, googleLogin, register, logout, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>

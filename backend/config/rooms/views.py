@@ -48,6 +48,41 @@ class RoomViewSet(viewsets.ModelViewSet):
                     })
         return Response(gallery_items)
 
+    @action(detail=False, methods=["post"], url_path="notify-maintenance")
+    def notify_maintenance(self, request):
+        """
+        Scan for CONFIRMED bookings in inactive rooms that haven't ended yet
+        and send an email notification to the host (user).
+        """
+        from django.utils import timezone
+        from bookings.models import Booking
+        from django.core.mail import send_mail
+
+        now = timezone.now()
+        affected_bookings = Booking.objects.filter(
+            room__is_active=False,
+            status='CONFIRMED',
+            end_time__gt=now
+        ).select_related('user', 'room')
+
+        notified_users = set()
+        count = 0
+
+        for booking in affected_bookings:
+            user = booking.user
+            if user.email not in notified_users:
+                send_mail(
+                    subject='Urgent: Room Maintenance Alert',
+                    message=f'Hello {user.first_name},\n\nThe room "{booking.room.name}" you have booked is currently offline for maintenance. Please reschedule your upcoming bookings or contact an administrator.\n\nThank you,\nAdmin Team',
+                    from_email=None,
+                    recipient_list=[user.email],
+                    fail_silently=True,
+                )
+                notified_users.add(user.email)
+                count += 1
+
+        return Response({"message": f"Successfully notified {count} hosts about maintenance conflicts.", "notified_count": count})
+
     def get_queryset(self):
         queryset = Room.objects.select_related("created_by").order_by("name")
 

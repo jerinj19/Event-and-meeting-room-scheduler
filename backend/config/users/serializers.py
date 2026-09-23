@@ -21,6 +21,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         value = value.strip().lower()
+        domain = value.split('@')[-1]
+        
+        from django.conf import settings
+        if settings.ALLOWED_EMAIL_DOMAINS and domain not in settings.ALLOWED_EMAIL_DOMAINS:
+            raise serializers.ValidationError("Contact admin to get access, you are not from this organisation.")
+            
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
@@ -66,5 +72,12 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
+        
+        from django.conf import settings
+        domain = self.user.email.split('@')[-1].lower()
+        if settings.ALLOWED_EMAIL_DOMAINS and domain not in settings.ALLOWED_EMAIL_DOMAINS:
+            from rest_framework.exceptions import AuthenticationFailed
+            raise AuthenticationFailed("Contact admin to get access, you are not from this organisation.")
+            
         data["user"] = UserSerializer(self.user).data
         return data

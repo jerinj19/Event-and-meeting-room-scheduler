@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const auth = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -205,6 +208,30 @@ export default function Login() {
           <button onClick={() => setIsLogin(!isLogin)} className="text-sm text-blue-600 hover:text-blue-500">
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>
+        </div>
+
+        {/* Social Login Divider */}
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+          <div className="mt-6 flex justify-center">
+            <GoogleLogin
+              onSuccess={credentialResponse => {
+                auth.googleLogin(credentialResponse.credential)
+                  .then(() => navigate('/dashboard'))
+                  .catch(() => {});
+              }}
+              onError={() => {
+                console.error('Google Login Failed');
+              }}
+            />
+          </div>
         </div>
 
         {/* Quick Admin Test Login */}

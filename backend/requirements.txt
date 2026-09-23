@@ -5,3 +5,5 @@ django-cors-headers==4.9.0
 psycopg[binary]>=3.2,<4
 python-dotenv==1.0.1
 Pillow>=10.0.0
+google-auth>=2.23.0
+requests>=2.31.0

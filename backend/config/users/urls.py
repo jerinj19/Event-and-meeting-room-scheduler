@@ -10,13 +10,15 @@ from .views import (
     CreateAdminView,
     ForgotPasswordView,
     ResetPasswordView,
-    TransferOwnershipView
+    TransferOwnershipView,
+    GoogleLoginView
 )
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="auth-register"),
     path("auth/create-admin/", CreateAdminView.as_view(), name="auth-create-admin"),
     path("auth/token/", EmailTokenObtainPairView.as_view(), name="auth-token"),
+    path("auth/google/", GoogleLoginView.as_view(), name="auth-google-login"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="auth-token-refresh"),
     path("auth/logout/", LogoutView.as_view(), name="auth-logout"),
     path("auth/me/", MeView.as_view(), name="auth-me"),

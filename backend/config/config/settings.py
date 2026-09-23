@@ -68,6 +68,12 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
+ALLOWED_EMAIL_DOMAINS = [
+    domain.strip().lower()
+    for domain in os.environ.get('ALLOWED_EMAIL_DOMAINS', 'innovyx.com,innovyxtechlabs.com').split(',')
+    if domain.strip()
+]
+
 
 # Application definition
 

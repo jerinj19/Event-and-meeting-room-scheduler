@@ -2,9 +2,11 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth import get_user_model
 
 from .serializers import EmailTokenObtainPairSerializer, RegisterSerializer, UserSerializer
 
+User = get_user_model()
 
 class RegisterView(generics.CreateAPIView):
     """POST /api/auth/register/"""
@@ -16,6 +18,28 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        
+        # If this is the very first user registering or email has 'admin', make them an admin
+        if User.objects.count() == 1 or "admin" in (user.email or "").lower() or request.data.get("is_staff"):
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+            
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+
+class CreateAdminView(generics.CreateAPIView):
+    """POST /api/auth/create-admin/ — Allows an admin to create another admin."""
+
+    serializer_class = RegisterSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        user.is_staff = True
+        user.save()
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 

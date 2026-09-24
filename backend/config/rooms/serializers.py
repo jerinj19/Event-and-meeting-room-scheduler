@@ -19,6 +19,8 @@ class RoomSerializer(serializers.ModelSerializer):
             "capacity",
             "location",
             "amenities",
+            "image",
+            "hourly_rate",
             "is_active",
             "created_by",
             "created_by_email",
@@ -26,6 +28,11 @@ class RoomSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "created_by", "created_by_email", "created_at", "updated_at"]
+
+    def validate_hourly_rate(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Hourly rate cannot be negative.")
+        return value
 
     def validate_capacity(self, value):
         if value is None or value <= 0:
@@ -39,6 +46,17 @@ class RoomSerializer(serializers.ModelSerializer):
         return stripped
 
     def validate_amenities(self, value):
+        if isinstance(value, str):
+            import json
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    value = parsed
+                else:
+                    raise serializers.ValidationError("Amenities must be provided as a list.")
+            except (json.JSONDecodeError, ValueError):
+                raise serializers.ValidationError("Amenities must be provided as a list.")
+
         if not isinstance(value, list):
             raise serializers.ValidationError("Amenities must be provided as a list.")
         # Ensure all items in the list are non-empty strings

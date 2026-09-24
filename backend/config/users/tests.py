@@ -127,3 +127,44 @@ class AuthenticationTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertIn('access', response.data)
+
+	def test_logout_blacklists_refresh_token(self):
+		login_response = self.client.post(
+			reverse('auth-token'),
+			{'email': self.user.email, 'password': self.password},
+			format='json',
+		)
+		access_token = login_response.data['access']
+		refresh_token = login_response.data['refresh']
+
+		self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+		logout_response = self.client.post(
+			reverse('auth-logout'),
+			{'refresh': refresh_token},
+			format='json',
+		)
+		self.assertEqual(logout_response.status_code, status.HTTP_205_RESET_CONTENT)
+
+		# Attempting to refresh the blacklisted token must fail with 401
+		self.client.credentials()
+		refresh_response = self.client.post(
+			reverse('auth-token-refresh'),
+			{'refresh': refresh_token},
+			format='json',
+		)
+		self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+	def test_logout_without_refresh_token_returns_400(self):
+		login_response = self.client.post(
+			reverse('auth-token'),
+			{'email': self.user.email, 'password': self.password},
+			format='json',
+		)
+		self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_response.data['access']}")
+		response = self.client.post(reverse('auth-logout'), {}, format='json')
+		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+	def test_logout_unauthenticated_returns_401(self):
+		response = self.client.post(reverse('auth-logout'), {'refresh': 'any'}, format='json')
+		self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+

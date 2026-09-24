@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import CancelModal from '../components/dashboard/CancelModal';
 import { useToast } from '../contexts/ToastContext';
+import { fetchWithAuth } from '../services/apiClient';
 
 const API_BASE = window.location.hostname === 'localhost' && window.location.port !== '8000'
   ? 'http://localhost:8000'
@@ -9,125 +10,39 @@ const API_BASE = window.location.hostname === 'localhost' && window.location.por
 // High-resolution, reliable corporate workspace imagery
 const FALLBACK_ROOM_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
-const DEFAULT_SAMPLE_BOOKINGS = [
-  {
-    id: 'bkg-8821',
-    code: '#BKG-8821',
-    title: 'Q4 Executive Strategy Review',
-    description: 'Quarterly roadmap alignment, board deck finalization, and budget allocation reviews.',
-    roomName: 'Boardroom Alpha',
-    location: 'Building A • Fl 4, North Wing',
-    capacity: 16,
-    amenities: ['Dual 4K Displays', 'Polycom Video Bar', 'Glass Whiteboard', 'Gigabit WiFi'],
-    imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
-    organizerName: 'Sarah Jenkins',
-    organizerEmail: 's.jenkins@innovyx.com',
-    organizerRole: 'Product Operations Lead',
-    department: 'Engineering & Product',
-    phone: '+1 (555) 019-2834',
-    date: 'Today, Oct 24, 2025',
-    time: '10:00 AM – 11:30 AM',
-    duration: 90,
-    attendees: 12,
-    status: 'CONFIRMED',
-  },
-  {
-    id: 'bkg-8819',
-    code: '#BKG-8819',
-    title: 'Frontend Architecture Sync',
-    description: 'State management refactor, micro-frontend boundaries, and component token migrations.',
-    roomName: 'Turing Lab',
-    location: 'Building B • Fl 2, West Wing',
-    capacity: 10,
-    amenities: ['Dual 4K Displays', 'Wireless Presentation', 'High-Speed LAN'],
-    imageUrl: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80',
-    organizerName: 'Alex Rivera',
-    organizerEmail: 'a.rivera@innovyx.com',
-    organizerRole: 'Principal Architect',
-    department: 'Platform Engineering',
-    phone: '+1 (555) 019-3391',
-    date: 'Today, Oct 24, 2025',
-    time: '01:00 PM – 02:00 PM',
-    duration: 60,
-    attendees: 8,
-    status: 'CONFIRMED',
-  },
-  {
-    id: 'bkg-8814',
-    code: '#BKG-8814',
-    title: 'Global Product Town Hall',
-    description: 'All-hands showcase of upcoming AI scheduling capabilities and team Q&A session.',
-    roomName: 'Main Auditorium',
-    location: 'Central Atrium • Ground Fl',
-    capacity: 120,
-    amenities: ['Dolby Surround Sound', 'Dual 4K Projectors', 'Handheld Mics', 'Broadcast Camera'],
-    imageUrl: 'https://images.unsplash.com/photo-1431540015161-0bf868a2d407?auto=format&fit=crop&w=800&q=80',
-    organizerName: 'Marcus Vance',
-    organizerEmail: 'm.vance@innovyx.com',
-    organizerRole: 'VP of Product',
-    department: 'Executive Leadership',
-    phone: '+1 (555) 019-4820',
-    date: 'Today, Oct 24, 2025',
-    time: '03:00 PM – 04:30 PM',
-    duration: 90,
-    attendees: 110,
-    status: 'CONFIRMED',
-  },
-  {
-    id: 'bkg-8802',
-    code: '#BKG-8802',
-    title: 'Design System Sprint Review',
-    description: 'Design token audit and accessibility review for WCAG 2.1 compliance.',
-    roomName: 'Quantum Creative Studio',
-    location: 'Building C • Fl 3',
-    capacity: 8,
-    amenities: ['Color-Calibrated Displays', 'Acoustic Wall Panels', 'Mobile Whiteboards'],
-    imageUrl: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80',
-    organizerName: 'Elena Rostova',
-    organizerEmail: 'e.rostova@innovyx.com',
-    organizerRole: 'Lead Product Designer',
-    department: 'Design & UX',
-    phone: '+1 (555) 019-1142',
-    date: 'Yesterday, Oct 23, 2025',
-    time: '02:00 PM – 03:30 PM',
-    duration: 90,
-    attendees: 6,
-    status: 'CANCELLED',
-  },
-  {
-    id: 'bkg-8798',
-    code: '#BKG-8798',
-    title: 'Client Enterprise Demo',
-    description: 'Technical walkthrough with Acme Corp infrastructure leads.',
-    roomName: 'Executive Boardroom B',
-    location: 'Building A • Fl 4, South Wing',
-    capacity: 12,
-    amenities: ['Dual 4K Displays', 'Polycom Video Bar', 'Executive Leather Seating'],
-    imageUrl: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80',
-    organizerName: 'David Chen',
-    organizerEmail: 'd.chen@innovyx.com',
-    organizerRole: 'Enterprise Account Executive',
-    department: 'Sales & Growth',
-    phone: '+1 (555) 019-8831',
-    date: 'Tomorrow, Oct 25, 2025',
-    time: '09:30 AM – 11:00 AM',
-    duration: 90,
-    attendees: 7,
-    status: 'CONFIRMED',
-  },
-];
-
 export default function AdminBookings() {
-  const [bookings, setBookings] = useState(DEFAULT_SAMPLE_BOOKINGS);
+  const [bookings, setBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [selectedBooking, setSelectedBooking] = useState(DEFAULT_SAMPLE_BOOKINGS[0]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+
+  // Server-side filter states
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [roomFilter, setRoomFilter] = useState('ALL');
+  const [periodFilter, setPeriodFilter] = useState('all'); // 'all' | 'this_month' | 'this_week' | 'custom'
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [sessionFilter, setSessionFilter] = useState('all'); // 'all' | 'morning' | 'afternoon' | 'evening'
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Global KPI stats
+  const [kpiStats, setKpiStats] = useState({
+    total: 0,
+    confirmed: 0,
+    cancelled: 0,
+    today: 0,
+  });
+
   const [bookingToCancel, setBookingToCancel] = useState(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const toast = useToast();
 
@@ -135,9 +50,7 @@ export default function AdminBookings() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const token = localStorage.getItem('access_token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch(`${API_BASE}/api/rooms/`, { headers });
+        const res = await fetchWithAuth(`${API_BASE}/api/rooms/`);
         if (res.ok) {
           const data = await res.json();
           const list = Array.isArray(data) ? data : data.results || [];
@@ -152,16 +65,67 @@ export default function AdminBookings() {
     fetchRooms();
   }, []);
 
-  // Fetch real Bookings from backend
-  const fetchBookings = useCallback(async () => {
+  // Fetch summary KPI stats from backend
+  const fetchStats = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`${API_BASE}/api/bookings/`, { headers });
+      const res = await fetchWithAuth(`${API_BASE}/api/bookings/stats/`);
+      if (res.ok) {
+        const data = await res.json();
+        setKpiStats({
+          total: data.total_bookings || 0,
+          confirmed: data.confirmed_bookings || 0,
+          cancelled: data.cancelled_bookings || 0,
+          today: data.today_bookings || 0,
+        });
+      }
+    } catch {
+      // Fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Fetch real Bookings from backend with server-side filters & pagination
+  const fetchBookings = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('page_size', String(pageSize));
+
+      if (roomFilter && roomFilter !== 'ALL') {
+        params.set('room', roomFilter);
+      }
+      if (statusFilter && statusFilter !== 'ALL') {
+        params.set('status', statusFilter);
+      }
+      if (periodFilter && periodFilter !== 'all') {
+        params.set('period', periodFilter);
+        if (periodFilter === 'custom') {
+          if (startDate) params.set('start_date', startDate);
+          if (endDate) params.set('end_date', endDate);
+        }
+      }
+      if (sessionFilter && sessionFilter !== 'all') {
+        params.set('session', sessionFilter);
+      }
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery.trim());
+      }
+
+      const res = await fetchWithAuth(`${API_BASE}/api/bookings/?${params.toString()}`);
       if (res.ok) {
         setBackendConnected(true);
         const data = await res.json();
-        const apiList = Array.isArray(data) ? data : data.results || [];
+        const apiList = data.results || (Array.isArray(data) ? data : []);
+        const count = data.count !== undefined ? data.count : apiList.length;
+        const pages = data.total_pages || Math.ceil(count / pageSize) || 1;
+
+        setTotalCount(count);
+        setTotalPages(pages);
+
         if (apiList.length > 0) {
           const mapped = apiList.map((b) => ({
             id: b.id,
@@ -169,60 +133,46 @@ export default function AdminBookings() {
             title: b.title,
             description: b.description || 'No additional agenda provided.',
             roomName: b.room_name || b.room?.name || 'Meeting Room',
-            location: b.room?.location || 'Main Campus',
-            capacity: b.room?.capacity || 10,
-            amenities: b.room?.amenities || ['Display', 'WiFi'],
-            imageUrl: b.room?.image_url || FALLBACK_ROOM_IMAGE,
-            organizerName: b.user_email?.split('@')[0] || b.user?.email?.split('@')[0] || 'Organizer',
+            location: b.room_location || b.room?.location || 'Main Campus',
+            capacity: b.room_capacity || b.room?.capacity || 10,
+            amenities: b.room?.amenities || ['Dual 4K Displays', 'Polycom Video Bar', 'Gigabit WiFi'],
+            imageUrl: b.room_image || b.room?.image_url || FALLBACK_ROOM_IMAGE,
+            organizerName: b.user_name || b.user_email?.split('@')[0] || b.user?.email?.split('@')[0] || 'Organizer',
             organizerEmail: b.user_email || b.user?.email || 'user@innovyx.com',
             organizerRole: 'Team Member',
             department: 'General Operations',
             phone: '+1 (555) 019-0000',
+            session: b.session || 'morning',
             date: new Date(b.start_time).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
             }),
-            time: `${new Date(b.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${new Date(b.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+            time: b.time_slot_label || `${new Date(b.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${new Date(b.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
             duration: Math.max(15, Math.round((new Date(b.end_time) - new Date(b.start_time)) / (1000 * 60))),
             attendees: b.attendees_count || 1,
             status: b.status,
           }));
           setBookings(mapped);
-          setSelectedBooking(mapped[0]);
+          setSelectedBooking((prev) => (prev ? mapped.find((m) => m.id === prev.id) || mapped[0] : mapped[0]));
+        } else {
+          setBookings([]);
+          setSelectedBooking(null);
         }
       }
     } catch {
       setBackendConnected(false);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [currentPage, pageSize, roomFilter, statusFilter, periodFilter, startDate, endDate, sessionFilter, searchQuery]);
 
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Filtered Bookings
-  const filteredBookings = useMemo(() => {
-    return bookings.filter((b) => {
-      const matchesStatus =
-        statusFilter === 'ALL' ? true : b.status.toUpperCase() === statusFilter.toUpperCase();
-      const matchesRoom =
-        roomFilter === 'ALL' ? true : b.roomName.toLowerCase().includes(roomFilter.toLowerCase());
-      const matchesSearch =
-        searchQuery.trim() === ''
-          ? true
-          : b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            b.organizerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            b.roomName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            b.code.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesStatus && matchesRoom && matchesSearch;
-    });
-  }, [bookings, statusFilter, roomFilter, searchQuery]);
-
-  // Statistics calculation
-  const totalCount = bookings.length;
-  const confirmedCount = bookings.filter((b) => b.status === 'CONFIRMED').length;
-  const cancelledCount = bookings.filter((b) => b.status === 'CANCELLED').length;
+  // Server-paginated bookings
+  const filteredBookings = bookings;
 
   // Handle Cancel Action (NO EDIT BOOKING)
   const handleOpenCancelModal = (booking, e) => {
@@ -235,12 +185,10 @@ export default function AdminBookings() {
     if (!bookingToCancel) return;
 
     try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(`${API_BASE}/api/bookings/${bookingToCancel.id}/cancel/`, {
+      const res = await fetchWithAuth(`${API_BASE}/api/bookings/${bookingToCancel.id}/cancel/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
@@ -300,6 +248,22 @@ export default function AdminBookings() {
     }
   };
 
+  const totalBookingsCount = kpiStats.total || totalCount;
+  const confirmedCount = kpiStats.confirmed;
+  const cancelledCount = kpiStats.cancelled;
+  const todayCount = kpiStats.today;
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('ALL');
+    setRoomFilter('ALL');
+    setPeriodFilter('all');
+    setStartDate('');
+    setEndDate('');
+    setSessionFilter('all');
+    setCurrentPage(1);
+  };
+
   return (
     <div className="min-h-full bg-surface text-on-surface p-4 md:p-8 font-body-md">
       <main className="max-w-[1580px] mx-auto space-y-6">
@@ -334,12 +298,7 @@ export default function AdminBookings() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setStatusFilter('ALL');
-                setRoomFilter('ALL');
-                fetchBookings();
-              }}
+              onClick={handleResetFilters}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-medium text-sm transition-colors duration-150"
             >
               <span className="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
@@ -360,7 +319,7 @@ export default function AdminBookings() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">{totalCount}</span>
+                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">{totalBookingsCount}</span>
                 <span className="inline-flex items-center text-emerald-700 text-xs font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
                   <span className="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span>
                   +12.4%
@@ -385,7 +344,7 @@ export default function AdminBookings() {
               <div className="flex items-baseline gap-2">
                 <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">{confirmedCount}</span>
                 <span className="inline-flex items-center text-emerald-800 text-xs font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  {totalCount > 0 ? Math.round((confirmedCount / totalCount) * 100) : 100}%
+                  {totalBookingsCount > 0 ? Math.round((confirmedCount / totalBookingsCount) * 100) : 100}%
                 </span>
               </div>
             </div>
@@ -427,9 +386,7 @@ export default function AdminBookings() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">
-                  {bookings.filter((b) => b.date.toLowerCase().includes('today')).length || 3}
-                </span>
+                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">{todayCount}</span>
                 <span className="inline-flex items-center text-primary text-xs font-semibold bg-primary/10 px-2 py-0.5 rounded-full">
                   Live Today
                 </span>
@@ -443,87 +400,202 @@ export default function AdminBookings() {
         </section>
 
         {/* 3. Filter & Search Toolbar */}
-        <section className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-[18px] pointer-events-none" data-icon="search">
-                search
+        <section className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-4 shadow-sm space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+              
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[220px] max-w-sm">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-[18px] pointer-events-none" data-icon="search">
+                  search
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Search title, organizer, code, room..."
+                  className="w-full pl-9 pr-8 py-2 bg-surface-container-lowest border border-outline-variant rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/20 transition"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setCurrentPage(1);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-on-surface"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">close</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Dynamic Room Filter Dropdown */}
+              <div className="flex items-center gap-1.5 bg-surface-container-lowest border border-outline-variant rounded-xl px-2.5 py-1.5 focus-within:border-primary-container focus-within:ring-1 focus-within:ring-primary-container/20">
+                <span className="material-symbols-outlined text-secondary text-[18px]" data-icon="meeting_room">meeting_room</span>
+                <select
+                  value={roomFilter}
+                  onChange={(e) => {
+                    setRoomFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent text-xs sm:text-sm text-on-surface outline-none cursor-pointer pr-1"
+                >
+                  <option value="ALL">All Rooms {rooms.length > 0 ? `(${rooms.length})` : ''}</option>
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({r.location})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Period Filter Dropdown */}
+              <div className="flex items-center gap-1.5 bg-surface-container-lowest border border-outline-variant rounded-xl px-2.5 py-1.5 focus-within:border-primary-container focus-within:ring-1 focus-within:ring-primary-container/20">
+                <span className="material-symbols-outlined text-secondary text-[18px]" data-icon="calendar_month">calendar_month</span>
+                <select
+                  value={periodFilter}
+                  onChange={(e) => {
+                    setPeriodFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent text-xs sm:text-sm text-on-surface outline-none cursor-pointer pr-1"
+                >
+                  <option value="all">All Dates</option>
+                  <option value="this_month">This Month</option>
+                  <option value="this_week">This Week</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+
+              {/* Session Filter Dropdown */}
+              <div className="flex items-center gap-1.5 bg-surface-container-lowest border border-outline-variant rounded-xl px-2.5 py-1.5 focus-within:border-primary-container focus-within:ring-1 focus-within:ring-primary-container/20">
+                <span className="material-symbols-outlined text-secondary text-[18px]" data-icon="schedule">schedule</span>
+                <select
+                  value={sessionFilter}
+                  onChange={(e) => {
+                    setSessionFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent text-xs sm:text-sm text-on-surface outline-none cursor-pointer pr-1"
+                >
+                  <option value="all">All Sessions</option>
+                  <option value="morning">🌅 Morning (&lt; 12 PM)</option>
+                  <option value="afternoon">☀️ Afternoon (12 – 5 PM)</option>
+                  <option value="evening">🌙 Evening (≥ 5 PM)</option>
+                </select>
+              </div>
+
+              {/* Status Segmented Tabs */}
+              <div className="inline-flex p-1 bg-surface-container-low rounded-xl border border-outline-variant/40">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('ALL');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                    statusFilter === 'ALL'
+                      ? 'bg-surface-container-lowest text-primary shadow-sm'
+                      : 'text-secondary hover:text-on-surface'
+                  }`}
+                >
+                  All ({totalCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('CONFIRMED');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                    statusFilter === 'CONFIRMED'
+                      ? 'bg-surface-container-lowest text-emerald-700 shadow-sm'
+                      : 'text-secondary hover:text-on-surface'
+                  }`}
+                >
+                  Confirmed ({confirmedCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter('CANCELLED');
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                    statusFilter === 'CANCELLED'
+                      ? 'bg-surface-container-lowest text-slate-700 shadow-sm'
+                      : 'text-secondary hover:text-on-surface'
+                  }`}
+                >
+                  Cancelled ({cancelledCount})
+                </button>
+              </div>
+
+            </div>
+
+            {/* Active Filters Reset / Indicator */}
+            {(roomFilter !== 'ALL' || periodFilter !== 'all' || sessionFilter !== 'all' || statusFilter !== 'ALL' || searchQuery) && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition"
+              >
+                <span className="material-symbols-outlined text-[14px]">clear_all</span>
+                Clear Filters
+              </button>
+            )}
+          </div>
+
+          {/* Inline Custom Range Date Inputs when periodFilter === 'custom' */}
+          {periodFilter === 'custom' && (
+            <div className="pt-2 border-t border-outline-variant/30 flex flex-wrap items-center gap-3 bg-surface-container-low/40 p-3 rounded-xl">
+              <span className="text-xs font-semibold text-on-surface flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px] text-primary">date_range</span>
+                Custom Date Range:
               </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by title, organizer, code, or room..."
-                className="w-full pl-9 pr-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-xl text-xs sm:text-sm text-on-surface focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/20 transition"
-              />
-            </div>
-
-            {/* Dynamic Room Filter Dropdown */}
-            <select
-              value={roomFilter}
-              onChange={(e) => setRoomFilter(e.target.value)}
-              className="py-2 px-3 bg-surface-container-lowest border border-outline-variant rounded-xl text-xs sm:text-sm text-on-surface outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/20 cursor-pointer"
-            >
-              <option value="ALL">All Rooms ({rooms.length > 0 ? `${rooms.length} Rooms` : 'All Spaces'})</option>
-              {rooms.length > 0 ? (
-                rooms.map((r) => (
-                  <option key={r.id} value={r.name}>
-                    {r.name} ({r.location})
-                  </option>
-                ))
-              ) : (
-                <>
-                  <option value="Boardroom Alpha">Boardroom Alpha (Fl 4)</option>
-                  <option value="Turing Lab">Turing Lab (Fl 2)</option>
-                  <option value="Main Auditorium">Main Auditorium (Ground)</option>
-                  <option value="Quantum Creative Studio">Quantum Studio (Fl 3)</option>
-                  <option value="Executive Boardroom B">Executive Boardroom B (Fl 4)</option>
-                </>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-secondary font-medium">From:</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="py-1 px-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-xs text-on-surface outline-none focus:border-primary-container"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-secondary font-medium">To:</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="py-1 px-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-xs text-on-surface outline-none focus:border-primary-container"
+                />
+              </div>
+              {(startDate || endDate) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                    setCurrentPage(1);
+                  }}
+                  className="text-xs text-secondary hover:text-rose-600 font-medium underline ml-1"
+                >
+                  Clear Dates
+                </button>
               )}
-            </select>
-
-            {/* Status Segmented Tabs */}
-            <div className="inline-flex p-1 bg-surface-container-low rounded-xl border border-outline-variant/40">
-              <button
-                type="button"
-                onClick={() => setStatusFilter('ALL')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                  statusFilter === 'ALL'
-                    ? 'bg-surface-container-lowest text-primary shadow-sm'
-                    : 'text-secondary hover:text-on-surface'
-                }`}
-              >
-                All ({totalCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('CONFIRMED')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                  statusFilter === 'CONFIRMED'
-                    ? 'bg-surface-container-lowest text-emerald-700 shadow-sm'
-                    : 'text-secondary hover:text-on-surface'
-                }`}
-              >
-                Confirmed ({confirmedCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('CANCELLED')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                  statusFilter === 'CANCELLED'
-                    ? 'bg-surface-container-lowest text-slate-700 shadow-sm'
-                    : 'text-secondary hover:text-on-surface'
-                }`}
-              >
-                Cancelled ({cancelledCount})
-              </button>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-secondary">
-            <span>Showing <strong>{filteredBookings.length}</strong> of <strong>{totalCount}</strong> reservations</span>
-          </div>
+          )}
         </section>
 
         {/* 4. Split Layout: Main Bookings Table + Slide-over Inspector Drawer */}
@@ -545,7 +617,16 @@ export default function AdminBookings() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/20 text-xs sm:text-sm">
-                  {filteredBookings.length === 0 ? (
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan="7" className="py-12 text-center text-secondary">
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          <p className="font-semibold text-on-surface text-xs">Loading reservations...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredBookings.length === 0 ? (
                     <tr>
                       <td colSpan="7" className="py-12 text-center text-secondary">
                         <div className="flex flex-col items-center justify-center space-y-2">
@@ -604,7 +685,22 @@ export default function AdminBookings() {
                           {/* Date & Time Slot */}
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             <div className="text-on-surface font-medium">{b.date}</div>
-                            <div className="text-[11px] text-secondary">{b.time}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[11px] text-secondary">{b.time}</span>
+                              <span
+                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                                  b.session === 'morning'
+                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : b.session === 'afternoon'
+                                    ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                    : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                }`}
+                              >
+                                {b.session === 'morning' && '🌅 Morning'}
+                                {b.session === 'afternoon' && '☀️ Afternoon'}
+                                {b.session === 'evening' && '🌙 Evening'}
+                              </span>
+                            </div>
                           </td>
 
                           {/* Attendees & Capacity Bar */}
@@ -668,8 +764,8 @@ export default function AdminBookings() {
               </table>
             </div>
 
-            {/* Table Footer */}
-            <div className="px-6 py-4 bg-surface-container-lowest border-t border-outline-variant/30 flex flex-wrap items-center justify-between gap-3 text-xs text-secondary">
+            {/* Table Footer & Server-Side Pagination Bar */}
+            <div className="px-6 py-4 bg-surface-container-lowest border-t border-outline-variant/30 flex flex-wrap items-center justify-between gap-4 text-xs text-secondary">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px] text-emerald-600" data-icon="verified">verified</span>
                 <span>PostgreSQL ExclusionConstraint Active • Real-time DB sync</span>
@@ -679,8 +775,75 @@ export default function AdminBookings() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                <span>Showing {filteredBookings.length} of {totalCount} records</span>
+
+              {/* Pagination Controls */}
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Rows per page selector */}
+                <div className="flex items-center gap-2">
+                  <span>Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="py-1 px-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-xs text-on-surface outline-none cursor-pointer"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+
+                {/* Items Range Display */}
+                <span>
+                  Showing <strong>{totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong> – <strong>{Math.min(currentPage * pageSize, totalCount)}</strong> of <strong>{totalCount}</strong>
+                </span>
+
+                {/* Navigation Buttons */}
+                <div className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage <= 1 || isLoading}
+                    title="First Page"
+                    className="p-1 rounded-lg border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface disabled:opacity-30 disabled:pointer-events-none transition"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">first_page</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1 || isLoading}
+                    title="Previous Page"
+                    className="p-1 rounded-lg border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface disabled:opacity-30 disabled:pointer-events-none transition"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+                  </button>
+
+                  <span className="px-2 text-xs font-semibold text-on-surface">
+                    Page {currentPage} of {totalPages || 1}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages || isLoading}
+                    title="Next Page"
+                    className="p-1 rounded-lg border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface disabled:opacity-30 disabled:pointer-events-none transition"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage >= totalPages || isLoading}
+                    title="Last Page"
+                    className="p-1 rounded-lg border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface disabled:opacity-30 disabled:pointer-events-none transition"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">last_page</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

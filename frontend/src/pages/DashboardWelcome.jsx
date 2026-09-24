@@ -8,16 +8,46 @@ const DashboardWelcome = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming');
+  const [floorFilter, setFloorFilter] = useState('All Floors');
+  const [capacityFilter, setCapacityFilter] = useState('Any Capacity');
   const toast = useToast();
 
   const [totalCount, setTotalCount] = useState(0);
+  const [upcomingCount, setUpcomingCount] = useState(0);
+  const [pastCount, setPastCount] = useState(0);
   const [nextMeeting, setNextMeeting] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [locations, setLocations] = useState(['All Floors']);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch('http://localhost:8000/api/rooms/', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          const roomsList = Array.isArray(data) ? data : (data.results || []);
+          const locs = [...new Set(roomsList.map(r => r.location).filter(Boolean))];
+          setLocations(['All Floors', ...locs]);
+        }
+      } catch (err) {}
+    };
+    fetchLocations();
+  }, []);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8000/api/my-bookings/', {
+      
+      const params = new URLSearchParams();
+      params.append('tab', activeTab);
+      params.append('page', currentPage);
+      if (floorFilter !== 'All Floors') params.append('floor', floorFilter);
+      if (capacityFilter !== 'Any Capacity') params.append('capacity', capacityFilter);
+
+      const response = await fetch(`http://localhost:8000/api/my-bookings/?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -27,6 +57,8 @@ const DashboardWelcome = () => {
       const data = resData.results ? resData.results : resData;
       
       setTotalCount(resData.count !== undefined ? resData.count : data.length);
+      if (resData.upcoming_count !== undefined) setUpcomingCount(resData.upcoming_count);
+      if (resData.past_count !== undefined) setPastCount(resData.past_count);
 
       let formatted = data.map(b => {
         const startDate = new Date(b.start_time);
@@ -36,14 +68,15 @@ const DashboardWelcome = () => {
         
         return {
           id: b.id,
-          roomName: b.room?.name || 'Unknown Room',
-          location: b.room?.location || 'Unknown Location',
+          roomName: b.room_name || 'Unknown Room',
+          location: b.room_location || 'Unknown Location',
           date: startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
           time: `${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
           duration: Math.round((endDate - startDate) / 60000),
           status: b.status,
-          capacity: b.room?.capacity || 8,
-          imageUrl: b.room?.image_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
+          capacity: b.room_capacity || 8,
+          amenities: b.room_amenities || [],
+          imageUrl: b.room_image || 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
           isPast: isPast
         }
       });
@@ -67,11 +100,37 @@ const DashboardWelcome = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [activeTab, floorFilter, capacityFilter, currentPage]);
 
-  const upcomingBookings = bookings.filter(b => !b.isPast && b.status !== 'CANCELLED');
-  const pastBookings = bookings.filter(b => b.isPast || b.status === 'CANCELLED');
-  const displayedBookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
+  let displayedBookings = bookings;
+
+  const handleExportCSV = () => {
+    if (displayedBookings.length === 0) {
+      toast.info('No bookings to export');
+      return;
+    }
+    const headers = ['Room', 'Location', 'Date', 'Time', 'Duration (mins)', 'Status', 'Capacity'];
+    const csvRows = [headers.join(',')];
+    displayedBookings.forEach(b => {
+      csvRows.push([
+        `"${b.roomName}"`,
+        `"${b.location}"`,
+        `"${b.date}"`,
+        `"${b.time}"`,
+        b.duration,
+        b.status,
+        b.capacity
+      ].join(','));
+    });
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `my_bookings_${activeTab}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -85,7 +144,7 @@ const DashboardWelcome = () => {
           </div>
           <h1 className="text-headline-md font-headline-md text-on-surface font-bold tracking-tight">Welcome, {user?.first_name || 'User'}</h1>
           <p className="text-body-md font-body-md text-secondary max-w-2xl">
-            You have <strong className="text-on-surface font-semibold">{upcomingBookings.length} upcoming reservations</strong>. Automated badge access is synchronized.
+            You have <strong className="text-on-surface font-semibold">{upcomingCount} upcoming reservations</strong>. Automated badge access is synchronized.
           </p>
         </div>
         <div className="flex items-center space-x-3 z-10 shrink-0">
@@ -107,7 +166,7 @@ const DashboardWelcome = () => {
             </div>
           </div>
           <div>
-            <div className="text-headline-md font-headline-md font-bold text-on-surface">{upcomingBookings.length} Meetings</div>
+            <div className="text-headline-md font-headline-md font-bold text-on-surface">{upcomingCount} Meetings</div>
             <div className="text-body-sm font-body-sm text-primary font-medium mt-1 truncate">
               {nextMeeting ? `Next: ${nextMeeting}` : 'No upcoming meetings'}
             </div>
@@ -178,33 +237,39 @@ const DashboardWelcome = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/40 pb-2">
           <div className="flex items-center space-x-2">
             <button 
-              onClick={() => setActiveTab('upcoming')}
+              onClick={() => { setActiveTab('upcoming'); setCurrentPage(1); }}
               className={`flex items-center space-x-2 px-4 py-2 border-b-2 font-title-sm text-title-sm transition-colors ${activeTab === 'upcoming' ? 'border-primary-container text-primary font-semibold' : 'border-transparent text-secondary hover:text-on-surface font-medium'}`}>
               <span>Upcoming Bookings</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'upcoming' ? 'bg-primary-fixed text-primary font-bold' : 'bg-surface-container-high text-secondary font-medium'}`}>{upcomingBookings.length}</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'upcoming' ? 'bg-primary-fixed text-primary font-bold' : 'bg-surface-container-high text-secondary font-medium'}`}>{upcomingCount}</span>
             </button>
             <button 
-              onClick={() => setActiveTab('past')}
+              onClick={() => { setActiveTab('past'); setCurrentPage(1); }}
               className={`flex items-center space-x-2 px-4 py-2 border-b-2 font-title-sm text-title-sm transition-colors ${activeTab === 'past' ? 'border-primary-container text-primary font-semibold' : 'border-transparent text-secondary hover:text-on-surface font-medium'}`}>
               <span>Past Bookings</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'past' ? 'bg-primary-fixed text-primary font-bold' : 'bg-surface-container-high text-secondary font-medium'}`}>{pastBookings.length}</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'past' ? 'bg-primary-fixed text-primary font-bold' : 'bg-surface-container-high text-secondary font-medium'}`}>{pastCount}</span>
             </button>
           </div>
           <div className="flex items-center flex-wrap gap-2.5">
             {/* Floor Selector */}
             <div className="relative">
-              <select className="appearance-none bg-surface-container-lowest border border-outline-variant/50 text-body-sm font-body-sm text-on-surface rounded-lg pl-3 pr-8 py-1.5 focus:border-primary-container focus:ring-1 focus:ring-primary-container cursor-pointer shadow-sm">
-                <option>All Floors</option>
-                <option>Floor 42 - Executive Suite</option>
-                <option>Floor 18 - Innovation Hub</option>
-                <option>Floor 12 - Quiet Zone</option>
-                <option>Floor 50 - Tower Summit</option>
+              <select 
+                value={floorFilter} 
+                onChange={(e) => { setFloorFilter(e.target.value); setCurrentPage(1); }}
+                className="appearance-none bg-surface-container-lowest border border-outline-variant/50 text-body-sm font-body-sm text-on-surface rounded-lg pl-3 pr-8 py-1.5 focus:border-primary-container focus:ring-1 focus:ring-primary-container cursor-pointer shadow-sm"
+              >
+                {locations.map((loc, idx) => (
+                  <option key={idx} value={loc}>{loc}</option>
+                ))}
               </select>
               <span className="material-symbols-outlined text-outline pointer-events-none absolute right-2 top-2 text-[18px]" data-icon="expand_more">expand_more</span>
             </div>
             {/* Capacity Selector */}
             <div className="relative">
-              <select className="appearance-none bg-surface-container-lowest border border-outline-variant/50 text-body-sm font-body-sm text-on-surface rounded-lg pl-3 pr-8 py-1.5 focus:border-primary-container focus:ring-1 focus:ring-primary-container cursor-pointer shadow-sm">
+              <select 
+                value={capacityFilter}
+                onChange={(e) => { setCapacityFilter(e.target.value); setCurrentPage(1); }}
+                className="appearance-none bg-surface-container-lowest border border-outline-variant/50 text-body-sm font-body-sm text-on-surface rounded-lg pl-3 pr-8 py-1.5 focus:border-primary-container focus:ring-1 focus:ring-primary-container cursor-pointer shadow-sm"
+              >
                 <option>Any Capacity</option>
                 <option>1-4 People</option>
                 <option>5-12 People</option>
@@ -212,7 +277,10 @@ const DashboardWelcome = () => {
               </select>
               <span className="material-symbols-outlined text-outline pointer-events-none absolute right-2 top-2 text-[18px]" data-icon="group">group</span>
             </div>
-            <button className="flex items-center space-x-1.5 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant/50 hover:bg-surface-container-low text-secondary hover:text-on-surface text-body-sm font-body-sm rounded-lg shadow-sm transition-colors">
+            <button 
+              onClick={handleExportCSV}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant/50 hover:bg-surface-container-low text-secondary hover:text-on-surface text-body-sm font-body-sm rounded-lg shadow-sm transition-colors"
+            >
               <span className="material-symbols-outlined text-[16px]" data-icon="download">download</span>
               <span>Export CSV</span>
             </button>
@@ -227,7 +295,32 @@ const DashboardWelcome = () => {
             No {activeTab} bookings found.
           </div>
         ) : (
-          <BookingHistoryTable bookings={displayedBookings} onCancelSuccess={fetchBookings} />
+          <>
+            <BookingHistoryTable bookings={displayedBookings} onCancelSuccess={fetchBookings} />
+            {totalCount > 20 && (
+              <div className="flex items-center justify-between mt-6 px-2">
+                <span className="text-sm text-secondary">
+                  Showing {(currentPage - 1) * 20 + 1} to {Math.min(currentPage * 20, totalCount)} of {totalCount}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 border border-outline-variant rounded-md text-sm font-medium text-on-surface hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalCount / 20), p + 1))}
+                    disabled={currentPage >= Math.ceil(totalCount / 20)}
+                    className="px-3 py-1.5 border border-outline-variant rounded-md text-sm font-medium text-on-surface hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
 

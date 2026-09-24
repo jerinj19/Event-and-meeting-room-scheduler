@@ -161,7 +161,9 @@ export default function App() {
           path="/admin/timeslots" 
           element={
             <AdminRoute>
-              <AdminTimeSlotsPage />
+              <AdminAppShell>
+                <AdminTimeSlotsPage />
+              </AdminAppShell>
             </AdminRoute>
           } 
         />

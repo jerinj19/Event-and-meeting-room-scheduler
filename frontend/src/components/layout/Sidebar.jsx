@@ -114,9 +114,6 @@ export default function Sidebar({ isOpen, onClose }) {
               </svg>
               <span>My Bookings</span>
             </div>
-            <span className="text-[11px] bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
-              3
-            </span>
           </NavLink>
 
 

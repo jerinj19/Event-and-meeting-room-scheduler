@@ -65,13 +65,23 @@ class GoogleLoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        token = request.data.get('id_token')
+        token = request.data.get('id_token') or request.data.get('token')
         if not token:
-            return Response({'error': 'id_token is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'token is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            client_id = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID')
-            idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+            import requests
+            user_info_response = requests.get(
+                'https://www.googleapis.com/oauth2/v3/userinfo',
+                headers={'Authorization': f'Bearer {token}'}
+            )
+            
+            if user_info_response.status_code == 200:
+                idinfo = user_info_response.json()
+            else:
+                # Fallback to verify as id_token if access_token fails
+                client_id = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID')
+                idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
 
             email = idinfo.get('email')
             first_name = idinfo.get('given_name', '')

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 import './AuthView.css';
 
 const GoogleIcon = () => (
@@ -67,9 +68,39 @@ const AuthView = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [department, setDepartment] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login, register, isAuthenticated, user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setLoading(true);
+        const res = await fetch('http://localhost:8000/api/auth/google/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tokenResponse.access_token })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          localStorage.setItem('access_token', data.access);
+          localStorage.setItem('refresh_token', data.refresh);
+          window.location.href = '/dashboard';
+        } else {
+          toast.error(data.error || 'Google login failed');
+        }
+      } catch (err) {
+        toast.error('Network error during Google Login');
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      toast.error('Google Login Failed');
+    }
+  });
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -163,7 +194,8 @@ const AuthView = () => {
               <button 
                 type="button" 
                 className="btn-social"
-                onClick={() => toast.info('Google Workspace SSO is coming soon!')}
+                onClick={() => googleLogin()}
+                disabled={loading}
               >
                 <GoogleIcon /> Google Workspace
               </button>

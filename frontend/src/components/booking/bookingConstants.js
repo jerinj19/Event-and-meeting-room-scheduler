@@ -13,6 +13,12 @@ export const DEFAULT_SLOTS = {
     { id: 'a3', start: '15:30', end: '16:30', label: '03:30 – 04:30 PM', duration: '60 mins' },
     { id: 'a4', start: '16:30', end: '17:30', label: '04:30 – 05:30 PM', duration: '60 mins' },
   ],
+  evening: [
+    { id: 'e1', start: '17:30', end: '18:30', label: '05:30 – 06:30 PM', duration: '60 mins' },
+    { id: 'e2', start: '18:30', end: '19:30', label: '06:30 – 07:30 PM', duration: '60 mins' },
+    { id: 'e3', start: '19:30', end: '20:30', label: '07:30 – 08:30 PM', duration: '60 mins' },
+    { id: 'e4', start: '20:30', end: '22:00', label: '08:30 – 10:00 PM', duration: '90 mins' },
+  ],
 };
 
 /**
@@ -43,4 +49,38 @@ export function getUpcomingDays() {
   }
 
   return days;
+}
+
+/**
+ * Check if a time slot has already started, is currently in progress,
+ * or is in the past for a given selected date relative to the reference time (now).
+ *
+ * For example: if a slot is 09:00 - 10:00 AM and current time is 09:30 AM,
+ * the slot start time (09:00 AM) is earlier than or equal to current time (09:30 AM),
+ * so this returns true (i.e. the slot should NOT be shown).
+ */
+export function isSlotPastOrCurrent(slot, selectedDate, now = new Date()) {
+  if (!slot || !slot.start || !selectedDate) return false;
+
+  try {
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const [startHours, startMinutes] = slot.start.split(':').map(Number);
+
+    if (
+      isNaN(year) ||
+      isNaN(month) ||
+      isNaN(day) ||
+      isNaN(startHours) ||
+      isNaN(startMinutes)
+    ) {
+      return false;
+    }
+
+    // Construct slot start in user's local timezone
+    const slotStart = new Date(year, month - 1, day, startHours, startMinutes, 0, 0);
+
+    return slotStart.getTime() <= now.getTime();
+  } catch {
+    return false;
+  }
 }

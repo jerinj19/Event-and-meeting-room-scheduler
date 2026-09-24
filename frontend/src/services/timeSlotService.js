@@ -76,6 +76,7 @@ export const timeSlotService = {
     if (params.start_date) query.append('start_date', params.start_date);
     if (params.end_date) query.append('end_date', params.end_date);
     if (params.date_type && params.date_type !== 'all') query.append('date_type', params.date_type);
+    if (params.include_recurring !== undefined) query.append('include_recurring', params.include_recurring);
     if (params.page) query.append('page', params.page);
     if (params.page_size) query.append('page_size', params.page_size);
     if (params.no_pagination) query.append('no_pagination', params.no_pagination);
@@ -193,6 +194,22 @@ export const timeSlotService = {
   async resetDefaultSlots() {
     const response = await fetch(`${API_BASE_URL}/time-slots/reset-defaults/`, {
       method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    return handleResponse(response);
+  },
+
+  /**
+   * Fetch dynamic available slots for a given date and optional room
+   */
+  async getAvailableSlots(date, roomId) {
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    if (roomId) params.append('room_id', roomId);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+
+    const response = await fetch(`${API_BASE_URL}/available-slots/${queryString}`, {
       headers: getAuthHeaders(),
     });
 

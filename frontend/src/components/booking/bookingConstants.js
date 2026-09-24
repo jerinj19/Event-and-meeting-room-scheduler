@@ -52,35 +52,85 @@ export function getUpcomingDays() {
 }
 
 /**
- * Check if a time slot has already started, is currently in progress,
- * or is in the past for a given selected date relative to the reference time (now).
+ * Check if a time slot has completed (its end time has passed) for a given date
+ * relative to the reference time (now).
  *
- * For example: if a slot is 09:00 - 10:00 AM and current time is 09:30 AM,
- * the slot start time (09:00 AM) is earlier than or equal to current time (09:30 AM),
+ * For example: if a slot is 01:00 - 02:00 PM and current time is 02:15 PM,
+ * the slot end time (02:00 PM) is earlier than or equal to current time (02:15 PM),
  * so this returns true (i.e. the slot should NOT be shown).
  */
-export function isSlotPastOrCurrent(slot, selectedDate, now = new Date()) {
-  if (!slot || !slot.start || !selectedDate) return false;
+export function isSlotCompleted(slot, selectedDate, now = new Date()) {
+  if (!slot || !slot.end || !selectedDate) return false;
 
   try {
+    const today = new Date(now);
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    if (selectedDate < todayIso) return true;
+    if (selectedDate > todayIso) return false;
+
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const [endHours, endMinutes] = slot.end.split(':').map(Number);
+
+    if (
+      isNaN(year) ||
+      isNaN(month) ||
+      isNaN(day) ||
+      isNaN(endHours) ||
+      isNaN(endMinutes)
+    ) {
+      return false;
+    }
+
+    const slotEnd = new Date(year, month - 1, day, endHours, endMinutes, 0, 0);
+    return slotEnd.getTime() <= now.getTime();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if a time slot is currently ongoing/active right now for a given date.
+ * (i.e. slotStart <= now < slotEnd on today's date)
+ */
+export function isSlotCurrent(slot, selectedDate, now = new Date()) {
+  if (!slot || !slot.start || !slot.end || !selectedDate) return false;
+
+  try {
+    const today = new Date(now);
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    if (selectedDate !== todayIso) return false;
+
     const [year, month, day] = selectedDate.split('-').map(Number);
     const [startHours, startMinutes] = slot.start.split(':').map(Number);
+    const [endHours, endMinutes] = slot.end.split(':').map(Number);
 
     if (
       isNaN(year) ||
       isNaN(month) ||
       isNaN(day) ||
       isNaN(startHours) ||
-      isNaN(startMinutes)
+      isNaN(startMinutes) ||
+      isNaN(endHours) ||
+      isNaN(endMinutes)
     ) {
       return false;
     }
 
-    // Construct slot start in user's local timezone
     const slotStart = new Date(year, month - 1, day, startHours, startMinutes, 0, 0);
+    const slotEnd = new Date(year, month - 1, day, endHours, endMinutes, 0, 0);
+    const nowTime = now.getTime();
 
-    return slotStart.getTime() <= now.getTime();
+    return slotStart.getTime() <= nowTime && nowTime < slotEnd.getTime();
   } catch {
     return false;
   }
+}
+
+/**
+ * Backward compatibility alias for isSlotCompleted
+ */
+export function isSlotPastOrCurrent(slot, selectedDate, now = new Date()) {
+  return isSlotCompleted(slot, selectedDate, now);
 }

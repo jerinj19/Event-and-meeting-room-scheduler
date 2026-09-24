@@ -8,8 +8,11 @@ export async function fetchWithAuth(url, options = {}) {
   let token = localStorage.getItem('access_token');
   const refreshToken = localStorage.getItem('refresh_token');
 
+  const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+
   const headers = {
     'Content-Type': 'application/json',
+    'X-Timezone': clientTimezone,
     ...(options.headers || {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };

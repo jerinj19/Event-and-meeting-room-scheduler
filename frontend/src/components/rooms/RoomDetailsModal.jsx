@@ -86,20 +86,53 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
     setSelectedPhoto(galleryImages[0] || null);
   }, [galleryImages]);
 
-  // Support closing with Escape key
+  // Support closing with Escape key and navigating images with Arrow keys
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         onClose();
+      } else if (e.key === 'ArrowLeft') {
+        if (galleryImages.length > 1) {
+          setSelectedPhoto((prev) => {
+            const curIdx = prev ? galleryImages.indexOf(prev) : 0;
+            const nextIdx = (curIdx - 1 + galleryImages.length) % galleryImages.length;
+            return galleryImages[nextIdx];
+          });
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (galleryImages.length > 1) {
+          setSelectedPhoto((prev) => {
+            const curIdx = prev ? galleryImages.indexOf(prev) : 0;
+            const nextIdx = (curIdx + 1) % galleryImages.length;
+            return galleryImages[nextIdx];
+          });
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, galleryImages]);
 
   if (!room) return null;
 
   const activePhoto = selectedPhoto || galleryImages[0] || null;
+  const activeIndex = activePhoto ? galleryImages.indexOf(activePhoto) : -1;
+  const currentPhotoIndex = activeIndex >= 0 ? activeIndex : 0;
+
+  const handlePrevPhoto = (e) => {
+    if (e) e.stopPropagation();
+    if (galleryImages.length <= 1) return;
+    const nextIdx = (currentPhotoIndex - 1 + galleryImages.length) % galleryImages.length;
+    setSelectedPhoto(galleryImages[nextIdx]);
+  };
+
+  const handleNextPhoto = (e) => {
+    if (e) e.stopPropagation();
+    if (galleryImages.length <= 1) return;
+    const nextIdx = (currentPhotoIndex + 1) % galleryImages.length;
+    setSelectedPhoto(galleryImages[nextIdx]);
+  };
+
   const isAvailable = room.status === 'Available' || (room.is_active !== false && room.status !== 'In-Maintenance');
 
   const hasAcoustics = Boolean(room.acoustics && room.acoustics.trim());
@@ -158,17 +191,53 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
         <div className="p-4 sm:p-6 space-y-6">
           {/* Photo Gallery */}
           <div className="space-y-2">
-            <div className="h-52 sm:h-72 w-full rounded-2xl overflow-hidden bg-slate-100 relative border border-slate-200/60">
+            <div className="h-52 sm:h-72 w-full rounded-2xl overflow-hidden bg-slate-100 relative border border-slate-200/60 group">
               {activePhoto ? (
                 <>
                   <img
                     src={activePhoto}
                     alt={room.name}
-                    className="w-full h-full object-cover transition duration-300"
+                    className="w-full h-full object-cover transition duration-300 select-none"
                   />
-                  <span className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] sm:text-xs px-2.5 py-1 rounded-lg">
-                    {galleryImages.indexOf(activePhoto) === 0 ? 'Primary Perspective' : `Perspective ${galleryImages.indexOf(activePhoto) + 1}`}
-                  </span>
+
+                  {/* Left & Right Slide Arrow Buttons (Shown when multiple photos exist) */}
+                  {galleryImages.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handlePrevPhoto}
+                        aria-label="Previous photo"
+                        className="absolute left-2.5 sm:left-3.5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-900/65 hover:bg-slate-900/90 text-white flex items-center justify-center backdrop-blur-xs shadow-md hover:scale-105 active:scale-95 transition cursor-pointer z-10"
+                      >
+                        <svg className="w-5 h-5 sm:w-5 sm:h-5 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleNextPhoto}
+                        aria-label="Next photo"
+                        className="absolute right-2.5 sm:right-3.5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-900/65 hover:bg-slate-900/90 text-white flex items-center justify-center backdrop-blur-xs shadow-md hover:scale-105 active:scale-95 transition cursor-pointer z-10"
+                      >
+                        <svg className="w-5 h-5 sm:w-5 sm:h-5 -mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Bottom Perspective Label & Photo Counter */}
+                  <div className="absolute bottom-3 inset-x-3 flex items-center justify-between pointer-events-none">
+                    <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[11px] sm:text-xs px-2.5 py-1 rounded-lg pointer-events-auto shadow-xs">
+                      {currentPhotoIndex === 0 ? 'Primary Perspective' : `Perspective ${currentPhotoIndex + 1}`}
+                    </span>
+                    {galleryImages.length > 1 && (
+                      <span className="bg-slate-900/80 backdrop-blur-xs text-white font-medium text-[11px] sm:text-xs px-2.5 py-1 rounded-lg pointer-events-auto shadow-xs">
+                        {currentPhotoIndex + 1} / {galleryImages.length}
+                      </span>
+                    )}
+                  </div>
                 </>
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 p-6 text-center">

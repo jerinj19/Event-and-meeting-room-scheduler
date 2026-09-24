@@ -19,7 +19,8 @@ export default function AdminTimeSlotsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sessionFilter, setSessionFilter] = useState('all'); // 'all' | 'morning' | 'afternoon' | 'evening'
   const [roomFilter, setRoomFilter] = useState('all'); // 'all' | 'global' | roomId
-  const [periodFilter, setPeriodFilter] = useState('all'); // 'all' | 'recurring' | 'dated' | 'this_week' | 'this_month' | 'custom'
+  const [periodFilter, setPeriodFilter] = useState('all'); // 'all' | 'today' | 'tomorrow' | 'this_week' | 'this_month' | 'custom'
+  const [dateTypeFilter, setDateTypeFilter] = useState('all'); // 'all' | 'recurring' | 'dated'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
@@ -85,24 +86,24 @@ export default function AdminTimeSlotsPage() {
       if (sessionFilter !== 'all') params.session = sessionFilter;
       if (statusFilter === 'active') params.is_active = true;
       if (statusFilter === 'inactive') params.is_active = false;
+      if (dateTypeFilter !== 'all') {
+        params.date_type = dateTypeFilter;
+      } else {
+        params.include_recurring = true;
+      }
 
       if (roomFilter === 'global') {
         params.room = 'global';
       } else if (roomFilter !== 'all') {
         params.room = roomFilter;
-        params.exact_room = true;
       }
 
-      if (periodFilter === 'this_month' || periodFilter === 'this_week') {
+      if (['this_month', 'this_week', 'today', 'tomorrow'].includes(periodFilter)) {
         params.period = periodFilter;
       } else if (periodFilter === 'custom') {
         params.period = 'custom';
         if (customStartDate) params.start_date = customStartDate;
         if (customEndDate) params.end_date = customEndDate;
-      } else if (periodFilter === 'recurring') {
-        params.date_type = 'recurring';
-      } else if (periodFilter === 'dated') {
-        params.date_type = 'dated';
       }
 
       const res = await timeSlotService.getTimeSlots(params);
@@ -134,6 +135,7 @@ export default function AdminTimeSlotsPage() {
     debouncedSearch,
     sessionFilter,
     statusFilter,
+    dateTypeFilter,
     roomFilter,
     periodFilter,
     customStartDate,
@@ -174,6 +176,7 @@ export default function AdminTimeSlotsPage() {
     searchTerm ||
     sessionFilter !== 'all' ||
     statusFilter !== 'all' ||
+    dateTypeFilter !== 'all' ||
     roomFilter !== 'all' ||
     periodFilter !== 'all' ||
     customStartDate ||
@@ -185,6 +188,7 @@ export default function AdminTimeSlotsPage() {
     setDebouncedSearch('');
     setSessionFilter('all');
     setStatusFilter('all');
+    setDateTypeFilter('all');
     setRoomFilter('all');
     setPeriodFilter('all');
     setCustomStartDate('');
@@ -286,9 +290,13 @@ export default function AdminTimeSlotsPage() {
 
     try {
       await timeSlotService.toggleTimeSlotStatus(slot.id, slot.is_active);
-      setSlots((prev) =>
-        prev.map((s) => (s.id === slot.id ? { ...s, is_active: newStatus } : s))
-      );
+      if (!slot.room && !slot.room_id) {
+        await loadSlots();
+      } else {
+        setSlots((prev) =>
+          prev.map((s) => (s.id === slot.id ? { ...s, is_active: newStatus } : s))
+        );
+      }
       toast.info(`Slot marked as ${newStatus ? 'Active' : 'Disabled'}.`);
     } catch (err) {
       toast.error(err.message || 'Failed to update slot status.');
@@ -333,6 +341,18 @@ export default function AdminTimeSlotsPage() {
     }
   };
 
+  // Helper to format 24h string to 12h AM/PM
+  const formatTime12h = (timeStr) => {
+    if (!timeStr) return '';
+    const parts = timeStr.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parts[1] ? parts[1].slice(0, 2) : '00';
+    if (isNaN(h)) return timeStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${String(h12).padStart(2, '0')}:${m} ${ampm}`;
+  };
+
   // Helper for Period Pill color
   const getPeriodBadge = (period) => {
     switch (period) {
@@ -367,7 +387,7 @@ export default function AdminTimeSlotsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300">
+    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-6 animate-in fade-in duration-300">
       {/* 1. Header & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -376,7 +396,7 @@ export default function AdminTimeSlotsPage() {
             Time Slots Management
           </h1>
           <p className="text-xs sm:text-sm text-secondary mt-1">
-            Configure dynamic recurring intervals and calendar-specific slots with granular room applicability.
+            Configure calendar time slots with granular room applicability.
           </p>
         </div>
 
@@ -493,10 +513,10 @@ export default function AdminTimeSlotsPage() {
         </div>
 
         {/* Row 2: Room Dropdown, Period Filter, Session Dropdown, Status Filter & Reset */}
-        <div className="flex flex-wrap items-center gap-2.5 pt-1 border-t border-outline-variant/30">
+        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-outline-variant/30">
           {/* Room Dropdown Filter */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
               Room:
             </label>
             <select
@@ -505,7 +525,7 @@ export default function AdminTimeSlotsPage() {
                 setRoomFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
               <option value="all">🏢 All Scopes (Global + All Rooms)</option>
               <option value="global">🌐 Global Only (All Rooms)</option>
@@ -522,8 +542,8 @@ export default function AdminTimeSlotsPage() {
           </div>
 
           {/* Session Dropdown Filter */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
               Session:
             </label>
             <select
@@ -532,7 +552,7 @@ export default function AdminTimeSlotsPage() {
                 setSessionFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
               <option value="all">All Status (Morning, Afternoon, Evening)</option>
               <option value="morning">Morning</option>
@@ -542,8 +562,8 @@ export default function AdminTimeSlotsPage() {
           </div>
 
           {/* Period Filter Dropdown */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
               Period / Date:
             </label>
             <select
@@ -552,20 +572,20 @@ export default function AdminTimeSlotsPage() {
                 setPeriodFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
-              <option value="all">📅 All Periods / Dates</option>
-              <option value="recurring">🔁 Daily Recurring Templates Only</option>
-              <option value="dated">📅 Specific Calendar Dates Only</option>
+              <option value="all">📅 All Dates</option>
+              <option value="today">📅 Today</option>
+              <option value="tomorrow">📅 Tomorrow</option>
               <option value="this_week">📆 This Week</option>
               <option value="this_month">🗓️ This Month</option>
-              <option value="custom">⚙️ Custom Date Range...</option>
+              <option value="custom">⚙️ Specific Date / Custom Range...</option>
             </select>
           </div>
 
           {/* Custom Date Range Inputs */}
           {periodFilter === 'custom' && (
-            <div className="flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1 rounded-lg border border-outline-variant/60">
+            <div className="flex flex-wrap items-center gap-1.5 bg-surface-container-low px-2.5 py-1.5 rounded-lg border border-outline-variant/60 w-full sm:w-auto">
               <input
                 type="date"
                 value={customStartDate}
@@ -573,7 +593,7 @@ export default function AdminTimeSlotsPage() {
                   setCustomStartDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="text-xs bg-surface-container-lowest border border-outline-variant/40 rounded px-1.5 py-0.5 text-on-surface outline-none"
+                className="text-xs bg-surface-container-lowest border border-outline-variant/40 rounded px-1.5 py-0.5 text-on-surface outline-none flex-1 sm:flex-initial"
                 title="Start Date"
               />
               <span className="text-secondary text-xs">to</span>
@@ -584,15 +604,34 @@ export default function AdminTimeSlotsPage() {
                   setCustomEndDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="text-xs bg-surface-container-lowest border border-outline-variant/40 rounded px-1.5 py-0.5 text-on-surface outline-none"
+                className="text-xs bg-surface-container-lowest border border-outline-variant/40 rounded px-1.5 py-0.5 text-on-surface outline-none flex-1 sm:flex-initial"
                 title="End Date"
               />
             </div>
           )}
 
+          {/* Schedule Type Filter */}
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
+              Type:
+            </label>
+            <select
+              value={dateTypeFilter}
+              onChange={(e) => {
+                setDateTypeFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+            >
+              <option value="all">All Types (Daily + Dated)</option>
+              <option value="recurring">🔄 Every Day (Daily)</option>
+              <option value="dated">📅 Specific Dates Only</option>
+            </select>
+          </div>
+
           {/* Status Filter */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
               Status:
             </label>
             <select
@@ -601,7 +640,7 @@ export default function AdminTimeSlotsPage() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
               <option value="all">All Status</option>
               <option value="active">Active Only</option>
@@ -614,7 +653,7 @@ export default function AdminTimeSlotsPage() {
             <button
               type="button"
               onClick={handleClearFilters}
-              className="px-2.5 py-1 text-xs font-semibold text-error hover:bg-error-container/20 rounded-lg transition ml-auto flex items-center gap-1 cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold text-error hover:bg-error-container/20 rounded-lg transition w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-1 cursor-pointer border border-error/30 sm:border-transparent"
             >
               <span className="material-symbols-outlined text-[14px]">filter_alt_off</span>
               <span>Clear Filters</span>
@@ -666,49 +705,81 @@ export default function AdminTimeSlotsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {slots.map((slot) => {
               const isToggling = actionLoadingId === slot.id;
+              const startTime12 = formatTime12h(slot.start || slot.start_time);
+              const endTime12 = formatTime12h(slot.end || slot.end_time);
+
+              // Check if slot has a custom descriptive label (e.g. "Sprint Sync")
+              const hasCustomLabel = slot.label && !slot.label.includes(slot.start) && slot.label !== slot.formatted_label;
+
               return (
                 <div
                   key={slot.id}
-                  className={`bg-surface-container-lowest border rounded-2xl p-4.5 shadow-xs transition hover:shadow-md flex flex-col justify-between gap-3 ${
-                    slot.is_active ? 'border-outline-variant/40' : 'border-slate-200 opacity-70 bg-slate-50/50'
+                  className={`group bg-surface-container-lowest border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-3 h-full ${
+                    slot.is_active
+                      ? 'border-outline-variant/40 hover:border-primary/40'
+                      : 'border-slate-200 opacity-75 bg-slate-50/60'
                   }`}
                 >
                   {/* Top: Category Badge, Date Badge & Room Scope */}
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 border-b border-outline-variant/20 pb-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {getPeriodBadge(slot.period)}
                       {slot.date ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
-                          <span className="material-symbols-outlined text-xs">calendar_today</span>
-                          {slot.date}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-200 shadow-2xs">
+                          <span className="material-symbols-outlined text-[12px]">calendar_today</span>
+                          <span>{slot.date}</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200">
-                          <span className="material-symbols-outlined text-xs">all_inclusive</span>
-                          Daily
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs" title="Daily recurring template (active for all dates)">
+                          <span className="material-symbols-outlined text-[12px]">repeat</span>
+                          <span>Every Day</span>
                         </span>
                       )}
                     </div>
-                    <span className="text-[11px] font-medium text-secondary truncate max-w-[120px]" title={slot.room_name || 'Global'}>
-                      {slot.room_name ? `📍 ${slot.room_name}` : '🌐 Global'}
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium truncate max-w-[125px] border shadow-2xs ${
+                        slot.room_name
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}
+                      title={slot.room_name || 'Global (All Rooms)'}
+                    >
+                      <span>{slot.room_name ? '📍' : '🌐'}</span>
+                      <span className="truncate">{slot.room_name || 'Global'}</span>
                     </span>
                   </div>
 
-                  {/* Middle: Slot Time & Label */}
-                  <div className="space-y-1">
-                    <div className="text-base font-bold text-on-surface tracking-tight">
-                      {slot.label || slot.formatted_label}
+                  {/* Middle: Prominent Centered Time Showcase */}
+                  <div className="my-auto py-3.5 px-3 rounded-xl bg-surface-container-low/60 border border-outline-variant/30 flex flex-col items-center justify-center text-center transition group-hover:bg-primary/[0.03] group-hover:border-primary/25">
+                    {hasCustomLabel && (
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 line-clamp-1" title={slot.label}>
+                        {slot.label}
+                      </span>
+                    )}
+
+                    {/* Centered Large Time Display */}
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-base sm:text-[17px] font-bold text-on-surface font-mono tracking-tight">
+                        {startTime12}
+                      </span>
+                      <span className="text-primary font-bold text-sm">→</span>
+                      <span className="text-base sm:text-[17px] font-bold text-on-surface font-mono tracking-tight">
+                        {endTime12}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-secondary">
-                      <span className="font-semibold text-primary">{slot.start} – {slot.end}</span>
-                      <span>•</span>
-                      <span>{slot.duration || `${slot.duration_minutes || 60} mins`}</span>
+
+                    {/* Centered Duration Pill */}
+                    <div className="mt-2 flex items-center justify-center">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-surface-container-lowest text-secondary border border-outline-variant/50 shadow-2xs">
+                        <span className="material-symbols-outlined text-[13px] text-primary">schedule</span>
+                        <span>{slot.duration || `${slot.duration_minutes || 60} mins`}</span>
+                      </span>
                     </div>
                   </div>
 
                   {/* Bottom: Active Toggle & Actions */}
-                  <div className="pt-3 border-t border-outline-variant/30 flex items-center justify-between">
-                    <label className="relative inline-flex items-center cursor-pointer">
+                  <div className="pt-2.5 border-t border-outline-variant/30 flex items-center justify-between">
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={slot.is_active}
@@ -716,8 +787,8 @@ export default function AdminTimeSlotsPage() {
                         disabled={isToggling}
                         className="sr-only peer"
                       />
-                      <div className="w-8 h-4.5 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
-                      <span className="ml-2 text-[11px] font-semibold text-secondary">
+                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                      <span className={`ml-2 text-[11px] font-bold ${slot.is_active ? 'text-emerald-700' : 'text-slate-400'}`}>
                         {isToggling ? 'Updating...' : slot.is_active ? 'Active' : 'Disabled'}
                       </span>
                     </label>
@@ -750,11 +821,11 @@ export default function AdminTimeSlotsPage() {
         /* TABLE VIEW */
         <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full min-w-[760px] text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-outline-variant/40 bg-surface-container-low/40 text-secondary font-semibold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Display Label</th>
-                  <th className="py-3 px-4">Date Scope</th>
+                  <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Start Time</th>
                   <th className="py-3 px-4">End Time</th>
                   <th className="py-3 px-4">Duration</th>
@@ -779,9 +850,9 @@ export default function AdminTimeSlotsPage() {
                             {slot.date}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600">
-                            <span className="material-symbols-outlined text-[13px]">all_inclusive</span>
-                            Daily Recurring
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200" title="Daily recurring template (active for all dates)">
+                            <span className="material-symbols-outlined text-[13px]">repeat</span>
+                            Every Day
                           </span>
                         )}
                       </td>
@@ -797,16 +868,33 @@ export default function AdminTimeSlotsPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={slot.is_active}
-                            onChange={() => handleToggleStatus(slot)}
-                            disabled={isToggling}
-                            className="sr-only peer"
-                          />
-                          <div className="w-8 h-4.5 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
-                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(slot)}
+                          disabled={isToggling}
+                          className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold transition border cursor-pointer select-none ${
+                            slot.is_active
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200'
+                          }`}
+                          title={`Click to ${slot.is_active ? 'Disable' : 'Activate'}`}
+                        >
+                          {/* Mini Toggle Track & Thumb */}
+                          <span
+                            className={`w-7 h-4 rounded-full transition-colors relative inline-block ${
+                              slot.is_active ? 'bg-emerald-600' : 'bg-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`w-3 h-3 rounded-full bg-white transition-all absolute top-0.5 shadow-xs ${
+                                slot.is_active ? 'left-3.5' : 'left-0.5'
+                              }`}
+                            />
+                          </span>
+                          <span>
+                            {isToggling ? 'Updating...' : slot.is_active ? 'Active' : 'Disabled'}
+                          </span>
+                        </button>
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="inline-flex items-center gap-1">
@@ -916,6 +1004,7 @@ export default function AdminTimeSlotsPage() {
         slot={editingSlot}
         rooms={rooms}
         loading={modalSubmitting}
+        defaultDate={customStartDate || ''}
       />
 
       <BulkTimeSlotModal
@@ -924,6 +1013,7 @@ export default function AdminTimeSlotsPage() {
         onSaveBulk={handleSaveBulkSlots}
         rooms={rooms}
         loading={bulkSubmitting}
+        defaultDate={customStartDate || ''}
       />
 
       <DeleteTimeSlotModal
@@ -936,7 +1026,7 @@ export default function AdminTimeSlotsPage() {
 
       {/* Reset Defaults Confirmation Modal */}
       {isResetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
           <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold flex-shrink-0">

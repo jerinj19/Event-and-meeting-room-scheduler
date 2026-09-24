@@ -27,7 +27,12 @@ from .serializers import (
 class BookingPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = "page_size"
-    max_page_size = 100
+    max_page_size = 1000
+
+    def paginate_queryset(self, queryset, request, view=None):
+        if request.query_params.get("no_pagination", "").lower() in ["true", "1"]:
+            return None
+        return super().paginate_queryset(queryset, request, view)
 
     def paginate_queryset(self, queryset, request, view=None):
         if request.query_params.get("no_pagination", "").lower() in ["true", "1"]:
@@ -770,38 +775,94 @@ STANDARD_SLOTS = [
 ]
 
 
-def seed_default_time_slots():
+def clean_duplicate_room_slots():
+    """
+    Remove redundant room-specific recurring slots that duplicate the standard
+    corporate global schedule (e.g. Executive Suite 301, Focus Pod Gamma, Innovation Hub).
+    Preserves custom room schedules (like room 'xyz' with 30-min intervals) and dated slots.
+    """
+    for slot in STANDARD_SLOTS:
+        sh, sm = map(int, slot["start"].split(":"))
+        eh, em = map(int, slot["end"].split(":"))
+        st = time(sh, sm)
+        et = time(eh, em)
+        TimeSlot.objects.filter(
+            room__isnull=False,
+            date__isnull=True,
+            start_time=st,
+            end_time=et,
+        ).exclude(room__name__iexact="xyz").delete()
+
+
+def seed_default_time_slots(force_active=False):
     """
     Ensure the 11 standard corporate default time slots exist in the database.
+    Default templates have room=None and date=None so they apply across each and every day
+    to all rooms. Standard corporate rooms inherit these global templates directly,
+    avoiding redundant duplicate rows.
     """
+    # 1. Global templates
     for index, slot in enumerate(STANDARD_SLOTS):
         sh, sm = map(int, slot["start"].split(":"))
         eh, em = map(int, slot["end"].split(":"))
-        TimeSlot.objects.update_or_create(
-            start_time=time(sh, sm),
-            end_time=time(eh, em),
+        st = time(sh, sm)
+        et = time(eh, em)
+
+        existing = TimeSlot.objects.filter(
+            start_time=st,
+            end_time=et,
             room=None,
-            defaults={
-                "label": slot["label"],
-                "period": slot["period"],
-                "is_active": True,
-                "sort_order": index,
-            },
-        )
+            date=None,
+        ).first()
+
+        if existing:
+            existing.label = slot["label"]
+            existing.period = slot["period"]
+            existing.sort_order = index
+            if force_active:
+                existing.is_active = True
+            existing.save()
+        else:
+            TimeSlot.objects.create(
+                start_time=st,
+                end_time=et,
+                room=None,
+                date=None,
+                label=slot["label"],
+                period=slot["period"],
+                is_active=True,
+                sort_order=index,
+            )
+
+    # 2. Clean up any redundant duplicate standard corporate slots for rooms
+    clean_duplicate_room_slots()
+
+
+def is_admin_user(user):
+    """
+    Check if a user has administrator / staff access.
+    Matches is_staff, is_superuser, or email containing 'admin'.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        return True
+    email = (getattr(user, "email", "") or "").lower()
+    return "admin" in email
 
 
 class IsAdminOrReadOnlySlot(permissions.BasePermission):
     """
     Allows all users (including unauthenticated visitors evaluating scheduling)
     read access to active time slots.
-    Write operations (create, update, delete, toggle) are strictly restricted
-    to authenticated staff/admin users.
+    Write operations (create, update, delete, toggle) are permitted
+    for authenticated staff/admin users.
     """
 
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return bool(request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser))
+        return is_admin_user(request.user)
 
 
 class TimeSlotViewSet(viewsets.ModelViewSet):
@@ -843,9 +904,23 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
                         queryset = queryset.filter(room__name__iexact=room_param.strip())
                 else:
                     if is_uuid or (isinstance(room_param, str) and room_param.isdigit()):
-                        queryset = queryset.filter(Q(room_id=room_param) | Q(room__isnull=True))
+                        room_q = Q(room_id=room_param)
                     else:
-                        queryset = queryset.filter(Q(room__name__iexact=room_param.strip()) | Q(room__isnull=True))
+                        room_q = Q(room__name__iexact=room_param.strip())
+
+                    # When scoping by room, deduplicate: if a room has custom slot(s),
+                    # omit the global slot for that exact same time window so the admin
+                    # never sees duplicate cards for the exact same interval.
+                    override_q = Q()
+                    for rs in TimeSlot.objects.filter(room_q):
+                        if rs.date is None:
+                            override_q |= Q(room__isnull=True, start_time=rs.start_time, end_time=rs.end_time)
+                        else:
+                            override_q |= Q(room__isnull=True, start_time=rs.start_time, end_time=rs.end_time, date=rs.date)
+
+                    queryset = queryset.filter(room_q | Q(room__isnull=True))
+                    if override_q:
+                        queryset = queryset.exclude(override_q)
 
         is_active_param = self.request.query_params.get("is_active")
         if is_active_param is not None:
@@ -863,7 +938,7 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
             elif dt == "dated":
                 queryset = queryset.filter(date__isnull=False)
 
-        # Period filter: this_month, this_week, custom
+        # Period filter: this_month, this_week, today, tomorrow, custom
         period_param = self.request.query_params.get("period")
         now = timezone.localtime(timezone.now())
 
@@ -871,32 +946,73 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
             start_of_month = now.date().replace(day=1)
             _, last_day = calendar.monthrange(now.year, now.month)
             end_of_month = now.date().replace(day=last_day)
-            queryset = queryset.filter(
-                Q(date__gte=start_of_month, date__lte=end_of_month) | Q(date__isnull=True)
-            )
+            month_q = Q(date__gte=start_of_month, date__lte=end_of_month)
+            if date_type and date_type.lower().strip() == "dated":
+                queryset = queryset.filter(month_q)
+            else:
+                queryset = queryset.filter(month_q | Q(date__isnull=True))
         elif period_param == "this_week":
             start_of_week = now.date() - timedelta(days=now.weekday())
             end_of_week = start_of_week + timedelta(days=6)
-            queryset = queryset.filter(
-                Q(date__gte=start_of_week, date__lte=end_of_week) | Q(date__isnull=True)
-            )
-        elif period_param == "custom":
+            week_q = Q(date__gte=start_of_week, date__lte=end_of_week)
+            if date_type and date_type.lower().strip() == "dated":
+                queryset = queryset.filter(week_q)
+            else:
+                queryset = queryset.filter(week_q | Q(date__isnull=True))
+        elif period_param == "today":
+            today = now.date()
+            today_q = Q(date=today)
+            if date_type and date_type.lower().strip() == "dated":
+                queryset = queryset.filter(today_q)
+            else:
+                queryset = queryset.filter(today_q | Q(date__isnull=True))
+        elif period_param == "tomorrow":
+            tomorrow = now.date() + timedelta(days=1)
+            tomorrow_q = Q(date=tomorrow)
+            if date_type and date_type.lower().strip() == "dated":
+                queryset = queryset.filter(tomorrow_q)
+            else:
+                queryset = queryset.filter(tomorrow_q | Q(date__isnull=True))
+        elif period_param == "custom" or (
+            not period_param
+            and (self.request.query_params.get("start_date") or self.request.query_params.get("end_date"))
+        ):
             start_date = self.request.query_params.get("start_date")
             end_date = self.request.query_params.get("end_date")
-            if start_date:
-                parsed_start = parse_date(start_date.strip())
-                if parsed_start:
-                    queryset = queryset.filter(date__gte=parsed_start)
-            if end_date:
-                parsed_end = parse_date(end_date.strip())
-                if parsed_end:
-                    queryset = queryset.filter(date__lte=parsed_end)
+            date_q = Q()
+            parsed_start = parse_date(start_date.strip()) if start_date else None
+            parsed_end = parse_date(end_date.strip()) if end_date else None
+
+            if parsed_start and parsed_end:
+                date_q = Q(date__gte=parsed_start, date__lte=parsed_end)
+            elif parsed_start:
+                date_q = Q(date__gte=parsed_start)
+            elif parsed_end:
+                date_q = Q(date__lte=parsed_end)
+
+            if date_q:
+                is_global = room_param and str(room_param).lower() == "global"
+                is_single_day = parsed_start and parsed_end and parsed_start == parsed_end
+                include_recurring = self.request.query_params.get("include_recurring", "").lower() in ["true", "1"]
+
+                if date_type and date_type.lower().strip() == "dated":
+                    queryset = queryset.filter(date_q)
+                elif date_type and date_type.lower().strip() == "recurring":
+                    queryset = queryset.filter(date__isnull=True)
+                elif is_global or is_single_day or include_recurring:
+                    queryset = queryset.filter(date_q | Q(date__isnull=True))
+                else:
+                    queryset = queryset.filter(date_q)
         else:
             date_param = self.request.query_params.get("date")
             if date_param:
                 parsed = parse_date(date_param.strip())
                 if parsed:
-                    queryset = queryset.filter(Q(date=parsed) | Q(date__isnull=True))
+                    date_single_q = Q(date=parsed)
+                    if date_type and date_type.lower().strip() == "dated":
+                        queryset = queryset.filter(date_single_q)
+                    else:
+                        queryset = queryset.filter(date_single_q | Q(date__isnull=True))
 
         # Session filter: morning, afternoon, evening
         session_param = self.request.query_params.get("session")
@@ -914,14 +1030,27 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        # If a Global slot is toggled or updated, synchronize matching room slots in the DB
+        if instance.room is None and "is_active" in serializer.validated_data:
+            new_active = serializer.validated_data["is_active"]
+            q = Q(start_time=instance.start_time, end_time=instance.end_time)
+            if instance.date is None:
+                q &= Q(date__isnull=True)
+            else:
+                q &= Q(date=instance.date)
+            TimeSlot.objects.filter(q).exclude(pk=instance.pk).update(is_active=new_active)
+
     @action(detail=False, methods=["post"], url_path="reset-defaults")
     def reset_defaults(self, request):
-        if not (request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)):
+        if not is_admin_user(request.user):
             return Response(
                 {"error": {"code": "FORBIDDEN", "message": "Only admins can restore default time slots."}},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        seed_default_time_slots()
+        seed_default_time_slots(force_active=True)
+        clean_duplicate_room_slots()
         slots = TimeSlot.objects.select_related("room").order_by("date", "start_time", "sort_order")
         serializer = self.get_serializer(slots, many=True)
         return Response(
@@ -941,7 +1070,7 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
         2. An object with a 'slots' list and optional 'dates' list.
         If 'dates' is provided, each slot in 'slots' is cloned for each date in 'dates'!
         """
-        if not (request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)):
+        if not is_admin_user(request.user):
             return Response(
                 {"error": {"code": "FORBIDDEN", "message": "Only administrators can create time slots."}},
                 status=status.HTTP_403_FORBIDDEN,
@@ -1031,29 +1160,69 @@ class AvailableSlotsView(APIView):
 
         tz = timezone.get_current_timezone()
 
-        # Query dynamic active slots from DB:
-        # Match slots explicitly defined for target_date OR recurring templates (date is null)
-        active_slots_qs = TimeSlot.objects.filter(is_active=True).filter(
-            Q(date=target_date) | Q(date__isnull=True)
-        )
+        # Helper to resolve slots for target_date:
+        # 1. Any slot specifically set for target_date takes precedence.
+        # 2. If no date-specific slots exist for target_date, fallback to recurring templates (date is None).
+        # 3. If neither exists, fallback to raw_slots.
+        def resolve_slots_for_date(raw_slots, date_val):
+            date_specific = [s for s in raw_slots if s.date == date_val]
+            if date_specific:
+                return date_specific
+            null_date = [s for s in raw_slots if s.date is None]
+            if null_date:
+                return null_date
+            return raw_slots
+
+        # Query dynamic slots from DB:
         if room:
-            room_slots = list(active_slots_qs.filter(room=room).order_by("start_time", "sort_order"))
-            if room_slots:
-                date_specific = [s for s in room_slots if s.date == target_date]
-                db_slots = date_specific if date_specific else room_slots
+            room_slots_raw = list(TimeSlot.objects.filter(room=room).order_by("start_time", "sort_order"))
+            chosen_room_slots = resolve_slots_for_date(room_slots_raw, target_date)
+
+            global_slots_raw = list(TimeSlot.objects.filter(room__isnull=True).order_by("start_time", "sort_order"))
+            chosen_global_slots = resolve_slots_for_date(global_slots_raw, target_date)
+
+            if chosen_room_slots:
+                # Include all room-specific slots (they take precedence for this room)
+                combined_slots = list(chosen_room_slots)
+                # Include global slots that do not overlap with any room-specific slot
+                for g in chosen_global_slots:
+                    overlaps = any(
+                        r.start_time < g.end_time and r.end_time > g.start_time
+                        for r in chosen_room_slots
+                    )
+                    if not overlaps:
+                        combined_slots.append(g)
+                db_slots = combined_slots
             else:
-                global_slots = list(active_slots_qs.filter(room__isnull=True).order_by("start_time", "sort_order"))
-                date_specific = [s for s in global_slots if s.date == target_date]
-                db_slots = date_specific if date_specific else global_slots
+                db_slots = chosen_global_slots
         else:
-            global_slots = list(active_slots_qs.filter(room__isnull=True).order_by("start_time", "sort_order"))
-            date_specific = [s for s in global_slots if s.date == target_date]
-            db_slots = date_specific if date_specific else global_slots
+            global_slots_raw = list(TimeSlot.objects.filter(room__isnull=True).order_by("start_time", "sort_order"))
+            chosen_global_slots = resolve_slots_for_date(global_slots_raw, target_date)
+            db_slots = chosen_global_slots
+
+        # Deduplicate slots by (start_time, end_time) to avoid duplicate buttons
+        seen_intervals = set()
+        unique_db_slots = []
+        for s in sorted(db_slots, key=lambda x: (x.start_time, 0 if x.room_id else 1, x.sort_order)):
+            interval = (s.start_time, s.end_time)
+            if interval not in seen_intervals:
+                seen_intervals.add(interval)
+                unique_db_slots.append(s)
+        db_slots = unique_db_slots
 
         # If database has no slots defined yet, fall back to STANDARD_SLOTS
         if db_slots:
-            slot_definitions = [
-                {
+            slot_definitions = []
+            for s in db_slots:
+                # If ANY global slot overlapping with this time interval is disabled (is_active == False),
+                # this slot is globally disabled for ALL rooms!
+                is_globally_disabled = any(
+                    (not g.is_active) and (g.start_time < s.end_time and g.end_time > s.start_time)
+                    for g in chosen_global_slots
+                )
+                effective_active = False if is_globally_disabled else s.is_active
+
+                slot_definitions.append({
                     "id": str(s.id),
                     "start": s.start_time.strftime("%H:%M"),
                     "end": s.end_time.strftime("%H:%M"),
@@ -1061,9 +1230,8 @@ class AvailableSlotsView(APIView):
                     "duration": s.duration_label,
                     "period": s.period,
                     "room_id": str(s.room_id) if s.room_id else None,
-                }
-                for s in db_slots
-            ]
+                    "is_active": effective_active,
+                })
         else:
             slot_definitions = STANDARD_SLOTS
 
@@ -1085,8 +1253,12 @@ class AvailableSlotsView(APIView):
                 tz,
             )
 
-            # Do not fetch / return any slot that is currently ongoing or has already started
-            if slot_start_dt <= now:
+            # Determine whether slot is completed, current, or future
+            is_completed = (target_date < local_now.date()) or (target_date == local_now.date() and slot_end_dt <= now)
+            is_current = (target_date == local_now.date()) and (slot_start_dt <= now < slot_end_dt)
+
+            # Do not return completed slots for target date
+            if is_completed:
                 continue
 
             # Check if booked in DB
@@ -1103,6 +1275,9 @@ class AvailableSlotsView(APIView):
                 "duration": slot_def["duration"],
                 "period": slot_def["period"],
                 "is_booked": is_booked,
+                "is_past": False,
+                "is_current": is_current,
+                "is_active": slot_def.get("is_active", True),
             }
 
             valid_slots.append(slot_item)

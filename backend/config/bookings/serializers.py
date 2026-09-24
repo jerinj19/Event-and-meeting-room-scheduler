@@ -1,5 +1,6 @@
 from datetime import time, timedelta
 
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException
@@ -51,9 +52,12 @@ class BookingSerializer(serializers.ModelSerializer):
     room_location = serializers.ReadOnlyField(source="room.location")
     room_capacity = serializers.ReadOnlyField(source="room.capacity")
     room_amenities = serializers.ReadOnlyField(source="room.amenities")
+    room_hourly_rate = serializers.ReadOnlyField(source="room.hourly_rate")
     room_image = serializers.SerializerMethodField()
     user_email = serializers.ReadOnlyField(source="user.email")
     user_name = serializers.ReadOnlyField(source="user.full_name")
+    user_department = serializers.ReadOnlyField(source="user.department")
+    user_is_staff = serializers.ReadOnlyField(source="user.is_staff")
     session = serializers.SerializerMethodField()
     time_slot_label = serializers.SerializerMethodField()
 
@@ -61,7 +65,10 @@ class BookingSerializer(serializers.ModelSerializer):
         if obj.room and obj.room.image:
             request = self.context.get("request")
             if request:
-                return request.build_absolute_uri(obj.room.image.url)
+                try:
+                    return request.build_absolute_uri(obj.room.image.url)
+                except Exception:
+                    return obj.room.image.url
             return obj.room.image.url
         return None
 
@@ -92,10 +99,13 @@ class BookingSerializer(serializers.ModelSerializer):
             "room_location",
             "room_capacity",
             "room_amenities",
+            "room_hourly_rate",
             "room_image",
             "user",
             "user_email",
             "user_name",
+            "user_department",
+            "user_is_staff",
             "title",
             "description",
             "start_time",
@@ -112,10 +122,13 @@ class BookingSerializer(serializers.ModelSerializer):
             "user",
             "user_email",
             "user_name",
+            "user_department",
+            "user_is_staff",
             "room_name",
             "room_location",
             "room_capacity",
             "room_amenities",
+            "room_hourly_rate",
             "room_image",
             "session",
             "time_slot_label",
@@ -146,10 +159,11 @@ class BookingSerializer(serializers.ModelSerializer):
             if end_time <= start_time:
                 raise serializers.ValidationError({"end_time": "End time must be strictly after start time."})
 
-        # 2. Prevent creating bookings in the past (allow 5-minute latency tolerance)
-        if not self.instance and start_time:
-            grace_period = timezone.now() - timedelta(minutes=5)
-            if start_time < grace_period:
+        # 2. Prevent creating bookings in the past / completed time slots
+        if not self.instance:
+            if end_time and end_time <= timezone.now():
+                raise serializers.ValidationError({"end_time": "Cannot book a time slot that has already completed."})
+            if start_time and start_time < timezone.now() - timedelta(hours=12):
                 raise serializers.ValidationError({"start_time": "Cannot book a time slot in the past."})
 
         # 3. Room active check
@@ -207,6 +221,27 @@ class BookingSerializer(serializers.ModelSerializer):
                     },
                 )
 
+        # 6. Prevent booking an inactive / disabled time slot (globally or room-specific)
+        if room and start_time and end_time:
+            booking_date = timezone.localtime(start_time).date()
+            booking_start_t = timezone.localtime(start_time).time()
+            booking_end_t = timezone.localtime(end_time).time()
+
+            inactive_slots = TimeSlot.objects.filter(
+                is_active=False,
+            ).filter(
+                Q(room=room) | Q(room__isnull=True)
+            ).filter(
+                Q(date=booking_date) | Q(date__isnull=True)
+            ).filter(
+                start_time__lt=booking_end_t,
+                end_time__gt=booking_start_t,
+            )
+            if inactive_slots.exists():
+                raise serializers.ValidationError({
+                    "time_slot": "This time slot has been disabled by an administrator and is unavailable for booking."
+                })
+
         return attrs
 
 
@@ -246,7 +281,7 @@ class TimeSlotSerializer(serializers.ModelSerializer):
     duration = serializers.ReadOnlyField(source="duration_label")
     duration_minutes = serializers.ReadOnlyField()
     formatted_label = serializers.ReadOnlyField()
-    room_name = serializers.ReadOnlyField(source="room.name")
+    room_name = serializers.SerializerMethodField()
     is_recurring = serializers.ReadOnlyField()
 
     class Meta:
@@ -278,12 +313,32 @@ class TimeSlotSerializer(serializers.ModelSerializer):
     def get_end(self, obj):
         return obj.end_time.strftime("%H:%M") if obj.end_time else ""
 
+    def get_room_name(self, obj):
+        return obj.room.name if obj.room else None
+
     def validate(self, attrs):
         start_time = attrs.get("start_time", getattr(self.instance, "start_time", None))
         end_time = attrs.get("end_time", getattr(self.instance, "end_time", None))
+        room = attrs.get("room", getattr(self.instance, "room", None))
+        date = attrs.get("date", getattr(self.instance, "date", None))
 
         if start_time and end_time and end_time <= start_time:
             raise serializers.ValidationError({"end_time": "End time must be after start time."})
+
+        # Prevent creating exact duplicate time slots
+        if start_time and end_time:
+            dup_qs = TimeSlot.objects.filter(
+                room=room,
+                date=date,
+                start_time=start_time,
+                end_time=end_time,
+            )
+            if self.instance:
+                dup_qs = dup_qs.exclude(pk=self.instance.pk)
+            if dup_qs.exists():
+                raise serializers.ValidationError({
+                    "non_field_errors": "A time slot with this exact room, date, and time window already exists."
+                })
 
         return attrs
 

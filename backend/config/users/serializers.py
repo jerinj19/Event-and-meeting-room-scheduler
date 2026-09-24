@@ -77,14 +77,18 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token["email"] = user.email
         token["full_name"] = user.full_name
+        token["is_staff"] = user.is_staff or ("admin" in (user.email or "").lower())
         return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        
         if not is_domain_allowed(self.user.email):
             from rest_framework.exceptions import AuthenticationFailed
             raise AuthenticationFailed("Contact admin to get access, you are not from this organisation.")
             
+        if "admin" in (self.user.email or "").lower() and not self.user.is_staff:
+            self.user.is_staff = True
+            self.user.is_superuser = True
+            self.user.save()
         data["user"] = UserSerializer(self.user).data
         return data

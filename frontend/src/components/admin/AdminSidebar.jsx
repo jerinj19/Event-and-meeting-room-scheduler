@@ -118,6 +118,14 @@ export default function AdminSidebar({ isOpen, onClose }) {
               <span>Time Slots</span>
             </div>
           </NavLink>
+          
+          <button
+            type="button"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-secondary hover:text-on-surface hover:bg-surface-container-low font-medium text-xs sm:text-sm text-left transition"
+          >
+            <span className="material-symbols-outlined text-[20px]" data-icon="analytics">analytics</span>
+            <span>System Reports</span>
+          </button>
         </div>
       </div>
 

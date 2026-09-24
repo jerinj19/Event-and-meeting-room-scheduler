@@ -746,8 +746,8 @@ class BookingAPITests(TestCase):
         self.assertIn("afternoon", res.data["grouped"])
         self.assertIn("evening", res.data["grouped"])
 
-    def test_available_slots_excludes_past_and_ongoing_slots_for_today(self):
-        """Slots that have already started or are currently in progress should NOT be returned."""
+    def test_available_slots_excludes_completed_slots_for_today(self):
+        """Slots that have already completed should NOT be returned for today."""
         today_str = timezone.localdate().isoformat()
         now = timezone.now()
         res = self.client.get(f"/api/bookings/available-slots/?date={today_str}")
@@ -755,14 +755,14 @@ class BookingAPITests(TestCase):
 
         tz = timezone.get_current_timezone()
         from datetime import datetime, time
-        # Ensure that no returned slot has start time <= now
+        # Ensure that no returned slot has end time <= now
         for slot in res.data["slots"]:
-            sh, sm = map(int, slot["start"].split(":"))
-            slot_start = timezone.make_aware(
-                datetime.combine(timezone.localdate(), time(sh, sm)),
+            eh, em = map(int, slot["end"].split(":"))
+            slot_end = timezone.make_aware(
+                datetime.combine(timezone.localdate(), time(eh, em)),
                 tz,
             )
-            self.assertGreater(slot_start, now, f"Slot {slot['label']} should not have been returned since start <= now")
+            self.assertGreater(slot_end, now, f"Slot {slot['label']} should not have been returned since end <= now")
 
     def test_list_time_slots_endpoint(self):
         """Anyone can list time slots."""
@@ -838,8 +838,9 @@ class BookingAPITests(TestCase):
         # Deactivate slot
         self.client.patch(f"/api/bookings/time-slots/{slot_id}/", {"is_active": False})
         res_avail_after = self.client.get(f"/api/bookings/available-slots/?date={tomorrow_str}")
-        labels_after = [s["label"] for s in res_avail_after.data["slots"]]
-        self.assertNotIn("Early Sunrise Sync", labels_after)
+        deactivated_slot = next((s for s in res_avail_after.data["slots"] if s["label"] == "Early Sunrise Sync"), None)
+        self.assertIsNotNone(deactivated_slot)
+        self.assertFalse(deactivated_slot["is_active"])
 
     def test_admin_can_reset_default_time_slots(self):
         """Admin can trigger reset-defaults action."""
@@ -976,6 +977,35 @@ class BookingAPITests(TestCase):
             if item["id"] == str(b_morning.id):
                 self.assertEqual(item["session"], "morning")
                 self.assertIn("AM", item["time_slot_label"])
+
+    def test_booking_timezone_header_support(self):
+        """Verify that X-Timezone header activates client timezone for time_slot_label and session."""
+        self.client.force_authenticate(user=self.admin)
+        from datetime import timezone as dt_tz
+        dt_start = datetime(2026, 9, 23, 15, 0, 0, tzinfo=dt_tz.utc)
+        dt_end = datetime(2026, 9, 23, 16, 30, 0, tzinfo=dt_tz.utc)
+
+        b = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Late Sync",
+            start_time=dt_start,
+            end_time=dt_end,
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        # 1. With X-Timezone: Asia/Kolkata (UTC+5:30) -> 15:00 UTC is 20:30 IST (08:30 PM, Evening)
+        res_ist = self.client.get(f"/api/bookings/{b.id}/", HTTP_X_TIMEZONE="Asia/Kolkata")
+        self.assertEqual(res_ist.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_ist.data["session"], "evening")
+        self.assertIn("8:30 PM", res_ist.data["time_slot_label"])
+        self.assertIn("10:00 PM", res_ist.data["time_slot_label"])
+
+        # 2. Without X-Timezone header -> defaults to UTC (03:00 PM, Afternoon)
+        res_utc = self.client.get(f"/api/bookings/{b.id}/")
+        self.assertEqual(res_utc.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_utc.data["session"], "afternoon")
+        self.assertIn("3:00 PM", res_utc.data["time_slot_label"])
 
 
 class TimeSlotModelAndAPITests(TestCase):
@@ -1159,6 +1189,56 @@ class TimeSlotModelAndAPITests(TestCase):
         labels = [s["label"] for s in res.data["slots"]]
         self.assertIn("Christmas Special Slot", labels)
         self.assertNotIn("Daily Generic Slot", labels)
+
+    def test_available_slots_merges_room_slots_with_non_overlapping_global_evening_slots(self):
+        TimeSlot.objects.all().delete()
+        future_date = (timezone.localdate() + timedelta(days=5))
+        future_date_str = future_date.isoformat()
+
+        # 1. Global corporate evening slot (18:30 - 19:30)
+        TimeSlot.objects.create(
+            start_time=time(18, 30),
+            end_time=time(19, 30),
+            label="Corporate Evening Slot",
+            period="evening",
+            date=future_date,
+            room=None,
+            is_active=True,
+        )
+
+        # 2. Global corporate morning slot (09:00 - 10:00) - to be overridden
+        TimeSlot.objects.create(
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            label="Corporate Global Morning",
+            period="morning",
+            date=future_date,
+            room=None,
+            is_active=True,
+        )
+
+        # 3. Room-specific 30-min morning slot (09:00 - 09:30)
+        TimeSlot.objects.create(
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            label="Room Morning 30m",
+            period="morning",
+            date=future_date,
+            room=self.room_a,
+            is_active=True,
+        )
+
+        # Query for room_a
+        res = self.client.get(f"/api/bookings/available-slots/?date={future_date_str}&room_id={self.room_a.id}")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        labels = [s["label"] for s in res.data["slots"]]
+        # Room-specific slot must be included
+        self.assertIn("Room Morning 30m", labels)
+        # Non-overlapping global evening slot must be included
+        self.assertIn("Corporate Evening Slot", labels)
+        # Overlapping global morning slot must be overridden/excluded
+        self.assertNotIn("Corporate Global Morning", labels)
 
 
 

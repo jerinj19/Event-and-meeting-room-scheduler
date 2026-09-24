@@ -249,7 +249,6 @@ export default function AdminRoomModal({
     setSelectedAvEquipment((prev) =>
       prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
     );
-    setIsAvDropdownOpen(false);
   };
 
   const handleAddCustomAv = (e) => {
@@ -259,7 +258,6 @@ export default function AdminRoomModal({
       setSelectedAvEquipment((prev) => [...prev, trimmed]);
       setCustomAvItem('');
     }
-    setIsAvDropdownOpen(false);
   };
 
   // Amenities Handlers
@@ -800,45 +798,70 @@ export default function AdminRoomModal({
 
               {/* Dropdown Options List */}
               {isAvDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl z-30 p-2 space-y-1 max-h-56 overflow-y-auto animate-in fade-in duration-150">
-                  <div className="flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-secondary border-b border-outline-variant/30 mb-1">
-                    <span>Click an AV item to add:</span>
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl z-30 overflow-hidden animate-in fade-in duration-150">
+                  {/* Sticky Header with Guidance and Close Button */}
+                  <div className="sticky top-0 bg-surface-container-lowest px-3 py-2 text-[11px] font-semibold text-secondary border-b border-outline-variant/30 flex items-center justify-between z-10">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                      <span>Select multiple AV items (click to toggle):</span>
+                    </span>
                     <button
                       type="button"
                       onClick={() => setIsAvDropdownOpen(false)}
-                      className="text-primary hover:underline font-bold text-xs cursor-pointer"
+                      className="text-primary hover:underline font-bold text-xs cursor-pointer px-1.5 py-0.5 rounded hover:bg-primary/5 transition"
                     >
                       Done / Close
                     </button>
                   </div>
-                  {PRESET_AV_EQUIPMENT.map((item) => {
-                    const isSelected = selectedAvEquipment.includes(item);
-                    return (
-                      <div
-                        key={item}
-                        onClick={() => handleSelectAvEquipment(item)}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-xs font-medium transition ${
-                          isSelected
-                            ? 'bg-primary/10 text-primary font-semibold'
-                            : 'hover:bg-surface-container-low text-on-surface'
-                        }`}
-                      >
+
+                  {/* Scrollable Items List */}
+                  <div className="p-2 space-y-1 max-h-56 overflow-y-auto">
+                    {PRESET_AV_EQUIPMENT.map((item) => {
+                      const isSelected = selectedAvEquipment.includes(item);
+                      return (
                         <div
-                          className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition ${
-                            isSelected ? 'bg-primary border-primary text-white' : 'border-outline-variant bg-white'
+                          key={item}
+                          onClick={() => handleSelectAvEquipment(item)}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-xs font-medium transition select-none ${
+                            isSelected
+                              ? 'bg-primary/10 text-primary font-semibold'
+                              : 'hover:bg-surface-container-low text-on-surface'
                           }`}
                         >
+                          <div
+                            className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition ${
+                              isSelected ? 'bg-primary border-primary text-white' : 'border-outline-variant bg-white'
+                            }`}
+                          >
+                            {isSelected && (
+                              <span className="material-symbols-outlined text-[13px]" data-icon="check">check</span>
+                            )}
+                          </div>
+                          <span className="flex-1">{item}</span>
                           {isSelected && (
-                            <span className="material-symbols-outlined text-[13px]" data-icon="check">check</span>
+                            <span className="text-[10px] text-primary font-semibold">Selected</span>
                           )}
                         </div>
-                        <span className="flex-1">{item}</span>
-                        {isSelected && (
-                          <span className="text-[10px] text-primary font-semibold">Selected</span>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+
+                  {/* Sticky Footer Action Bar */}
+                  <div className="sticky bottom-0 bg-surface-container-low/90 backdrop-blur-xs px-3 py-2 border-t border-outline-variant/30 flex items-center justify-between text-xs">
+                    <span className="text-[11px] font-medium text-secondary">
+                      {selectedAvEquipment.length === 0
+                        ? 'No items selected'
+                        : `${selectedAvEquipment.length} item(s) selected`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsAvDropdownOpen(false)}
+                      className="px-3 py-1 bg-primary text-white font-semibold text-xs rounded-lg hover:bg-primary/90 transition shadow-2xs cursor-pointer flex items-center gap-1"
+                    >
+                      <span>Done Selection</span>
+                      <span className="material-symbols-outlined text-[13px]" data-icon="check">check</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

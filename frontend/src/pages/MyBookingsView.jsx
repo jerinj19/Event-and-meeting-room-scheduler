@@ -4,6 +4,7 @@ import BookingHistoryTable from '../components/dashboard/BookingHistoryTable';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { fetchWithAuth } from '../services/apiClient';
+import { downloadCSV } from '../utils/exportUtils';
 
 const API_BASE = window.location.hostname === 'localhost' && window.location.port !== '8000'
   ? 'http://localhost:8000'
@@ -33,6 +34,7 @@ const MyBookingsView = () => {
         
         return {
           id: b.id,
+          title: b.title || 'Meeting',
           roomName: b.room_name || b.room?.name || 'Meeting Room',
           location: b.room_location || b.room?.location || 'Bangalore Campus',
           date: startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
@@ -40,8 +42,10 @@ const MyBookingsView = () => {
           duration: Math.max(15, Math.round((endDate - startDate) / 60000)),
           status: b.status, // e.g. "CONFIRMED" or "CANCELLED"
           capacity: b.room_capacity || b.room?.capacity || 8,
+          attendees: b.attendees_count || 1,
           imageUrl: b.room_image || b.room?.image_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
-          isPast: isPast
+          isPast: isPast,
+          createdAt: b.created_at ? new Date(b.created_at).toLocaleString() : '',
         }
       });
       setBookings(formatted);
@@ -61,32 +65,40 @@ const MyBookingsView = () => {
   const displayedBookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
 
   const handleExportCSV = () => {
-    if (displayedBookings.length === 0) {
+    const exportList = displayedBookings.length > 0 ? displayedBookings : bookings;
+
+    if (exportList.length === 0) {
       toast.error('No reservations to export in this tab.');
       return;
     }
 
-    const headers = ['Booking ID', 'Room Name', 'Location', 'Date', 'Time Slot', 'Duration (mins)', 'Status', 'Capacity'];
-    const rows = displayedBookings.map(b => [
-      `#${b.id}`,
-      `"${(b.roomName || '').replace(/"/g, '""')}"`,
-      `"${(b.location || '').replace(/"/g, '""')}"`,
-      `"${b.date}"`,
-      `"${b.time}"`,
-      b.duration,
-      b.status,
-      b.capacity
+    const headers = [
+      'Booking ID',
+      'Event / Purpose',
+      'Room Name',
+      'Location / Campus',
+      'Date',
+      'Time Slot',
+      'Duration (mins)',
+      'Status',
+      'Capacity',
+    ];
+
+    const rows = exportList.map((b) => [
+      `BKG-${String(b.id).slice(0, 8).toUpperCase()}`,
+      b.title || 'Workspace Reservation',
+      b.roomName || 'Meeting Room',
+      b.location || 'Bangalore Campus',
+      b.date || '',
+      b.time || '',
+      b.duration || 60,
+      b.status || 'CONFIRMED',
+      b.capacity || 8,
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `my_bookings_${activeTab}_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Bookings exported to CSV successfully!');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    downloadCSV(`my_bookings_${activeTab}_${dateStr}.csv`, headers, rows);
+    toast.success(`Exported ${rows.length} reservation${rows.length === 1 ? '' : 's'} to CSV successfully!`);
   };
 
   return (

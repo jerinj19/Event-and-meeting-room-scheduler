@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import CancelModal from '../components/dashboard/CancelModal';
 import { useToast } from '../contexts/ToastContext';
 import { fetchWithAuth } from '../services/apiClient';
+import { downloadCSV } from '../utils/exportUtils';
 
 const API_BASE = window.location.hostname === 'localhost' && window.location.port !== '8000'
   ? 'http://localhost:8000'
@@ -225,34 +226,106 @@ export default function AdminBookings() {
     setBookingToCancel(null);
   };
 
-  // CSV Export
-  const handleExportCSV = () => {
-    const headers = ['Booking Code', 'Title', 'Room', 'Location', 'Organizer', 'Email', 'Date', 'Time', 'Duration (mins)', 'Attendees', 'Status'];
-    const rows = filteredBookings.map((b) => [
-      b.code,
-      `"${b.title.replace(/"/g, '""')}"`,
-      `"${b.roomName}"`,
-      `"${b.location}"`,
-      `"${b.organizerName}"`,
-      b.organizerEmail,
-      `"${b.date}"`,
-      `"${b.time}"`,
-      b.duration,
-      b.attendees,
-      b.status,
-    ]);
+  // CSV Export with full server audit trail
+  const handleExportCSV = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (roomFilter && roomFilter !== 'ALL') params.set('room', roomFilter);
+      if (statusFilter && statusFilter !== 'ALL') params.set('status', statusFilter);
+      if (periodFilter && periodFilter !== 'all') {
+        params.set('period', periodFilter);
+        if (periodFilter === 'custom') {
+          if (startDate) params.set('start_date', startDate);
+          if (endDate) params.set('end_date', endDate);
+        }
+      }
+      if (sessionFilter && sessionFilter !== 'all') params.set('session', sessionFilter);
+      if (searchQuery.trim()) params.set('search', searchQuery.trim());
+      params.set('no_pagination', 'true');
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `innovyx_bookings_audit_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      let exportData = filteredBookings;
+      try {
+        const res = await fetchWithAuth(`${API_BASE}/api/bookings/?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          const apiList = Array.isArray(data) ? data : (data.results || []);
+          if (apiList.length > 0) {
+            exportData = apiList.map((b) => {
+              const startDate = new Date(b.start_time);
+              const endDate = new Date(b.end_time);
+              const durationMins = Math.max(15, Math.round((endDate - startDate) / (1000 * 60)));
+              return {
+                id: b.id,
+                code: `BKG-${String(b.id).slice(0, 8).toUpperCase()}`,
+                title: b.title || 'Workspace Meeting',
+                roomName: b.room_name || b.room?.name || 'Meeting Room',
+                location: b.room_location || b.room?.location || 'Main Campus',
+                organizerName: b.user_name || b.user_email?.split('@')[0] || 'Organizer',
+                organizerEmail: b.user_email || 'user@innovyx.com',
+                department: b.user_department || 'Workspace Operations',
+                date: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                time: `${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+                duration: durationMins,
+                attendees: b.attendees_count || 1,
+                status: b.status || 'CONFIRMED',
+                createdAt: b.created_at ? new Date(b.created_at).toLocaleString() : '',
+              };
+            });
+          }
+        }
+      } catch {
+        // Fallback to currently rendered filteredBookings
+      }
 
-    if (toast?.success) {
-      toast.success('CSV Audit log exported successfully!');
+      if (!exportData || exportData.length === 0) {
+        toast.info('No reservations found to export with the current criteria.');
+        return;
+      }
+
+      const headers = [
+        'Booking Code',
+        'Booking UUID',
+        'Event Title',
+        'Room Name',
+        'Location / Campus',
+        'Organizer Name',
+        'Organizer Email',
+        'Department',
+        'Date',
+        'Time Slot',
+        'Duration (mins)',
+        'Attendees Count',
+        'Reservation Status',
+        'Created At',
+      ];
+
+      const rows = exportData.map((b) => [
+        b.code || `BKG-${String(b.id).slice(0, 8).toUpperCase()}`,
+        b.id,
+        b.title || '',
+        b.roomName || '',
+        b.location || '',
+        b.organizerName || '',
+        b.organizerEmail || '',
+        b.department || '',
+        b.date || '',
+        b.time || '',
+        b.duration || 60,
+        b.attendees || 1,
+        b.status || 'CONFIRMED',
+        b.createdAt || '',
+      ]);
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      downloadCSV(`innovyx_bookings_audit_${dateStr}.csv`, headers, rows);
+
+      if (toast?.success) {
+        toast.success(`Exported ${rows.length} booking${rows.length === 1 ? '' : 's'} to CSV audit log successfully!`);
+      }
+    } catch {
+      if (toast?.error) {
+        toast.error('Failed to export CSV audit log.');
+      }
     }
   };
 

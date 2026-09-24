@@ -290,9 +290,13 @@ export default function AdminTimeSlotsPage() {
 
     try {
       await timeSlotService.toggleTimeSlotStatus(slot.id, slot.is_active);
-      setSlots((prev) =>
-        prev.map((s) => (s.id === slot.id ? { ...s, is_active: newStatus } : s))
-      );
+      if (!slot.room && !slot.room_id) {
+        await loadSlots();
+      } else {
+        setSlots((prev) =>
+          prev.map((s) => (s.id === slot.id ? { ...s, is_active: newStatus } : s))
+        );
+      }
       toast.info(`Slot marked as ${newStatus ? 'Active' : 'Disabled'}.`);
     } catch (err) {
       toast.error(err.message || 'Failed to update slot status.');

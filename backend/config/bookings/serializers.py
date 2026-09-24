@@ -1,5 +1,6 @@
 from datetime import time, timedelta
 
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException
@@ -64,7 +65,10 @@ class BookingSerializer(serializers.ModelSerializer):
         if obj.room and obj.room.image:
             request = self.context.get("request")
             if request:
-                return request.build_absolute_uri(obj.room.image.url)
+                try:
+                    return request.build_absolute_uri(obj.room.image.url)
+                except Exception:
+                    return obj.room.image.url
             return obj.room.image.url
         return None
 
@@ -217,6 +221,27 @@ class BookingSerializer(serializers.ModelSerializer):
                     },
                 )
 
+        # 6. Prevent booking an inactive / disabled time slot (globally or room-specific)
+        if room and start_time and end_time:
+            booking_date = timezone.localtime(start_time).date()
+            booking_start_t = timezone.localtime(start_time).time()
+            booking_end_t = timezone.localtime(end_time).time()
+
+            inactive_slots = TimeSlot.objects.filter(
+                is_active=False,
+            ).filter(
+                Q(room=room) | Q(room__isnull=True)
+            ).filter(
+                Q(date=booking_date) | Q(date__isnull=True)
+            ).filter(
+                start_time__lt=booking_end_t,
+                end_time__gt=booking_start_t,
+            )
+            if inactive_slots.exists():
+                raise serializers.ValidationError({
+                    "time_slot": "This time slot has been disabled by an administrator and is unavailable for booking."
+                })
+
         return attrs
 
 
@@ -256,7 +281,7 @@ class TimeSlotSerializer(serializers.ModelSerializer):
     duration = serializers.ReadOnlyField(source="duration_label")
     duration_minutes = serializers.ReadOnlyField()
     formatted_label = serializers.ReadOnlyField()
-    room_name = serializers.ReadOnlyField(source="room.name")
+    room_name = serializers.SerializerMethodField()
     is_recurring = serializers.ReadOnlyField()
 
     class Meta:
@@ -288,12 +313,32 @@ class TimeSlotSerializer(serializers.ModelSerializer):
     def get_end(self, obj):
         return obj.end_time.strftime("%H:%M") if obj.end_time else ""
 
+    def get_room_name(self, obj):
+        return obj.room.name if obj.room else None
+
     def validate(self, attrs):
         start_time = attrs.get("start_time", getattr(self.instance, "start_time", None))
         end_time = attrs.get("end_time", getattr(self.instance, "end_time", None))
+        room = attrs.get("room", getattr(self.instance, "room", None))
+        date = attrs.get("date", getattr(self.instance, "date", None))
 
         if start_time and end_time and end_time <= start_time:
             raise serializers.ValidationError({"end_time": "End time must be after start time."})
+
+        # Prevent creating exact duplicate time slots
+        if start_time and end_time:
+            dup_qs = TimeSlot.objects.filter(
+                room=room,
+                date=date,
+                start_time=start_time,
+                end_time=end_time,
+            )
+            if self.instance:
+                dup_qs = dup_qs.exclude(pk=self.instance.pk)
+            if dup_qs.exists():
+                raise serializers.ValidationError({
+                    "non_field_errors": "A time slot with this exact room, date, and time window already exists."
+                })
 
         return attrs
 

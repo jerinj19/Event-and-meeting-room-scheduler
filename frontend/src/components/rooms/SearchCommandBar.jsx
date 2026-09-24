@@ -93,7 +93,7 @@ export default function SearchCommandBar({
   };
 
   return (
-    <section className="bg-white rounded-xl md:rounded-2xl border border-slate-200 shadow-sm p-2 md:p-3 relative z-30">
+    <section className="bg-white rounded-xl md:rounded-2xl border border-slate-200 shadow-sm p-2 md:p-3 relative z-10">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-center">
         
         {/* Column 1: Location Keyword Blankspace Input (col-span-7) */}

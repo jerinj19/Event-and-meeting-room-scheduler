@@ -13,7 +13,7 @@ export default function BookingModal({ isOpen, room, onClose, onSuccess }) {
     return `${y}-${m}-${d}`;
   });
 
-  const [selectedSlot, setSelectedSlot] = useState(DEFAULT_SLOTS.morning[2]); // Default: 11:30 - 12:30
+  const [selectedSlot, setSelectedSlot] = useState(null);
   const [title, setTitle] = useState('Q4 Product Roadmap & Architecture Sync');
   const [attendeesCount, setAttendeesCount] = useState(6);
   const [description, setDescription] = useState('Reviewing module handoffs with Jerin & Prashanth');
@@ -42,7 +42,7 @@ export default function BookingModal({ isOpen, room, onClose, onSuccess }) {
       const token = localStorage.getItem('access_token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(
-        `http://127.0.0.1:8000/api/bookings/check-availability/?room=${room.id}&start_time=${selectedDate}T09:00:00Z&end_time=${selectedDate}T18:00:00Z`,
+        `http://127.0.0.1:8000/api/bookings/check-availability/?room_id=${room.id}&start_time=${selectedDate}T00:00:00Z&end_time=${selectedDate}T23:59:59Z`,
         { headers }
       );
       if (res.ok) {
@@ -81,8 +81,8 @@ export default function BookingModal({ isOpen, room, onClose, onSuccess }) {
     const token = localStorage.getItem('access_token');
 
     // Build ISO 8601 timestamps
-    const startIso = `${selectedDate}T${selectedSlot.start}:00Z`;
-    const endIso = `${selectedDate}T${selectedSlot.end}:00Z`;
+    const startIso = new Date(`${selectedDate}T${selectedSlot.start}:00`).toISOString();
+    const endIso = new Date(`${selectedDate}T${selectedSlot.end}:00`).toISOString();
 
     setIsSubmitting(true);
     try {

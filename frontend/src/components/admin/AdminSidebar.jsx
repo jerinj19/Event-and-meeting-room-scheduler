@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import ConfirmActionModal from './ConfirmActionModal';
 
 export default function AdminSidebar({ isOpen, onClose }) {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  const handleSignOut = () => {
+  const handleLogoutClick = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const confirmLogout = () => {
+    setIsLogoutModalOpen(false);
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
   const navContent = (
@@ -77,36 +84,78 @@ export default function AdminSidebar({ isOpen, onClose }) {
               <span>Manage Rooms</span>
             </div>
           </NavLink>
-          
-          <button
-            type="button"
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-secondary hover:text-on-surface hover:bg-surface-container-low font-medium text-xs sm:text-sm text-left transition"
+
+          <NavLink
+            to="/admin/users"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition ${
+                isActive
+                  ? 'text-primary bg-primary-container/10 border-l-4 border-primary shadow-sm font-semibold'
+                  : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'
+              }`
+            }
           >
-            <span className="material-symbols-outlined text-[20px]" data-icon="analytics">analytics</span>
-            <span>System Reports</span>
-          </button>
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-[20px]" data-icon="group">group</span>
+              <span>User & Admin Directory</span>
+            </div>
+          </NavLink>
+
+          <NavLink
+            to="/admin/timeslots"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition ${
+                isActive
+                  ? 'text-primary bg-primary-container/10 border-l-4 border-primary shadow-sm font-semibold'
+                  : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'
+              }`
+            }
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-[20px]" data-icon="schedule">schedule</span>
+              <span>Time Slots</span>
+            </div>
+          </NavLink>
         </div>
       </div>
 
       {/* Bottom Footer Section */}
       <div className="border-t border-outline-variant/30 pt-4 space-y-1">
-        <button
-          type="button"
-          className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-secondary hover:text-on-surface rounded-lg hover:bg-surface-container-low transition text-left"
+        <NavLink
+          to="/admin/settings"
+          onClick={onClose}
+          className={({ isActive }) => `w-full flex items-center gap-3 px-3 py-2 text-xs font-medium rounded-lg transition text-left ${isActive ? 'bg-primary-container/10 text-primary' : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'}`}
         >
           <span className="material-symbols-outlined text-[18px]" data-icon="settings">settings</span>
-          <span>Admin Settings</span>
-        </button>
+          <span>Settings</span>
+        </NavLink>
 
         <button
           type="button"
-          onClick={handleSignOut}
+          onClick={handleLogoutClick}
           className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-error hover:text-error rounded-lg hover:bg-error-container/20 transition text-left"
         >
           <span className="material-symbols-outlined text-[18px]" data-icon="logout">logout</span>
           <span>Sign Out</span>
         </button>
       </div>
+
+      <ConfirmActionModal 
+        isOpen={isLogoutModalOpen} 
+        onClose={() => setIsLogoutModalOpen(false)} 
+        onConfirm={confirmLogout}
+        title="Log Out of Spatia?"
+        subtitle="Session Management"
+        icon="power_settings_new"
+        iconColor="text-primary"
+        iconBg="bg-slate-100"
+        confirmText="Confirm Sign Out"
+        confirmColorClass="bg-primary hover:bg-primary/90 text-white"
+        noticeText="Logging out ends this device's interactive session. Automated door badge credentials and scheduled IoT room releases will remain active."
+        targetUser={user}
+      />
     </div>
   );
 

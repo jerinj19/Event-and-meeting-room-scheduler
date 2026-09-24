@@ -4,6 +4,7 @@ import { useToast } from '../../contexts/ToastContext';
 
 const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [activeMenuId, setActiveMenuId] = useState(null);
   const toast = useToast();
 
   const handleCancelClick = (booking) => {
@@ -14,7 +15,7 @@ const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`http://localhost:8000/api/bookings/${selectedBooking.id}/cancel/`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -68,10 +69,19 @@ const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
                           <span className="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
                           <span>{booking.location}</span>
                         </div>
-                        <div className="flex items-center space-x-2 mt-1.5 text-label-xs text-outline">
-                          <span className="flex items-center"><span className="material-symbols-outlined text-[13px] mr-1" data-icon="videocam">videocam</span>4K Telepresence</span>
-                          <span>•</span>
-                          <span className="flex items-center"><span className="material-symbols-outlined text-[13px] mr-1" data-icon="speaker">speaker</span>Polycom Studio</span>
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-label-xs text-outline">
+                          {booking.amenities && booking.amenities.slice(0, 3).map((amenity, idx) => (
+                            <React.Fragment key={idx}>
+                              <span className="flex items-center">
+                                <span className="material-symbols-outlined text-[13px] mr-1" data-icon="check_circle">check_circle</span>
+                                {amenity}
+                              </span>
+                              {idx < Math.min(booking.amenities.length, 3) - 1 && <span>•</span>}
+                            </React.Fragment>
+                          ))}
+                          {(!booking.amenities || booking.amenities.length === 0) && (
+                            <span className="text-outline/70 italic">No special amenities</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -109,9 +119,51 @@ const BookingHistoryTable = ({ bookings = [], onCancelSuccess }) => {
                           Cancel Booking
                         </button>
                       )}
-                      <button className="p-1.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors" title="Quick Options">
-                        <span className="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
-                      </button>
+                      <div className="relative">
+                        <button 
+                          onClick={() => setActiveMenuId(activeMenuId === booking.id ? null : booking.id)}
+                          className="p-1.5 text-outline hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors" title="Quick Options">
+                          <span className="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
+                        </button>
+                        
+                        {activeMenuId === booking.id && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-40" 
+                              onClick={() => setActiveMenuId(null)}
+                            ></div>
+                            <div className="absolute right-0 mt-2 w-48 bg-surface-container-lowest rounded-lg shadow-lg border border-outline-variant/40 py-1 z-50 overflow-hidden">
+                              <a 
+                                href={`http://localhost:8000/api/bookings/${booking.id}/calendar/`}
+                                className="w-full text-left px-4 py-2.5 text-sm font-medium text-on-surface hover:bg-surface-container-low flex items-center gap-2.5 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[18px] text-primary" data-icon="calendar_add_on">calendar_add_on</span>
+                                Add to Calendar
+                              </a>
+                              <button 
+                                onClick={() => { 
+                                  toast.info('View Details modal coming soon!');
+                                  setActiveMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-sm font-medium text-on-surface hover:bg-surface-container-low flex items-center gap-2.5 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[18px] text-secondary" data-icon="info">info</span>
+                                View Details
+                              </button>
+                              
+                              {!booking.isPast && isConfirmed && (
+                                <button 
+                                  onClick={() => { handleCancelClick(booking); setActiveMenuId(null); }}
+                                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-error hover:bg-error/10 flex items-center gap-2.5 transition-colors border-t border-outline-variant/20 mt-1 pt-2.5"
+                                >
+                                  <span className="material-symbols-outlined text-[18px]" data-icon="cancel">cancel</span>
+                                  Cancel Booking
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>

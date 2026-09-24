@@ -68,6 +68,12 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
+ALLOWED_EMAIL_DOMAINS = [
+    domain.strip().lower()
+    for domain in os.environ.get('ALLOWED_EMAIL_DOMAINS', 'innovyx.com,innovyxtechlabs.com,gmail.com').split(',')
+    if domain.strip()
+]
+
 
 # Application definition
 
@@ -187,17 +193,23 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('JWT_ACCESS_MINUTES', '30'))),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('JWT_ACCESS_MINUTES', '120'))),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('JWT_REFRESH_DAYS', '7'))),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
+]
+
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(
-        'CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173'
+        'CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5176'
     ).split(',')
     if origin.strip()
 ]
@@ -240,10 +252,6 @@ LOGGING = {
         },
     },
 }
-
-
-CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
-
 # Microsoft 365 / Entra ID SSO Configuration
 MICROSOFT_CLIENT_ID = os.environ.get('MICROSOFT_CLIENT_ID', '')
 MICROSOFT_TENANT_ID = os.environ.get('MICROSOFT_TENANT_ID', 'common')
@@ -257,3 +265,11 @@ MICROSOFT_REQUIRE_REGISTERED_USER = os.environ.get(
 ).lower() in ('true', '1', 'yes')
 ADMIN_CONTACT_EMAIL = os.environ.get('ADMIN_CONTACT_EMAIL', 'admin@innovyx.com')
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Tell Django to read these from your .env file
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'your_password_here')

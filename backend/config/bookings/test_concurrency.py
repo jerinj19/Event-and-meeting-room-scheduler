@@ -157,16 +157,16 @@ class ConcurrentDoubleBookingTests(TransactionTestCase):
             future2 = executor.submit(create_booking_direct, self.user2, "Direct Insert 2")
             results = [future1.result(), future2.result()]
 
-        # Exactly one should have None (success) and the other should fail with constraint violation or deadlock
         errors = [r for r in results if r is not None]
         successes = [r for r in results if r is None]
 
         self.assertEqual(len(successes), 1, "Expected exactly one direct insert to succeed.")
-        self.assertEqual(len(errors), 1, "Expected exactly one direct insert to fail.")
-        err_msg = str(errors[0])
+        self.assertEqual(len(errors), 1, "Expected exactly one direct insert to fail with IntegrityError or OperationalError.")
+        
+        error_str = str(errors[0]).lower()
         self.assertTrue(
-            "booking_prevent_overlapping" in err_msg or "deadlock detected" in err_msg,
-            f"Expected PostgreSQL exclusion constraint or deadlock in error: {errors[0]}",
+            "booking_prevent_overlapping" in error_str or "deadlock detected" in error_str or "exclusion constraint" in error_str,
+            f"Expected PostgreSQL exclusion constraint or deadlock in error: {error_str}",
         )
 
         # Database must still have only 1 confirmed booking

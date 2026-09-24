@@ -1,8 +1,117 @@
-import React, { useState } from 'react';
-import CreateAdminModal from '../components/admin/CreateAdminModal';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const AdminDashboard = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({ total_bookings: 0, confirmed_bookings: 0, today_bookings: 0, upcoming_bookings: 0 });
+  const [maintenanceRooms, setMaintenanceRooms] = useState([]);
+  const [recentBookings, setRecentBookings] = useState([]);
+  const [totalRoomsCount, setTotalRoomsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [notifying, setNotifying] = useState(false);
+  const [timeRange, setTimeRange] = useState(30);
+
+  const handleExportCSV = () => {
+    if (recentBookings.length === 0) {
+      toast.info('No bookings to export');
+      return;
+    }
+    
+    const headers = ['ID', 'Room', 'Title', 'Host', 'Start Time', 'End Time', 'Status'];
+    const csvRows = [headers.join(',')];
+    
+    recentBookings.forEach(b => {
+      const row = [
+        b.id,
+        `"${b.room?.name || ''}"`,
+        `"${b.title || ''}"`,
+        `"${b.user?.email || ''}"`,
+        `"${new Date(b.start_time).toLocaleString()}"`,
+        `"${new Date(b.end_time).toLocaleString()}"`,
+        b.status
+      ];
+      csvRows.push(row.join(','));
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `operations_log_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleNotifyHosts = async () => {
+    try {
+      setNotifying(true);
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:8000/api/rooms/notify-maintenance/', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message);
+      } else {
+        toast.error(data.error || 'Failed to notify hosts');
+      }
+    } catch (err) {
+      toast.error('An error occurred while notifying hosts');
+    } finally {
+      setNotifying(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('access_token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - timeRange);
+        const startDateStr = startDate.toISOString().split('T')[0];
+
+        const [statsRes, roomsRes, bookingsRes] = await Promise.all([
+          fetch('http://localhost:8000/api/bookings/stats/', { headers }),
+          fetch('http://localhost:8000/api/rooms/', { headers }),
+          fetch(`http://localhost:8000/api/bookings/?start_date=${startDateStr}`, { headers })
+        ]);
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+
+        if (roomsRes.ok) {
+          const roomsData = await roomsRes.json();
+          const roomsList = Array.isArray(roomsData) ? roomsData : (roomsData.results || []);
+          setMaintenanceRooms(roomsList.filter(r => r.is_active === false));
+          setTotalRoomsCount(roomsList.length);
+        }
+
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json();
+          const bookingsList = Array.isArray(bookingsData) ? bookingsData : (bookingsData.results || []);
+          // Sort by start_time descending to get recent
+          setRecentBookings(bookingsList.sort((a,b) => new Date(b.start_time) - new Date(a.start_time)).slice(0, 5));
+        }
+      } catch (err) {
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [toast, timeRange]);
 
   return (
     <div className="min-h-full bg-surface text-on-surface p-4 md:p-8 font-body-md">
@@ -13,9 +122,11 @@ const AdminDashboard = () => {
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-3xl font-semibold text-on-surface tracking-tight">Facility Admin & Workspace Operations</h1>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="text-xs font-semibold tracking-normal">Live Telemetry Active • All 48 Enterprise Rooms Online</span>
+              <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${maintenanceRooms.length === 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
+                <span className={`w-2 h-2 rounded-full animate-pulse ${maintenanceRooms.length === 0 ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                <span className="text-xs font-semibold tracking-normal">
+                  Live Telemetry Active • {loading ? '...' : (maintenanceRooms.length === 0 ? `All ${totalRoomsCount} Enterprise Rooms Online` : `${totalRoomsCount - maintenanceRooms.length} of ${totalRoomsCount} Enterprise Rooms Online`)}
+                </span>
               </div>
             </div>
             <p className="text-sm text-secondary">
@@ -24,22 +135,25 @@ const AdminDashboard = () => {
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low transition-colors duration-150 text-on-surface font-medium text-sm" type="button">
-              <span className="material-symbols-outlined text-secondary" data-icon="calendar_month">calendar_month</span>
-              <span>Last 30 Days: Oct 1 – Oct 31, 2025</span>
-              <span className="material-symbols-outlined text-secondary" data-icon="arrow_drop_down">arrow_drop_down</span>
-            </button>
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-medium text-sm transition-colors duration-150" type="button">
+            <div className="relative inline-flex">
+              <span className="material-symbols-outlined text-secondary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" data-icon="calendar_month">calendar_month</span>
+              <select 
+                value={timeRange}
+                onChange={(e) => setTimeRange(Number(e.target.value))}
+                className="appearance-none pl-10 pr-10 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low transition-colors duration-150 text-on-surface font-medium text-sm focus:outline-none cursor-pointer"
+              >
+                <option value={1}>Since Yesterday</option>
+                <option value={7}>Last 7 Days</option>
+                <option value={30}>Last 30 Days</option>
+                <option value={90}>Last 90 Days</option>
+                <option value={365}>This Year</option>
+              </select>
+              <span className="material-symbols-outlined text-secondary absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" data-icon="arrow_drop_down">arrow_drop_down</span>
+            </div>
+            
+            <button onClick={handleExportCSV} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-medium text-sm transition-colors duration-150" type="button">
               <span className="material-symbols-outlined" data-icon="ios_share">ios_share</span>
               <span>Export Operations Log</span>
-            </button>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary-container text-on-primary font-medium text-sm hover:bg-primary shadow-sm hover:shadow transition-all duration-150" 
-              type="button"
-            >
-              <span className="material-symbols-outlined" data-icon="person_add">person_add</span>
-              <span>Create New Admin</span>
             </button>
           </div>
         </header>
@@ -56,7 +170,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">1,428</span>
+                <span className="text-3xl font-bold text-on-surface tracking-tight leading-none">{loading ? '...' : stats.total_bookings}</span>
                 <span className="inline-flex items-center text-emerald-700 text-xs font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
                   <span className="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span>
                   +12.4%
@@ -64,36 +178,29 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="mt-4 pt-2 border-t border-outline-variant/30 flex items-center justify-between text-xs text-secondary">
-              <span>84 today across 3 campuses</span>
+              <span>{loading ? '...' : stats.today_bookings} today across all campuses</span>
               <span className="text-primary font-semibold">Live stream</span>
             </div>
           </div>
           
           {/* KPI Card 2 */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-secondary">Room Utilization Rate</span>
-                <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined text-lg" data-icon="show_chart">show_chart</span>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-secondary">Room Utilization Rate</h3>
+                <span className="material-symbols-outlined text-secondary text-xl" data-icon="show_chart">show_chart</span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">78.6%</span>
+                <span className="text-3xl font-bold text-on-surface tracking-tight leading-none">{loading ? '...' : `${stats.utilization_rate ?? 0}%`}</span>
                 <span className="inline-flex items-center text-emerald-700 text-xs font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
                   <span className="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span>
                   +4.2%
                 </span>
               </div>
             </div>
-            <div className="mt-4 space-y-1.5">
-              <div className="w-full bg-surface-container-low rounded-full h-1.5 overflow-hidden">
-                <div className="bg-primary-container h-1.5 rounded-full" style={{width: '78.6%'}}></div>
-              </div>
-              <p className="text-xs text-secondary flex justify-between">
-                <span>Peak at 10:00 AM - 2:30 PM</span>
-                <span className="font-semibold text-on-surface">Optimal</span>
-              </p>
+            <div className="mt-4 pt-2 border-t border-outline-variant/30 flex items-center justify-between text-xs text-secondary">
+              <span>Peak at {loading ? '...' : (stats.peak_time || 'N/A')}</span>
+              <span className="text-primary font-semibold">Optimal</span>
             </div>
           </div>
 
@@ -108,36 +215,34 @@ const AdminDashboard = () => {
                 </span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">3 Rooms</span>
+                <span className="text-3xl font-bold text-on-surface tracking-tight leading-none">{loading ? '...' : maintenanceRooms.length} Rooms</span>
                 <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-700 ml-auto">
                   <span className="material-symbols-outlined text-lg" data-icon="engineering">engineering</span>
                 </div>
               </div>
             </div>
             <div className="mt-4 pt-2 border-t border-outline-variant/30 text-xs text-secondary">
-              <span>2 AV firmware updates, 1 acoustic HVAC check scheduled</span>
+              <span>{maintenanceRooms.length > 0 ? 'Action required for inactive rooms' : 'All systems operational'}</span>
             </div>
           </div>
 
           {/* KPI Card 4 */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-secondary">Energy & Space Efficiency</span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-700">
-                  <span className="material-symbols-outlined text-lg" data-icon="eco">eco</span>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-secondary">Energy & Space Efficiency</h3>
+                <span className="material-symbols-outlined text-emerald-600 text-xl" data-icon="eco">eco</span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">94.2%</span>
-                <span className="inline-flex items-center text-primary text-xs font-semibold bg-surface-container-low px-1.5 py-0.5 rounded">
+                <span className="text-3xl font-bold text-on-surface tracking-tight leading-none">{loading ? '...' : `${stats.efficiency_rate ?? 0}%`}</span>
+                <span className="inline-flex items-center text-blue-700 text-xs font-semibold bg-blue-50 px-1.5 py-0.5 rounded">
                   <span className="material-symbols-outlined text-xs" data-icon="verified">verified</span>
                   LEED Tier 1
                 </span>
               </div>
             </div>
             <div className="mt-4 pt-2 border-t border-outline-variant/30 text-xs text-secondary">
-              <span>Auto-cancellation saved <strong className="text-on-surface font-semibold">42.5 hrs</strong> of idle room reservations</span>
+              <span>Auto-cancellation saved {loading ? '...' : (stats.cancelled_hours || 0)} hrs of idle room reservations</span>
             </div>
           </div>
         </section>
@@ -363,61 +468,44 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-amber-950">Active & Scheduled Engineering Maintenance Windows</h3>
-                <p className="text-xs text-amber-900/80">3 rooms scheduled for hardware diagnostic & sensor calibration this week</p>
+                <p className="text-xs text-amber-900/80">{maintenanceRooms.length} rooms offline for hardware diagnostic & sensor calibration</p>
               </div>
             </div>
-            <button className="text-xs text-amber-900 font-semibold hover:text-amber-950 underline self-start md:self-auto" type="button">
-              Manage Maintenance Calendar
+            <button 
+              onClick={() => navigate('/admin/rooms')}
+              className="text-xs text-amber-900 font-semibold hover:text-amber-950 underline self-start md:self-auto" 
+              type="button"
+            >
+              Manage Maintenance
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {/* Maintenance Card 1 */}
-            <div className="bg-surface-container-lowest/90 border border-amber-200 rounded-lg p-4 flex flex-col justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">Tomorrow • 06:00 AM</span>
-                  <span className="text-xs text-secondary">2h downtime</span>
+            {maintenanceRooms.length > 0 ? maintenanceRooms.map(room => (
+              <div key={room.id} className="bg-surface-container-lowest/90 border border-amber-200 rounded-lg p-4 flex flex-col justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">Offline</span>
+                    <span className="text-xs text-secondary">Inactive</span>
+                  </div>
+                  <h4 className="text-sm font-semibold text-on-surface mt-2">{room.name}</h4>
+                  <p className="text-xs text-secondary">{room.location || 'Unknown Location'} • Maintenance</p>
                 </div>
-                <h4 className="text-sm font-semibold text-on-surface mt-2">Executive Boardroom Gamma</h4>
-                <p className="text-xs text-secondary">Floor 45, Tower East • Display Telepresence Calibrating</p>
-              </div>
-              <div className="mt-4 pt-2 border-t border-outline-variant/30 flex items-center justify-between text-xs">
-                <span className="text-secondary font-medium">Technician: Cisco Systems Certified</span>
-                <span className="text-primary font-semibold hover:underline cursor-pointer">Notify Hosts</span>
-              </div>
-            </div>
-            
-            {/* Maintenance Card 2 */}
-            <div className="bg-surface-container-lowest/90 border border-amber-200 rounded-lg p-4 flex flex-col justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">Oct 26 • 07:00 AM</span>
-                  <span className="text-xs text-secondary">1.5h downtime</span>
+                <div className="mt-4 pt-2 border-t border-outline-variant/30 flex items-center justify-between text-xs">
+                  <span className="text-secondary font-medium">Technician: Pending</span>
+                  <button 
+                    onClick={handleNotifyHosts} 
+                    disabled={notifying}
+                    className="text-primary font-semibold hover:underline cursor-pointer disabled:opacity-50"
+                  >
+                    {notifying ? 'Notifying...' : 'Notify Hosts'}
+                  </button>
                 </div>
-                <h4 className="text-sm font-semibold text-on-surface mt-2">Acoustic Pod B-08</h4>
-                <p className="text-xs text-secondary">Floor 14, North Hub • Smart Sensor & Airflow Check</p>
               </div>
-              <div className="mt-4 pt-2 border-t border-outline-variant/30 flex items-center justify-between text-xs">
-                <span className="text-secondary font-medium">Technician: In-house Facilities</span>
-                <span className="text-primary font-semibold hover:underline cursor-pointer">Re-route Bookings</span>
-              </div>
-            </div>
-            
-            {/* Maintenance Card 3 */}
-            <div className="bg-surface-container-lowest/90 border border-amber-200 rounded-lg p-4 flex flex-col justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">Oct 27 • Weekend Hold</span>
-                  <span className="text-xs text-secondary">4h downtime</span>
-                </div>
-                <h4 className="text-sm font-semibold text-on-surface mt-2">Horizon Event Hall</h4>
-                <p className="text-xs text-secondary">Floor 2, Atrium • Dual Laser Projector Servicing</p>
-              </div>
-              <div className="mt-4 pt-2 border-t border-outline-variant/30 flex items-center justify-between text-xs">
-                <span className="text-secondary font-medium">Technician: Barco Specialist Team</span>
-                <span className="text-primary font-semibold hover:underline cursor-pointer">View Work Order</span>
-              </div>
-            </div>
+            )) : (
+               <div className="col-span-3 py-6 text-center text-amber-900/70 font-medium">
+                  No rooms are currently marked for maintenance.
+               </div>
+            )}
           </div>
         </section>
 
@@ -453,133 +541,88 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/30 text-sm text-on-surface">
-                
-                {/* Row 1: Executive Boardroom */}
-                <tr className="hover:bg-surface-container-low/40 transition-colors">
-                  <td className="py-3.5 px-6">
-                    <div className="flex items-center gap-4">
-                      <img alt="Executive Boardroom London view" className="w-12 h-12 rounded-lg object-cover border border-outline-variant/50 shadow-sm flex-shrink-0" src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300"/>
-                      <div>
-                        <div className="font-semibold text-on-surface">Skyline Executive Boardroom</div>
-                        <div className="text-secondary text-xs flex items-center gap-1 mt-0.5">
-                          <span className="material-symbols-outlined text-[12px]" data-icon="location_on">location_on</span>
-                          Floor 45 • Bishopsgate Tower (London)
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-6">
-                    <div>
-                      <div className="font-semibold text-on-surface">Q4 Global Investment Committee</div>
-                      <div className="text-secondary text-xs flex items-center gap-2 mt-1">
-                        <span className="font-medium text-on-surface">Evelyn Vance</span>
-                        <span>•</span>
-                        <span className="px-1.5 py-0.5 rounded bg-surface-container text-primary font-medium">C-Suite & Treasury</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-6">
-                    <div>
-                      <div className="font-medium text-on-surface">Today, Oct 24</div>
-                      <div className="text-secondary text-xs flex items-center gap-1.5 mt-1">
-                        <span>10:00 AM – 12:30 PM</span>
-                        <span className="px-1.5 py-0.5 rounded bg-surface-container-low text-secondary border border-outline-variant/30">2h 30m</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary font-semibold text-xs">
-                        14/16
-                      </div>
-                      <div>
-                        <div className="font-medium text-on-surface text-xs">14 badged in</div>
-                        <div className="text-[11px] text-emerald-700">87.5% capacity</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-6">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200">
-                      <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
-                      IN-PROGRESS
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-6 text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <button className="px-2 py-1 rounded text-xs text-primary hover:bg-surface-container font-semibold transition-colors" type="button">Audit Log</button>
-                      <button className="px-2 py-1 rounded text-xs text-secondary hover:text-on-surface hover:bg-surface-container transition-colors" type="button">Modify</button>
-                    </div>
-                  </td>
-                </tr>
+                {recentBookings.length > 0 ? recentBookings.map(booking => {
+                  const startDate = new Date(booking.start_time);
+                  const endDate = new Date(booking.end_time);
+                  const durationMins = Math.round((endDate - startDate) / 60000);
+                  const durationText = durationMins > 60 ? `${Math.floor(durationMins/60)}h ${durationMins%60}m` : `${durationMins}m`;
 
-                {/* Row 2: Maintenance Hold Room */}
-                <tr className="hover:bg-surface-container-low/40 transition-colors bg-amber-50/20">
-                  <td className="py-3.5 px-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 flex-shrink-0">
-                        <span className="material-symbols-outlined text-xl" data-icon="build">build</span>
-                      </div>
-                      <div>
-                        <div className="font-semibold text-on-surface">Executive Boardroom Gamma</div>
-                        <div className="text-secondary text-xs flex items-center gap-1 mt-0.5">
-                          <span className="material-symbols-outlined text-[12px]" data-icon="location_on">location_on</span>
-                          Floor 45 • Bishopsgate Tower
+                  return (
+                    <tr key={booking.id} className="hover:bg-surface-container-low/40 transition-colors">
+                      <td className="py-3.5 px-6">
+                        <div className="flex items-center gap-4">
+                          <img alt={booking.room?.name || 'Room'} className="w-12 h-12 rounded-lg object-cover border border-outline-variant/50 shadow-sm flex-shrink-0" src={booking.room?.image_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300'}/>
+                          <div>
+                            <div className="font-semibold text-on-surface">{booking.room?.name || 'Unknown Room'}</div>
+                            <div className="text-secondary text-xs flex items-center gap-1 mt-0.5">
+                              <span className="material-symbols-outlined text-[12px]" data-icon="location_on">location_on</span>
+                              {booking.room?.location || 'Unknown Location'}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-6">
-                    <div>
-                      <div className="font-semibold text-on-surface">Cisco WebEx RoomOS Firmware Update</div>
-                      <div className="text-secondary text-xs flex items-center gap-2 mt-1">
-                        <span className="font-medium text-on-surface">IT Infrastructure Ops</span>
-                        <span>•</span>
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-medium">Work Order #WO-8821</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-6">
-                    <div>
-                      <div className="font-medium text-on-surface">Tomorrow, Oct 25</div>
-                      <div className="text-secondary text-xs flex items-center gap-1.5 mt-1">
-                        <span>06:00 AM – 08:00 AM</span>
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">2h Maintenance</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-800 font-semibold text-xs">
-                        0/20
-                      </div>
-                      <div>
-                        <div className="font-medium text-on-surface text-xs">Spatial Lock</div>
-                        <div className="text-[11px] text-amber-800">No public bookings</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-6">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
-                      <span className="w-2 h-2 rounded-full bg-amber-600"></span>
-                      MAINTENANCE HOLD
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-6 text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <button className="px-2 py-1 rounded text-xs text-primary hover:bg-surface-container font-semibold transition-colors" type="button">Audit Log</button>
-                      <button className="px-2 py-1 rounded text-xs text-secondary hover:text-on-surface hover:bg-surface-container transition-colors" type="button">Release</button>
-                    </div>
-                  </td>
-                </tr>
-
+                      </td>
+                      <td className="py-3.5 px-6">
+                        <div>
+                          <div className="font-semibold text-on-surface">{booking.title}</div>
+                          <div className="text-secondary text-xs flex items-center gap-2 mt-1">
+                            <span className="font-medium text-on-surface">{booking.user?.first_name} {booking.user?.last_name}</span>
+                            <span>•</span>
+                            <span className="px-1.5 py-0.5 rounded bg-surface-container text-primary font-medium">{booking.user?.email}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-6">
+                        <div>
+                          <div className="font-medium text-on-surface">{startDate.toLocaleDateString()}</div>
+                          <div className="text-secondary text-xs flex items-center gap-1.5 mt-1">
+                            <span>{startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} – {endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-surface-container-low text-secondary border border-outline-variant/30">{durationText}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-6">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary font-semibold text-xs">
+                            {booking.room?.capacity || 8}
+                          </div>
+                          <div>
+                            <div className="font-medium text-on-surface text-xs">Capacity</div>
+                            <div className="text-[11px] text-secondary">Max attendees</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-6">
+                        {booking.status === 'CONFIRMED' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            CONFIRMED
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-surface-container-high text-secondary border border-outline-variant/50">
+                            CANCELLED
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-6 text-right">
+                        <div className="inline-flex items-center gap-1">
+                          <button className="px-2 py-1 rounded text-xs text-primary hover:bg-surface-container font-semibold transition-colors" type="button">Details</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }) : (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-secondary">
+                      {loading ? 'Loading recent bookings...' : 'No recent bookings found.'}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </section>
 
       </main>
-
-      <CreateAdminModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };

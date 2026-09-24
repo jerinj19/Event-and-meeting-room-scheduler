@@ -5,7 +5,8 @@ export default function RoomFilters({
   maxRateLimit = 1000,
   currentMaxRate,
   onChangeMaxRate,
-  histogramBuckets = [],
+  matchingRoomsCount,
+  totalRoomsCount,
   availableAmenities = [],
   selectedAmenities = [],
   onToggleAmenity,
@@ -17,6 +18,8 @@ export default function RoomFilters({
   onResetFilters,
 }) {
   const activeRate = currentMaxRate !== undefined && currentMaxRate !== null ? currentMaxRate : maxRateLimit;
+  const safeMax = maxRateLimit > minRate ? maxRateLimit : minRate + 1;
+  const progressPercent = Math.min(100, Math.max(0, Math.round(((activeRate - minRate) / (safeMax - minRate)) * 100)));
 
   return (
     <aside className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs divide-y divide-slate-100 space-y-4 sticky top-20">
@@ -38,53 +41,71 @@ export default function RoomFilters({
         </button>
       </div>
 
-      {/* 2. Budget / Hourly Rate with Dynamic Frequency Histogram (in ₹ INR) */}
-      <div className="pt-4 space-y-2.5">
+      {/* 2. Budget / Hourly Rate with Continuous Line Track & Round Pointer */}
+      <div className="pt-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-900">Your budget (per hour)</span>
-          <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-            ₹{minRate} – ₹{activeRate}/hr
+          <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 shadow-2xs">
+            Up to ₹{activeRate}/hr
           </span>
         </div>
 
-        {/* Dynamic Visual Frequency Histogram Bars */}
-        <div className="pt-1">
-          <div className="flex items-end justify-between gap-1 h-10 px-1">
-            {histogramBuckets.length > 0 ? (
-              histogramBuckets.map((bucket, idx) => (
-                <div
-                  key={idx}
-                  className={`w-full rounded-t transition-all ${
-                    bucket.count > 0
-                      ? 'bg-blue-500 hover:bg-blue-600'
-                      : 'bg-slate-100'
-                  }`}
-                  style={{ height: `${Math.max(bucket.heightPct, 12)}%` }}
-                  title={`${bucket.count} room(s) (${bucket.label})`}
-                ></div>
-              ))
-            ) : (
-              <div className="w-full bg-blue-200 rounded-t h-[50%]"></div>
-            )}
+        {/* Continuous Track Line with Custom Round Pointer */}
+        <div className="relative pt-2 pb-1">
+          <input
+            type="range"
+            min={minRate}
+            max={safeMax}
+            step={safeMax > 1000 ? 50 : 25}
+            value={activeRate}
+            onChange={(e) => onChangeMaxRate && onChangeMaxRate(Number(e.target.value))}
+            style={{
+              background: `linear-gradient(to right, #2563eb 0%, #2563eb ${progressPercent}%, #e2e8f0 ${progressPercent}%, #e2e8f0 100%)`,
+            }}
+            className="w-full h-2 rounded-full appearance-none cursor-pointer focus:outline-none transition-all
+              [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:w-5
+              [&::-webkit-slider-thumb]:h-5
+              [&::-webkit-slider-thumb]:rounded-full
+              [&::-webkit-slider-thumb]:bg-white
+              [&::-webkit-slider-thumb]:border-[2.5px]
+              [&::-webkit-slider-thumb]:border-blue-600
+              [&::-webkit-slider-thumb]:shadow-md
+              [&::-webkit-slider-thumb]:shadow-blue-500/20
+              [&::-webkit-slider-thumb]:cursor-grab
+              [&::-webkit-slider-thumb]:hover:scale-115
+              [&::-webkit-slider-thumb]:active:cursor-grabbing
+              [&::-webkit-slider-thumb]:active:scale-95
+              [&::-webkit-slider-thumb]:transition-transform
+              [&::-moz-range-thumb]:w-5
+              [&::-moz-range-thumb]:h-5
+              [&::-moz-range-thumb]:rounded-full
+              [&::-moz-range-thumb]:bg-white
+              [&::-moz-range-thumb]:border-[2.5px]
+              [&::-moz-range-thumb]:border-blue-600
+              [&::-moz-range-thumb]:shadow-md
+              [&::-moz-range-thumb]:cursor-grab"
+            aria-label="Filter maximum hourly budget"
+          />
+
+          {/* Scale Labels */}
+          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5 font-medium px-0.5">
+            <span>₹{minRate}</span>
+            <span>₹{Math.round((minRate + safeMax) / 2)}</span>
+            <span>₹{safeMax}+</span>
           </div>
-          
-          {/* Rate Range Slider (0 to maxRateLimit) */}
-          <div className="relative mt-2">
-            <input
-              type="range"
-              min={minRate}
-              max={maxRateLimit || 1000}
-              step={maxRateLimit > 500 ? 50 : 10}
-              value={activeRate}
-              onChange={(e) => onChangeMaxRate && onChangeMaxRate(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1 font-medium">
-              <span>₹{minRate}</span>
-              <span>₹{Math.round(maxRateLimit / 2)}</span>
-              <span>₹{maxRateLimit}+</span>
+
+          {/* Real-time Matching Rooms Counter */}
+          {matchingRoomsCount !== undefined && totalRoomsCount !== undefined && (
+            <div className="mt-2.5 text-[11px] text-slate-600 flex items-center gap-1.5 font-medium bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
+              <span className="text-blue-600 font-bold">✓</span>
+              <span>
+                {matchingRoomsCount === totalRoomsCount
+                  ? `All ${totalRoomsCount} rooms fit this budget`
+                  : `${matchingRoomsCount} of ${totalRoomsCount} rooms fit this budget`}
+              </span>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

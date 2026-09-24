@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation, Link } from 'react-router-dom';
 import TimeSlotPicker from '../components/booking/TimeSlotPicker';
-import { DEFAULT_SLOTS } from '../components/booking/bookingConstants';
+import { isSlotPastOrCurrent } from '../components/booking/bookingConstants';
 import BookingForm from '../components/booking/BookingForm';
 import ConflictBanner from '../components/booking/ConflictBanner';
+import { fetchWithAuth } from '../services/apiClient';
 
 // Fallback room metadata matching catalog
 const ROOM_FALLBACKS = {
@@ -81,101 +82,142 @@ export default function BookRoom() {
   const { roomId: paramRoomId } = useParams();
   const [searchParams] = useSearchParams();
 
-  const queryRoomId = paramRoomId || searchParams.get('roomId') || location.state?.room?.id || 'room-1';
-  const queryRoomName = searchParams.get('roomName') || location.state?.room?.name || 'Boardroom Alpha';
+  const queryRoomId = paramRoomId || searchParams.get('roomId') || location.state?.room?.id;
+  const queryRoomName = searchParams.get('roomName') || location.state?.room?.name;
 
   const [apiRoom, setApiRoom] = useState(null);
 
   // Derive base room details from navigation state or catalog fallbacks
   const baseRoom = useMemo(() => {
     if (location.state?.room) return location.state.room;
-    return (
-      ROOM_FALLBACKS[queryRoomId] || {
-        id: queryRoomId,
-        name: queryRoomName,
-        location: 'Building A • 4th Floor',
-        capacity: 14,
-        area: '1,200 sq ft',
-        hourlyRate: 85,
-        status: 'Available',
-        image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
-        amenities: ['4K Screen', 'Polycom Video', 'Whiteboard', 'WiFi 6', 'Coffee Bar'],
-      }
-    );
+    if (queryRoomId && ROOM_FALLBACKS[queryRoomId]) return ROOM_FALLBACKS[queryRoomId];
+    return {
+      id: queryRoomId || '',
+      name: queryRoomName || 'Select a Meeting Room',
+      location: 'Corporate Campus',
+      capacity: 10,
+      area: '800 sq ft',
+      hourlyRate: 50,
+      status: 'Available',
+      image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
+      amenities: ['4K Screen', 'WiFi 6'],
+    };
   }, [location.state?.room, queryRoomId, queryRoomName]);
 
   const room = apiRoom || baseRoom;
 
-  // Scheduling State
+  // Scheduling State — read selectedDate from RoomCatalog navigation state or query param if provided
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const incomingDate = searchParams.get('date') || searchParams.get('selectedDate') || location.state?.selectedDate || location.state?.date;
   const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, '0');
-    const d = String(today.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    if (incomingDate && /^\d{4}-\d{2}-\d{2}$/.test(incomingDate) && incomingDate >= todayIso) {
+      return incomingDate;
+    }
+    return todayIso;
   });
 
-  const [selectedSlot, setSelectedSlot] = useState(DEFAULT_SLOTS.morning[2]); // 11:30 AM - 12:30 PM
-  const [title, setTitle] = useState('Q4 Product Roadmap & Architecture Sync');
-  const [attendeesCount, setAttendeesCount] = useState(8);
-  const [description, setDescription] = useState('Reviewing module handoffs with Jerin & Prashanth');
-  const [bookedSlots, setBookedSlots] = useState([
-    { start: '10:00', end: '11:30', title: 'Reserved: Sarah T. (Standup)' },
-    { start: '14:00', end: '15:30', title: 'Reserved: All-Hands Sync' },
-  ]);
+  useEffect(() => {
+    const passedDate = searchParams.get('date') || searchParams.get('selectedDate') || location.state?.selectedDate || location.state?.date;
+    if (passedDate && /^\d{4}-\d{2}-\d{2}$/.test(passedDate) && passedDate >= todayIso) {
+      setSelectedDate(passedDate);
+    } else if (passedDate && passedDate < todayIso) {
+      setSelectedDate(todayIso);
+    }
+  }, [searchParams, location.state, todayIso]);
+
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [title, setTitle] = useState('');
+  const [attendeesCount, setAttendeesCount] = useState(1);
+  const [description, setDescription] = useState('');
+  const [bookedSlots, setBookedSlots] = useState([]);
 
   const [conflictError, setConflictError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // Fetch live room details if available
+  const [availableRooms, setAvailableRooms] = useState([]);
+
+  // Fetch live room details and full rooms list from backend
   useEffect(() => {
-    if (queryRoomId && queryRoomId.length > 10) {
-      // Valid UUID
-      fetch(`http://127.0.0.1:8000/api/rooms/${queryRoomId}/`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) {
-            setApiRoom((prev) => ({
-              ...(prev || baseRoom),
-              ...data,
-              image: data.image || (prev ? prev.image : baseRoom.image),
-              amenities: Array.isArray(data.amenities) ? data.amenities : (prev ? prev.amenities : baseRoom.amenities),
-            }));
-          }
-        })
-        .catch(() => {});
-    }
+    fetchWithAuth('http://127.0.0.1:8000/api/rooms/')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const list = Array.isArray(data) ? data : data?.results || [];
+        if (list.length > 0) {
+          setAvailableRooms(list);
+          const matched = list.find((r) => r.id === queryRoomId);
+          const target = matched || list[0];
+          setApiRoom({
+            ...target,
+            image: target.image 
+              ? (target.image.startsWith('http') ? target.image : `http://127.0.0.1:8000${target.image}`)
+              : baseRoom.image || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
+            amenities: Array.isArray(target.amenities)
+              ? target.amenities
+              : typeof target.amenities === 'string'
+              ? target.amenities.split(' ').filter(Boolean)
+              : ['4K Screen', 'WiFi 6'],
+          });
+        }
+      })
+      .catch(() => {});
   }, [queryRoomId, baseRoom]);
 
-  // Check real-time slot availability
+  // Check real-time slot availability for 24h day
   const fetchAvailability = React.useCallback(async () => {
+    if (!room?.id || typeof room.id !== 'string' || room.id.length < 30) return;
     setIsLoadingAvailability(true);
     try {
-      const token = localStorage.getItem('access_token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/bookings/check-availability/?room=${room.id}&start_time=${selectedDate}T09:00:00Z&end_time=${selectedDate}T18:00:00Z`,
-        { headers }
+      const startOfDay = new Date(`${selectedDate}T00:00:00`).toISOString();
+      const endOfDay = new Date(`${selectedDate}T23:59:59`).toISOString();
+      const res = await fetchWithAuth(
+        `http://127.0.0.1:8000/api/bookings/check-availability/?room_id=${room.id}&start_time=${startOfDay}&end_time=${endOfDay}`
       );
 
       if (res.ok) {
         const data = await res.json();
         if (data.conflicts && data.conflicts.length > 0) {
           setBookedSlots(data.conflicts);
+        } else {
+          setBookedSlots([]);
         }
       }
     } catch {
-      // Graceful fallback to static demo slots
+      setBookedSlots([]);
     } finally {
       setIsLoadingAvailability(false);
     }
-  }, [room.id, selectedDate]);
+  }, [room?.id, selectedDate]);
 
   useEffect(() => {
     fetchAvailability();
   }, [fetchAvailability]);
+
+  // Deselect current slot if it is in the past/ongoing or booked on the selected day
+  useEffect(() => {
+    if (selectedSlot) {
+      if (isSlotPastOrCurrent(selectedSlot, selectedDate)) {
+        setSelectedSlot(null);
+        return;
+      }
+      if (bookedSlots.length > 0) {
+        const slotStart = new Date(`${selectedDate}T${selectedSlot.start}:00`).getTime();
+        const slotEnd = new Date(`${selectedDate}T${selectedSlot.end}:00`).getTime();
+        const isBooked = bookedSlots.some((b) => {
+          if (!b.start_time || !b.end_time) return false;
+          const bStart = new Date(b.start_time).getTime();
+          const bEnd = new Date(b.end_time).getTime();
+          return slotStart < bEnd && slotEnd > bStart;
+        });
+        if (isBooked) {
+          setSelectedSlot(null);
+        }
+      }
+    }
+  }, [bookedSlots, selectedSlot, selectedDate]);
 
   // Handle Booking Submission
   const handleConfirmBooking = async (e) => {
@@ -187,6 +229,16 @@ export default function BookRoom() {
       return;
     }
 
+    if (!title.trim()) {
+      alert('Please enter a meeting title.');
+      return;
+    }
+
+    if (attendeesCount < 1) {
+      alert('Expected attendees must be at least 1 person.');
+      return;
+    }
+
     if (attendeesCount > (room.capacity || 14)) {
       alert(`Expected attendees exceeds room capacity of ${room.capacity || 14} people.`);
       return;
@@ -194,26 +246,21 @@ export default function BookRoom() {
 
     const token = localStorage.getItem('access_token');
     if (!token) {
-      // Demo / Design Mode: show confirmed reservation without requiring backend login
-      setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setBookingSuccess(true);
-      }, 500);
+      alert('Please sign in to confirm your reservation.');
+      navigate('/');
       return;
     }
 
-    // Build ISO 8601 strings
-    const startIso = `${selectedDate}T${selectedSlot.start}:00Z`;
-    const endIso = `${selectedDate}T${selectedSlot.end}:00Z`;
+    // Convert local slot selection to precise ISO 8601 UTC timestamp
+    const startIso = new Date(`${selectedDate}T${selectedSlot.start}:00`).toISOString();
+    const endIso = new Date(`${selectedDate}T${selectedSlot.end}:00`).toISOString();
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/bookings/', {
+      const res = await fetchWithAuth('http://127.0.0.1:8000/api/bookings/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           room: room.id,
@@ -228,8 +275,11 @@ export default function BookRoom() {
       if (res.status === 201) {
         setBookingSuccess(true);
         setTimeout(() => {
-          navigate('/dashboard');
-        }, 1500);
+          navigate('/my-bookings');
+        }, 1200);
+      } else if (res.status === 401) {
+        alert('Your login session has expired. Please sign in again.');
+        navigate('/');
       } else if (res.status === 409) {
         const errorData = await res.json();
         setConflictError(
@@ -272,7 +322,7 @@ export default function BookRoom() {
       <div className="bg-white border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 py-3">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2 text-slate-500 font-medium">
-            <Link to="/" className="hover:text-slate-900 transition flex items-center gap-1">
+            <Link to="/rooms" className="hover:text-slate-900 transition flex items-center gap-1">
               <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
@@ -285,7 +335,7 @@ export default function BookRoom() {
           </div>
 
           <Link
-            to="/"
+            to="/rooms"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#0051d5] transition py-1 px-2.5 rounded-md hover:bg-blue-50/60"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -321,6 +371,37 @@ export default function BookRoom() {
                 Active & Available
               </span>
             </div>
+
+            {/* Room Selector Dropdown */}
+            {availableRooms.length > 0 && (
+              <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+                <label className="text-[11px] font-semibold text-slate-600 shrink-0">Switch Room:</label>
+                <select
+                  value={room.id}
+                  onChange={(e) => {
+                    const found = availableRooms.find((r) => r.id === e.target.value);
+                    if (found) {
+                      setApiRoom({
+                        ...found,
+                        image: found.image || baseRoom.image,
+                        amenities: Array.isArray(found.amenities)
+                          ? found.amenities
+                          : typeof found.amenities === 'string'
+                          ? found.amenities.split(' ').filter(Boolean)
+                          : ['4K Screen', 'WiFi 6'],
+                      });
+                    }
+                  }}
+                  className="w-full text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-2xs"
+                >
+                  {availableRooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({r.capacity} seats)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Room Image */}
             <div className="relative w-full h-52 overflow-hidden bg-slate-100">
@@ -387,7 +468,7 @@ export default function BookRoom() {
 
               {/* Change Room Action */}
               <Link
-                to="/"
+                to="/rooms"
                 className="w-full py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition flex items-center justify-center gap-2 text-center"
               >
                 <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -420,6 +501,7 @@ export default function BookRoom() {
             {/* Step 1 & 2: TimeSlotPicker */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <TimeSlotPicker
+                roomId={room?.id}
                 selectedDate={selectedDate}
                 onSelectDate={(newDate) => {
                   setSelectedDate(newDate);
@@ -468,7 +550,7 @@ export default function BookRoom() {
 
               <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                 <Link
-                  to="/"
+                  to="/rooms"
                   className="px-5 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition text-center"
                 >
                   Cancel

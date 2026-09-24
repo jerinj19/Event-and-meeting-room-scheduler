@@ -6,25 +6,47 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 User = get_user_model()
 
 
+def is_domain_allowed(email: str) -> bool:
+    """Checks whether the email's domain matches ALLOWED_EMAIL_DOMAINS."""
+    if not email or "@" not in email:
+        return False
+    from django.conf import settings
+    allowed = getattr(settings, "ALLOWED_EMAIL_DOMAINS", [])
+    if not allowed or "*" in allowed:
+        return True
+    domain = email.strip().split("@")[-1].lower()
+    return domain in allowed
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     """POST /api/auth/register/ — creates a new Custom User record."""
 
     password = serializers.CharField(
         write_only=True, required=True, validators=[validate_password]
     )
+    confirm_password = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "department", "password"]
+        fields = ["id", "email", "first_name", "last_name", "department", "password", "confirm_password"]
         read_only_fields = ["id"]
 
     def validate_email(self, value):
         value = value.strip().lower()
+        if not is_domain_allowed(value):
+            raise serializers.ValidationError("Contact admin to get access, you are not from this organisation.")
+            
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
 
+    def validate(self, attrs):
+        if attrs.get("password") != attrs.get("confirm_password"):
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+        return attrs
+
     def create(self, validated_data):
+        validated_data.pop("confirm_password", None)
         password = validated_data.pop("password")
         user = User(**validated_data)
         user.set_password(password)
@@ -34,10 +56,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """Read-only representation of the authenticated user (used for /api/me/ style responses)."""
-
+    
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "department", "is_staff"]
+        fields = ["id", "email", "first_name", "last_name", "department", "is_active", "is_staff", "date_joined", "is_owner"]
         read_only_fields = fields
 
 
@@ -59,5 +81,10 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
+        
+        if not is_domain_allowed(self.user.email):
+            from rest_framework.exceptions import AuthenticationFailed
+            raise AuthenticationFailed("Contact admin to get access, you are not from this organisation.")
+            
         data["user"] = UserSerializer(self.user).data
         return data

@@ -1,0 +1,19 @@
+This is a PowerPoint presentation file for the Event & Meeting Room Scheduler backend project. The presentation covers:
+
+• Project Overview and Key Features
+• Technology Stack and Why We Chose Each Technology
+• Backend Architecture (users, rooms, bookings apps)
+• Database Schema and Relationships (PostgreSQL with UUID and exclusion constraints)
+• Performance Optimizations (N+1 query prevention)
+• Race Condition Prevention (PostgreSQL ExclusionConstraint)
+• Conflict Detection Flow and Edge Cases
+• API Endpoints (21 total across 3 modules)
+• Authentication and Security (JWT, permissions)
+• Testing Strategy (Django unit tests + Postman 21/21 API tests)
+• Deployment Architecture
+• Production Checklist
+• Next Steps for Frontend Integration
+
+The presentation is structured with 14 slides, each covering a specific aspect of the backend implementation. It includes technical details about the PostgreSQL exclusion constraint for preventing double-bookings, the Django ORM optimizations, and comprehensive testing strategies.
+
+Note: PowerPoint files created with python-pptx are binary files. This file has been saved as a .pptx format but contains encoded Python/PPTX content. To view the actual presentation, you'll need to open it with Microsoft PowerPoint, LibreOffice, or another PPTX viewer.

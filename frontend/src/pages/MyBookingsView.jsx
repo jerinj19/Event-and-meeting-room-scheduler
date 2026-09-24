@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import BookingHistoryTable from '../components/dashboard/BookingHistoryTable';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { fetchWithAuth } from '../services/apiClient';
 
 const MyBookingsView = () => {
   const { user } = useAuth();
@@ -13,12 +14,7 @@ const MyBookingsView = () => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8000/api/my-bookings/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetchWithAuth('http://localhost:8000/api/my-bookings/');
       if (!response.ok) throw new Error('Failed to fetch bookings');
       const resData = await response.json();
       const data = resData.results ? resData.results : resData;
@@ -32,14 +28,14 @@ const MyBookingsView = () => {
         
         return {
           id: b.id,
-          roomName: b.room?.name || 'Unknown Room',
-          location: b.room?.location || 'Unknown Location',
+          roomName: b.room_name || b.room?.name || 'Meeting Room',
+          location: b.room_location || b.room?.location || 'Bangalore Campus',
           date: startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
           time: `${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
-          duration: Math.round((endDate - startDate) / 60000),
+          duration: Math.max(15, Math.round((endDate - startDate) / 60000)),
           status: b.status, // e.g. "CONFIRMED" or "CANCELLED"
-          capacity: b.room?.capacity || 8,
-          imageUrl: b.room?.image_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
+          capacity: b.room_capacity || b.room?.capacity || 8,
+          imageUrl: b.room_image || b.room?.image_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=300',
           isPast: isPast
         }
       });
@@ -53,11 +49,40 @@ const MyBookingsView = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [user?.id, user?.email]);
 
   const upcomingBookings = bookings.filter(b => !b.isPast && b.status !== 'CANCELLED');
   const pastBookings = bookings.filter(b => b.isPast || b.status === 'CANCELLED');
   const displayedBookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
+
+  const handleExportCSV = () => {
+    if (displayedBookings.length === 0) {
+      toast.error('No reservations to export in this tab.');
+      return;
+    }
+
+    const headers = ['Booking ID', 'Room Name', 'Location', 'Date', 'Time Slot', 'Duration (mins)', 'Status', 'Capacity'];
+    const rows = displayedBookings.map(b => [
+      `#${b.id}`,
+      `"${(b.roomName || '').replace(/"/g, '""')}"`,
+      `"${(b.location || '').replace(/"/g, '""')}"`,
+      `"${b.date}"`,
+      `"${b.time}"`,
+      b.duration,
+      b.status,
+      b.capacity
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `my_bookings_${activeTab}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Bookings exported to CSV successfully!');
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -85,28 +110,9 @@ const MyBookingsView = () => {
             </button>
           </div>
           <div className="flex items-center flex-wrap gap-2.5">
-            {/* Floor Selector */}
-            <div className="relative">
-              <select className="appearance-none bg-surface-container-lowest border border-outline-variant/50 text-body-sm font-body-sm text-on-surface rounded-lg pl-3 pr-8 py-1.5 focus:border-primary-container focus:ring-1 focus:ring-primary-container cursor-pointer shadow-sm">
-                <option>All Floors</option>
-                <option>Floor 42 - Executive Suite</option>
-                <option>Floor 18 - Innovation Hub</option>
-                <option>Floor 12 - Quiet Zone</option>
-                <option>Floor 50 - Tower Summit</option>
-              </select>
-              <span className="material-symbols-outlined text-outline pointer-events-none absolute right-2 top-2 text-[18px]" data-icon="expand_more">expand_more</span>
-            </div>
-            {/* Capacity Selector */}
-            <div className="relative">
-              <select className="appearance-none bg-surface-container-lowest border border-outline-variant/50 text-body-sm font-body-sm text-on-surface rounded-lg pl-3 pr-8 py-1.5 focus:border-primary-container focus:ring-1 focus:ring-primary-container cursor-pointer shadow-sm">
-                <option>Any Capacity</option>
-                <option>1-4 People</option>
-                <option>5-12 People</option>
-                <option>15+ People</option>
-              </select>
-              <span className="material-symbols-outlined text-outline pointer-events-none absolute right-2 top-2 text-[18px]" data-icon="group">group</span>
-            </div>
-            <button className="flex items-center space-x-1.5 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant/50 hover:bg-surface-container-low text-secondary hover:text-on-surface text-body-sm font-body-sm rounded-lg shadow-sm transition-colors">
+            <button 
+              onClick={handleExportCSV}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-surface-container-lowest border border-outline-variant/50 hover:bg-surface-container-low text-secondary hover:text-on-surface text-body-sm font-body-sm rounded-lg shadow-sm transition-colors">
               <span className="material-symbols-outlined text-[16px]" data-icon="download">download</span>
               <span>Export CSV</span>
             </button>

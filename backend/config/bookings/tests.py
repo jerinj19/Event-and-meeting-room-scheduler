@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, date, time, datetime
 import uuid
 
 from django.contrib.auth import get_user_model
@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rooms.models import Room
 
-from .models import Booking
+from .models import Booking, TimeSlot
 
 User = get_user_model()
 
@@ -735,4 +735,431 @@ class BookingAPITests(TestCase):
         res = self.client.delete(f"/api/bookings/{booking.id}/")
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(Booking.objects.filter(id=booking.id).exists())
+
+    def test_available_slots_future_date_returns_all_slots(self):
+        """Future date should return all standard time slots."""
+        tomorrow_str = (timezone.localdate() + timedelta(days=1)).isoformat()
+        res = self.client.get(f"/api/bookings/available-slots/?date={tomorrow_str}")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["total_slots"], 11)
+        self.assertIn("morning", res.data["grouped"])
+        self.assertIn("afternoon", res.data["grouped"])
+        self.assertIn("evening", res.data["grouped"])
+
+    def test_available_slots_excludes_past_and_ongoing_slots_for_today(self):
+        """Slots that have already started or are currently in progress should NOT be returned."""
+        today_str = timezone.localdate().isoformat()
+        now = timezone.now()
+        res = self.client.get(f"/api/bookings/available-slots/?date={today_str}")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        tz = timezone.get_current_timezone()
+        from datetime import datetime, time
+        # Ensure that no returned slot has start time <= now
+        for slot in res.data["slots"]:
+            sh, sm = map(int, slot["start"].split(":"))
+            slot_start = timezone.make_aware(
+                datetime.combine(timezone.localdate(), time(sh, sm)),
+                tz,
+            )
+            self.assertGreater(slot_start, now, f"Slot {slot['label']} should not have been returned since start <= now")
+
+    def test_list_time_slots_endpoint(self):
+        """Anyone can list time slots."""
+        res = self.client.get("/api/bookings/time-slots/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(res.data), 11)
+
+    def test_regular_user_cannot_create_time_slot(self):
+        """Regular non-staff user cannot create a time slot (403 Forbidden)."""
+        self.client.force_authenticate(user=self.user1)
+        res = self.client.post("/api/bookings/time-slots/", {
+            "start_time": "08:00:00",
+            "end_time": "09:00:00",
+            "label": "Early Bird",
+            "period": "morning",
+        })
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_create_update_toggle_delete_time_slot(self):
+        """Admin user can create, update, toggle active status, and delete time slots."""
+        self.client.force_authenticate(user=self.admin)
+        
+        # 1. Create slot
+        res = self.client.post("/api/bookings/time-slots/", {
+            "start_time": "07:30:00",
+            "end_time": "08:30:00",
+            "label": "Dawn Standup",
+            "period": "morning",
+            "is_active": True,
+        })
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        slot_id = res.data["id"]
+        self.assertEqual(res.data["label"], "Dawn Standup")
+
+        # 2. Update slot
+        res_update = self.client.patch(f"/api/bookings/time-slots/{slot_id}/", {
+            "label": "Updated Dawn Standup",
+        })
+        self.assertEqual(res_update.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_update.data["label"], "Updated Dawn Standup")
+
+        # 3. Toggle inactive
+        res_toggle = self.client.patch(f"/api/bookings/time-slots/{slot_id}/", {
+            "is_active": False,
+        })
+        self.assertEqual(res_toggle.status_code, status.HTTP_200_OK)
+        self.assertFalse(res_toggle.data["is_active"])
+
+        # 4. Delete slot
+        res_del = self.client.delete(f"/api/bookings/time-slots/{slot_id}/")
+        self.assertEqual(res_del.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(TimeSlot.objects.filter(id=slot_id).exists())
+
+    def test_dynamic_slot_reflected_in_available_slots(self):
+        """Creating an active slot dynamically makes it appear in available-slots."""
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post("/api/bookings/time-slots/", {
+            "start_time": "06:00:00",
+            "end_time": "07:00:00",
+            "label": "Early Sunrise Sync",
+            "period": "morning",
+            "is_active": True,
+        })
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        slot_id = res.data["id"]
+
+        tomorrow_str = (timezone.localdate() + timedelta(days=1)).isoformat()
+        res_avail = self.client.get(f"/api/bookings/available-slots/?date={tomorrow_str}")
+        self.assertEqual(res_avail.status_code, status.HTTP_200_OK)
+        labels = [s["label"] for s in res_avail.data["slots"]]
+        self.assertIn("Early Sunrise Sync", labels)
+
+        # Deactivate slot
+        self.client.patch(f"/api/bookings/time-slots/{slot_id}/", {"is_active": False})
+        res_avail_after = self.client.get(f"/api/bookings/available-slots/?date={tomorrow_str}")
+        labels_after = [s["label"] for s in res_avail_after.data["slots"]]
+        self.assertNotIn("Early Sunrise Sync", labels_after)
+
+    def test_admin_can_reset_default_time_slots(self):
+        """Admin can trigger reset-defaults action."""
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post("/api/bookings/time-slots/reset-defaults/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn("Standard default time slots restored", res.data["message"])
+
+    def test_bulk_create_time_slots_admin(self):
+        """Admin can create multiple time slots in a single batch request."""
+        self.client.force_authenticate(user=self.admin)
+        batch = [
+            {"start_time": "06:00:00", "end_time": "06:30:00", "label": "Batch Slot 1", "period": "morning"},
+            {"start_time": "06:30:00", "end_time": "07:00:00", "label": "Batch Slot 2", "period": "morning"},
+            {"start_time": "07:00:00", "end_time": "07:30:00", "label": "Batch Slot 3", "period": "morning"},
+        ]
+        res = self.client.post("/api/bookings/time-slots/bulk-create/", batch, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(res.data["slots"]), 3)
+        self.assertTrue(TimeSlot.objects.filter(label="Batch Slot 1").exists())
+        self.assertTrue(TimeSlot.objects.filter(label="Batch Slot 2").exists())
+        self.assertTrue(TimeSlot.objects.filter(label="Batch Slot 3").exists())
+
+    def test_bulk_create_time_slots_forbidden_for_regular_user(self):
+        """Regular user cannot bulk create time slots (403 Forbidden)."""
+        self.client.force_authenticate(user=self.user1)
+        batch = [
+            {"start_time": "06:00:00", "end_time": "06:30:00", "label": "Unauthorized Batch", "period": "morning"},
+        ]
+        res = self.client.post("/api/bookings/time-slots/bulk-create/", batch, format="json")
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_booking_list_pagination_and_metadata(self):
+        """Booking list endpoint returns paginated metadata (count, total_pages, results)."""
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get("/api/bookings/?page=1&page_size=5")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn("count", res.data)
+        self.assertIn("total_pages", res.data)
+        self.assertIn("current_page", res.data)
+        self.assertIn("results", res.data)
+        self.assertEqual(res.data["current_page"], 1)
+
+    def test_booking_filter_by_room_and_all(self):
+        """Booking list can filter by specific room and 'ALL' bypass."""
+        self.client.force_authenticate(user=self.admin)
+        # Create a booking in secondary room
+        now = timezone.now() + timedelta(days=2)
+        Booking.objects.create(
+            room=self.secondary_room,
+            user=self.user1,
+            title="Secondary Room Meeting",
+            start_time=now.replace(hour=10, minute=0, second=0),
+            end_time=now.replace(hour=11, minute=0, second=0),
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        # Filter by secondary_room
+        res = self.client.get(f"/api/bookings/?room={self.secondary_room.id}")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        for item in res.data["results"]:
+            self.assertEqual(item["room"], self.secondary_room.id)
+
+        # 'ALL' room parameter returns bookings without room restriction
+        res_all = self.client.get("/api/bookings/?room=ALL")
+        self.assertEqual(res_all.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(res_all.data["count"], 1)
+
+    def test_booking_filter_by_period_and_session(self):
+        """Booking list filters by period (this_month, this_week, custom) and session (morning, afternoon, evening)."""
+        self.client.force_authenticate(user=self.admin)
+        now = timezone.now()
+
+        # Morning booking (09:00 AM)
+        b_morning = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Morning Sync",
+            start_time=now.replace(hour=9, minute=0, second=0),
+            end_time=now.replace(hour=10, minute=0, second=0),
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        # Afternoon booking (02:00 PM)
+        b_afternoon = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Afternoon Retro",
+            start_time=now.replace(hour=14, minute=0, second=0),
+            end_time=now.replace(hour=15, minute=0, second=0),
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        # Evening booking (06:00 PM)
+        b_evening = Booking.objects.create(
+            room=self.room,
+            user=self.user1,
+            title="Evening Wrap",
+            start_time=now.replace(hour=18, minute=0, second=0),
+            end_time=now.replace(hour=19, minute=0, second=0),
+            status=Booking.STATUS_CONFIRMED,
+        )
+
+        # 1. Filter by morning session
+        res_m = self.client.get("/api/bookings/?session=morning")
+        self.assertEqual(res_m.status_code, status.HTTP_200_OK)
+        titles_m = [b["title"] for b in res_m.data["results"]]
+        self.assertIn("Morning Sync", titles_m)
+        self.assertNotIn("Afternoon Retro", titles_m)
+        self.assertNotIn("Evening Wrap", titles_m)
+
+        # 2. Filter by afternoon session
+        res_a = self.client.get("/api/bookings/?session=afternoon")
+        self.assertEqual(res_a.status_code, status.HTTP_200_OK)
+        titles_a = [b["title"] for b in res_a.data["results"]]
+        self.assertIn("Afternoon Retro", titles_a)
+        self.assertNotIn("Morning Sync", titles_a)
+
+        # 3. Filter by evening session
+        res_e = self.client.get("/api/bookings/?session=evening")
+        self.assertEqual(res_e.status_code, status.HTTP_200_OK)
+        titles_e = [b["title"] for b in res_e.data["results"]]
+        self.assertIn("Evening Wrap", titles_e)
+        self.assertNotIn("Morning Sync", titles_e)
+
+        # 4. Filter by period this_month
+        res_month = self.client.get("/api/bookings/?period=this_month")
+        self.assertEqual(res_month.status_code, status.HTTP_200_OK)
+        titles_month = [b["title"] for b in res_month.data["results"]]
+        self.assertIn("Morning Sync", titles_month)
+
+        # 5. Serializer session and time_slot_label
+        for item in res_m.data["results"]:
+            if item["id"] == str(b_morning.id):
+                self.assertEqual(item["session"], "morning")
+                self.assertIn("AM", item["time_slot_label"])
+
+
+class TimeSlotModelAndAPITests(TestCase):
+    """
+    Tests for TimeSlot model date field, filtering, pagination, bulk creation across multiple dates,
+    and available-slots priority.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.staff_user = User.objects.create_user(
+            email="admin_ts@example.com",
+            password="StrongPassword123!",
+            first_name="Admin",
+            last_name="TS",
+            is_staff=True,
+        )
+        self.room_a = Room.objects.create(
+            name="Alpha Room",
+            capacity=10,
+            location="Floor 1",
+            is_active=True,
+        )
+        self.room_b = Room.objects.create(
+            name="Beta Room",
+            capacity=20,
+            location="Floor 2",
+            is_active=True,
+        )
+
+    def test_timeslot_model_date_and_recurring_property(self):
+        recurring_slot = TimeSlot.objects.create(
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            period="morning",
+            date=None,
+        )
+        self.assertTrue(recurring_slot.is_recurring)
+        self.assertIn("[Recurring]", str(recurring_slot))
+
+        dated_slot = TimeSlot.objects.create(
+            start_time=time(10, 0),
+            end_time=time(11, 0),
+            period="morning",
+            date=date(2026, 9, 25),
+        )
+        self.assertFalse(dated_slot.is_recurring)
+        self.assertIn("[2026-09-25]", str(dated_slot))
+
+    def test_timeslot_api_pagination(self):
+        # Create 5 recurring slots
+        for i in range(5):
+            TimeSlot.objects.create(
+                start_time=time(9 + i, 0),
+                end_time=time(10 + i, 0),
+                period="morning",
+                sort_order=i,
+            )
+
+        self.client.force_authenticate(user=self.staff_user)
+        res = self.client.get("/api/bookings/time-slots/?page=1&page_size=3")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn("results", res.data)
+        self.assertIn("count", res.data)
+        self.assertEqual(res.data["current_page"], 1)
+        self.assertEqual(res.data["page_size"], 3)
+        self.assertEqual(len(res.data["results"]), 3)
+        self.assertGreaterEqual(res.data["count"], 5)
+
+    def test_timeslot_api_filtering_by_date_and_session(self):
+        self.client.force_authenticate(user=self.staff_user)
+
+        # Clear standard slots for controlled testing
+        TimeSlot.objects.all().delete()
+
+        # Slot 1: recurring morning slot
+        s1 = TimeSlot.objects.create(
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            period="morning",
+            date=None,
+        )
+        # Slot 2: dated afternoon slot
+        s2 = TimeSlot.objects.create(
+            start_time=time(14, 0),
+            end_time=time(15, 0),
+            period="afternoon",
+            date=date(2026, 9, 25),
+            room=self.room_a,
+        )
+        # Slot 3: dated evening slot
+        s3 = TimeSlot.objects.create(
+            start_time=time(18, 0),
+            end_time=time(19, 0),
+            period="evening",
+            date=date(2026, 10, 5),
+            room=self.room_b,
+        )
+
+        # 1. Filter by session
+        res_m = self.client.get("/api/bookings/time-slots/?session=morning")
+        self.assertEqual(len(res_m.data), 1)
+        self.assertEqual(res_m.data[0]["id"], str(s1.id))
+
+        # 2. Filter by date_type = recurring
+        res_rec = self.client.get("/api/bookings/time-slots/?date_type=recurring")
+        self.assertEqual(len(res_rec.data), 1)
+        self.assertEqual(res_rec.data[0]["id"], str(s1.id))
+
+        # 3. Filter by date_type = dated
+        res_dated = self.client.get("/api/bookings/time-slots/?date_type=dated")
+        self.assertEqual(len(res_dated.data), 2)
+
+        # 4. Filter by exact room
+        res_room_a = self.client.get(f"/api/bookings/time-slots/?room={self.room_a.id}&exact_room=true")
+        self.assertEqual(len(res_room_a.data), 1)
+        self.assertEqual(res_room_a.data[0]["id"], str(s2.id))
+
+        # 5. Filter by custom date range
+        res_custom = self.client.get("/api/bookings/time-slots/?period=custom&start_date=2026-09-20&end_date=2026-09-30")
+        self.assertEqual(len(res_custom.data), 1)
+        self.assertEqual(res_custom.data[0]["id"], str(s2.id))
+
+    def test_timeslot_bulk_create_with_multiple_dates(self):
+        self.client.force_authenticate(user=self.staff_user)
+
+        payload = {
+            "dates": ["2026-11-01", "2026-11-02", "2026-11-03"],
+            "slots": [
+                {
+                    "start_time": "09:00:00",
+                    "end_time": "10:00:00",
+                    "period": "morning",
+                    "label": "Morning Session",
+                    "room": str(self.room_a.id),
+                },
+                {
+                    "start_time": "14:00:00",
+                    "end_time": "15:00:00",
+                    "period": "afternoon",
+                    "label": "Afternoon Session",
+                    "room": str(self.room_a.id),
+                },
+            ],
+        }
+
+        res = self.client.post("/api/bookings/time-slots/bulk-create/", payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        # 3 dates x 2 slots = 6 created instances
+        self.assertEqual(len(res.data["slots"]), 6)
+        created_count = TimeSlot.objects.filter(room=self.room_a, date__in=["2026-11-01", "2026-11-02", "2026-11-03"]).count()
+        self.assertEqual(created_count, 6)
+
+    def test_available_slots_prefers_date_specific_slot(self):
+        TimeSlot.objects.all().delete()
+
+        # Recurring fallback slot
+        TimeSlot.objects.create(
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            label="Daily Generic Slot",
+            period="morning",
+            date=None,
+            is_active=True,
+        )
+
+        # Date-specific special slot for 2026-12-25
+        special_date = "2026-12-25"
+        TimeSlot.objects.create(
+            start_time=time(11, 0),
+            end_time=time(12, 0),
+            label="Christmas Special Slot",
+            period="morning",
+            date=date(2026, 12, 25),
+            is_active=True,
+        )
+
+        res = self.client.get(f"/api/bookings/available-slots/?date={special_date}")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Should prefer the date-specific slot
+        labels = [s["label"] for s in res.data["slots"]]
+        self.assertIn("Christmas Special Slot", labels)
+        self.assertNotIn("Daily Generic Slot", labels)
+
+
+
 

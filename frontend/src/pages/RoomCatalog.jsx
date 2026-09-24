@@ -167,35 +167,11 @@ export default function RoomCatalog() {
     return max > 0 ? max : 1000;
   }, [rooms]);
 
-  // 6. Dynamic Visual Frequency Histogram Calculation
-  const histogramBuckets = useMemo(() => {
-    const numBuckets = 7;
-    const step = Math.max(1, Math.ceil(maxPropertyRate / numBuckets));
-    const buckets = Array.from({ length: numBuckets }, (_, i) => {
-      const start = i * step;
-      const end = (i + 1) * step;
-      return {
-        start,
-        end,
-        label: `₹${start}–₹${end}`,
-        count: 0,
-      };
-    });
-
-    rooms.forEach((r) => {
-      const rate = Number(r.hourlyRate || 0);
-      const idx = Math.min(Math.floor(rate / step), numBuckets - 1);
-      if (idx >= 0 && idx < numBuckets) {
-        buckets[idx].count += 1;
-      }
-    });
-
-    const maxCount = Math.max(...buckets.map((b) => b.count), 1);
-    return buckets.map((b) => ({
-      ...b,
-      heightPct: Math.round((b.count / maxCount) * 100),
-    }));
-  }, [rooms, maxPropertyRate]);
+  // 6. Real-time Count of Rooms within Current Hourly Budget
+  const roomsWithinBudgetCount = useMemo(() => {
+    const activeLimit = maxHourlyRate !== null && maxHourlyRate !== undefined ? maxHourlyRate : maxPropertyRate;
+    return rooms.filter((r) => Number(r.hourlyRate ?? r.hourly_rate ?? 0) <= activeLimit).length;
+  }, [rooms, maxHourlyRate, maxPropertyRate]);
 
   // Handlers
   const handleToggleAmenity = (amenityId) => {
@@ -360,7 +336,8 @@ export default function RoomCatalog() {
               maxRateLimit={maxPropertyRate}
               currentMaxRate={effectiveMaxRate}
               onChangeMaxRate={setMaxHourlyRate}
-              histogramBuckets={histogramBuckets}
+              matchingRoomsCount={roomsWithinBudgetCount}
+              totalRoomsCount={rooms.length}
               availableAmenities={availableAmenities}
               selectedAmenities={selectedAmenities}
               onToggleAmenity={handleToggleAmenity}

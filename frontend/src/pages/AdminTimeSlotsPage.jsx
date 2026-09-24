@@ -19,7 +19,8 @@ export default function AdminTimeSlotsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sessionFilter, setSessionFilter] = useState('all'); // 'all' | 'morning' | 'afternoon' | 'evening'
   const [roomFilter, setRoomFilter] = useState('all'); // 'all' | 'global' | roomId
-  const [periodFilter, setPeriodFilter] = useState('all'); // 'all' | 'this_week' | 'this_month' | 'custom'
+  const [periodFilter, setPeriodFilter] = useState('all'); // 'all' | 'today' | 'tomorrow' | 'this_week' | 'this_month' | 'custom'
+  const [dateTypeFilter, setDateTypeFilter] = useState('all'); // 'all' | 'recurring' | 'dated'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
@@ -85,6 +86,11 @@ export default function AdminTimeSlotsPage() {
       if (sessionFilter !== 'all') params.session = sessionFilter;
       if (statusFilter === 'active') params.is_active = true;
       if (statusFilter === 'inactive') params.is_active = false;
+      if (dateTypeFilter !== 'all') {
+        params.date_type = dateTypeFilter;
+      } else {
+        params.include_recurring = true;
+      }
 
       if (roomFilter === 'global') {
         params.room = 'global';
@@ -92,7 +98,7 @@ export default function AdminTimeSlotsPage() {
         params.room = roomFilter;
       }
 
-      if (periodFilter === 'this_month' || periodFilter === 'this_week') {
+      if (['this_month', 'this_week', 'today', 'tomorrow'].includes(periodFilter)) {
         params.period = periodFilter;
       } else if (periodFilter === 'custom') {
         params.period = 'custom';
@@ -129,6 +135,7 @@ export default function AdminTimeSlotsPage() {
     debouncedSearch,
     sessionFilter,
     statusFilter,
+    dateTypeFilter,
     roomFilter,
     periodFilter,
     customStartDate,
@@ -169,6 +176,7 @@ export default function AdminTimeSlotsPage() {
     searchTerm ||
     sessionFilter !== 'all' ||
     statusFilter !== 'all' ||
+    dateTypeFilter !== 'all' ||
     roomFilter !== 'all' ||
     periodFilter !== 'all' ||
     customStartDate ||
@@ -180,6 +188,7 @@ export default function AdminTimeSlotsPage() {
     setDebouncedSearch('');
     setSessionFilter('all');
     setStatusFilter('all');
+    setDateTypeFilter('all');
     setRoomFilter('all');
     setPeriodFilter('all');
     setCustomStartDate('');
@@ -562,9 +571,11 @@ export default function AdminTimeSlotsPage() {
               className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
             >
               <option value="all">📅 All Dates</option>
+              <option value="today">📅 Today</option>
+              <option value="tomorrow">📅 Tomorrow</option>
               <option value="this_week">📆 This Week</option>
               <option value="this_month">🗓️ This Month</option>
-              <option value="custom">⚙️ Custom Date Range...</option>
+              <option value="custom">⚙️ Specific Date / Custom Range...</option>
             </select>
           </div>
 
@@ -594,6 +605,25 @@ export default function AdminTimeSlotsPage() {
               />
             </div>
           )}
+
+          {/* Schedule Type Filter */}
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <label className="text-[11px] font-semibold text-secondary uppercase tracking-wider shrink-0">
+              Type:
+            </label>
+            <select
+              value={dateTypeFilter}
+              onChange={(e) => {
+                setDateTypeFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full sm:w-auto flex-1 sm:flex-initial px-3 py-1.5 text-xs bg-surface-container-low border border-outline-variant/60 rounded-lg text-on-surface focus:outline-none focus:border-primary cursor-pointer font-medium"
+            >
+              <option value="all">All Types (Daily + Dated)</option>
+              <option value="recurring">🔄 Every Day (Daily)</option>
+              <option value="dated">📅 Specific Dates Only</option>
+            </select>
+          </div>
 
           {/* Status Filter */}
           <div className="flex items-center gap-1.5 w-full sm:w-auto">
@@ -690,10 +720,15 @@ export default function AdminTimeSlotsPage() {
                   <div className="flex items-center justify-between gap-2 border-b border-outline-variant/20 pb-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {getPeriodBadge(slot.period)}
-                      {slot.date && (
+                      {slot.date ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-200 shadow-2xs">
                           <span className="material-symbols-outlined text-[12px]">calendar_today</span>
                           <span>{slot.date}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs" title="Daily recurring template (active for all dates)">
+                          <span className="material-symbols-outlined text-[12px]">repeat</span>
+                          <span>Every Day</span>
                         </span>
                       )}
                     </div>
@@ -782,7 +817,7 @@ export default function AdminTimeSlotsPage() {
         /* TABLE VIEW */
         <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full min-w-[760px] text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-outline-variant/40 bg-surface-container-low/40 text-secondary font-semibold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Display Label</th>
@@ -805,10 +840,17 @@ export default function AdminTimeSlotsPage() {
                         {slot.label || slot.formatted_label}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
-                          <span className="material-symbols-outlined text-[13px]">calendar_today</span>
-                          {slot.date || '—'}
-                        </span>
+                        {slot.date ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
+                            <span className="material-symbols-outlined text-[13px]">calendar_today</span>
+                            {slot.date}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200" title="Daily recurring template (active for all dates)">
+                            <span className="material-symbols-outlined text-[13px]">repeat</span>
+                            Every Day
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-4 font-mono font-semibold text-primary">{slot.start}</td>
                       <td className="py-3 px-4 font-mono font-semibold text-primary">{slot.end}</td>
@@ -958,6 +1000,7 @@ export default function AdminTimeSlotsPage() {
         slot={editingSlot}
         rooms={rooms}
         loading={modalSubmitting}
+        defaultDate={customStartDate || ''}
       />
 
       <BulkTimeSlotModal
@@ -966,6 +1009,7 @@ export default function AdminTimeSlotsPage() {
         onSaveBulk={handleSaveBulkSlots}
         rooms={rooms}
         loading={bulkSubmitting}
+        defaultDate={customStartDate || ''}
       />
 
       <DeleteTimeSlotModal

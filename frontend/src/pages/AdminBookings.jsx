@@ -147,14 +147,12 @@ export default function AdminBookings() {
               description: b.description || 'No additional agenda provided.',
               roomName: b.room_name || b.room?.name || 'Meeting Room',
               location: b.room_location || b.room?.location || 'Main Campus',
-              capacity: b.room_capacity || b.room?.capacity || 10,
-              amenities: b.room?.amenities || ['Dual 4K Displays', 'Polycom Video Bar', 'Gigabit WiFi'],
+              amenities: b.room_amenities || b.room?.amenities || [],
               imageUrl: b.room_image || b.room?.image_url || FALLBACK_ROOM_IMAGE,
               organizerName: b.user_name || b.user_email?.split('@')[0] || b.user?.email?.split('@')[0] || 'Organizer',
               organizerEmail: b.user_email || b.user?.email || 'user@innovyx.com',
-              organizerRole: 'Team Member',
-              department: 'General Operations',
-              phone: '+1 (555) 019-0000',
+              organizerRole: b.user_is_staff ? 'Administrator' : 'Team Member',
+              department: b.user_department || 'Workspace Operations',
               session: localSession,
               date: localDateStr,
               time: localTimeStr,
@@ -275,14 +273,14 @@ export default function AdminBookings() {
   };
 
   return (
-    <div className="min-h-full bg-surface text-on-surface p-4 md:p-8 font-body-md">
-      <main className="max-w-[1580px] mx-auto space-y-6">
+    <div className="min-h-full bg-surface text-on-surface p-3 sm:p-6 lg:p-8 font-body-md">
+      <main className="max-w-[1580px] mx-auto space-y-5 sm:space-y-6">
         
-        {/* 1. Header Section: Pure White Card matching Prashanth's Admin Dashboard */}
-        <header className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-6 sm:p-8 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+        {/* 1. Header Section */}
+        <header className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-4 sm:p-6 lg:p-8 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-6">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-on-surface tracking-tight">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-on-surface tracking-tight">
                 All Reservations & Schedule Audits
               </h1>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -292,16 +290,16 @@ export default function AdminBookings() {
                 </span>
               </div>
             </div>
-            <p className="text-sm text-secondary">
+            <p className="text-xs sm:text-sm text-secondary">
               Centralized corporate ledger of all workspace bookings, attendee ratios, and conflict-free reservation lifecycles
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             <button
               type="button"
               onClick={handleExportCSV}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-medium text-sm transition-colors duration-150"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-medium text-xs sm:text-sm transition-colors duration-150 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]" data-icon="download">download</span>
               <span>Export CSV Audit Log</span>
@@ -309,7 +307,7 @@ export default function AdminBookings() {
             <button
               type="button"
               onClick={handleResetFilters}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-medium text-sm transition-colors duration-150"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-medium text-xs sm:text-sm transition-colors duration-150 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
               <span>Reset Filters</span>
@@ -318,9 +316,9 @@ export default function AdminBookings() {
         </header>
 
         {/* 2. KPI Metric Summary Strip (4 Cards) */}
-        <section aria-label="Key Performance Indicators" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        <section aria-label="Key Performance Indicators" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
           {/* Card 1: Total Bookings */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
+          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-secondary">Total Bookings</span>
@@ -329,7 +327,7 @@ export default function AdminBookings() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">{totalBookingsCount}</span>
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-on-surface tracking-tight leading-none truncate">{totalBookingsCount}</span>
                 <span className="inline-flex items-center text-emerald-700 text-xs font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
                   <span className="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span>
                   +12.4%
@@ -343,7 +341,7 @@ export default function AdminBookings() {
           </div>
 
           {/* Card 2: Confirmed Active */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
+          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-secondary">Confirmed Active</span>
@@ -352,7 +350,7 @@ export default function AdminBookings() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">{confirmedCount}</span>
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-on-surface tracking-tight leading-none truncate">{confirmedCount}</span>
                 <span className="inline-flex items-center text-emerald-800 text-xs font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                   {totalBookingsCount > 0 ? Math.round((confirmedCount / totalBookingsCount) * 100) : 100}%
                 </span>
@@ -365,7 +363,7 @@ export default function AdminBookings() {
           </div>
 
           {/* Card 3: Cancelled Reservations */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
+          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-secondary">Cancelled</span>
@@ -374,7 +372,7 @@ export default function AdminBookings() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">{cancelledCount}</span>
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-on-surface tracking-tight leading-none truncate">{cancelledCount}</span>
                 <span className="inline-flex items-center text-slate-600 text-xs font-semibold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
                   Released
                 </span>
@@ -387,7 +385,7 @@ export default function AdminBookings() {
           </div>
 
           {/* Card 4: Today's Schedule */}
-          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
+          <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-secondary">Today's Schedule</span>
@@ -396,7 +394,7 @@ export default function AdminBookings() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-on-surface tracking-tight leading-none">{todayCount}</span>
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-on-surface tracking-tight leading-none truncate">{todayCount}</span>
                 <span className="inline-flex items-center text-primary text-xs font-semibold bg-primary/10 px-2 py-0.5 rounded-full">
                   Live Today
                 </span>
@@ -614,7 +612,7 @@ export default function AdminBookings() {
           {/* Main Bookings Data Table */}
           <div className="flex-1 w-full bg-surface-container-lowest border border-outline-variant/60 rounded-xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-surface-container-low/60 border-b border-outline-variant/30 text-secondary text-xs uppercase tracking-wider font-semibold">
                     <th className="py-3.5 px-4">Meeting & Purpose</th>
@@ -953,8 +951,8 @@ export default function AdminBookings() {
                       <span className="text-primary font-mono font-medium">{selectedBooking.organizerEmail}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Phone:</span>
-                      <span className="text-on-surface font-mono">{selectedBooking.phone}</span>
+                      <span>Department:</span>
+                      <span className="text-on-surface font-medium">{selectedBooking.department}</span>
                     </div>
                   </div>
                 </div>

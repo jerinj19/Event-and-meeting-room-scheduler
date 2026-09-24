@@ -536,7 +536,7 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
             elif dt == "dated":
                 queryset = queryset.filter(date__isnull=False)
 
-        # Period filter: this_month, this_week, custom
+        # Period filter: this_month, this_week, today, tomorrow, custom
         period_param = self.request.query_params.get("period")
         now = timezone.localtime(timezone.now())
 
@@ -544,32 +544,73 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
             start_of_month = now.date().replace(day=1)
             _, last_day = calendar.monthrange(now.year, now.month)
             end_of_month = now.date().replace(day=last_day)
-            queryset = queryset.filter(
-                Q(date__gte=start_of_month, date__lte=end_of_month) | Q(date__isnull=True)
-            )
+            month_q = Q(date__gte=start_of_month, date__lte=end_of_month)
+            if date_type and date_type.lower().strip() == "dated":
+                queryset = queryset.filter(month_q)
+            else:
+                queryset = queryset.filter(month_q | Q(date__isnull=True))
         elif period_param == "this_week":
             start_of_week = now.date() - timedelta(days=now.weekday())
             end_of_week = start_of_week + timedelta(days=6)
-            queryset = queryset.filter(
-                Q(date__gte=start_of_week, date__lte=end_of_week) | Q(date__isnull=True)
-            )
-        elif period_param == "custom":
+            week_q = Q(date__gte=start_of_week, date__lte=end_of_week)
+            if date_type and date_type.lower().strip() == "dated":
+                queryset = queryset.filter(week_q)
+            else:
+                queryset = queryset.filter(week_q | Q(date__isnull=True))
+        elif period_param == "today":
+            today = now.date()
+            today_q = Q(date=today)
+            if date_type and date_type.lower().strip() == "dated":
+                queryset = queryset.filter(today_q)
+            else:
+                queryset = queryset.filter(today_q | Q(date__isnull=True))
+        elif period_param == "tomorrow":
+            tomorrow = now.date() + timedelta(days=1)
+            tomorrow_q = Q(date=tomorrow)
+            if date_type and date_type.lower().strip() == "dated":
+                queryset = queryset.filter(tomorrow_q)
+            else:
+                queryset = queryset.filter(tomorrow_q | Q(date__isnull=True))
+        elif period_param == "custom" or (
+            not period_param
+            and (self.request.query_params.get("start_date") or self.request.query_params.get("end_date"))
+        ):
             start_date = self.request.query_params.get("start_date")
             end_date = self.request.query_params.get("end_date")
-            if start_date:
-                parsed_start = parse_date(start_date.strip())
-                if parsed_start:
-                    queryset = queryset.filter(date__gte=parsed_start)
-            if end_date:
-                parsed_end = parse_date(end_date.strip())
-                if parsed_end:
-                    queryset = queryset.filter(date__lte=parsed_end)
+            date_q = Q()
+            parsed_start = parse_date(start_date.strip()) if start_date else None
+            parsed_end = parse_date(end_date.strip()) if end_date else None
+
+            if parsed_start and parsed_end:
+                date_q = Q(date__gte=parsed_start, date__lte=parsed_end)
+            elif parsed_start:
+                date_q = Q(date__gte=parsed_start)
+            elif parsed_end:
+                date_q = Q(date__lte=parsed_end)
+
+            if date_q:
+                is_global = room_param and str(room_param).lower() == "global"
+                is_single_day = parsed_start and parsed_end and parsed_start == parsed_end
+                include_recurring = self.request.query_params.get("include_recurring", "").lower() in ["true", "1"]
+
+                if date_type and date_type.lower().strip() == "dated":
+                    queryset = queryset.filter(date_q)
+                elif date_type and date_type.lower().strip() == "recurring":
+                    queryset = queryset.filter(date__isnull=True)
+                elif is_global or is_single_day or include_recurring:
+                    queryset = queryset.filter(date_q | Q(date__isnull=True))
+                else:
+                    queryset = queryset.filter(date_q)
         else:
             date_param = self.request.query_params.get("date")
             if date_param:
                 parsed = parse_date(date_param.strip())
                 if parsed:
-                    queryset = queryset.filter(Q(date=parsed) | Q(date__isnull=True))
+                    date_single_q = Q(date=parsed)
+                    if date_type and date_type.lower().strip() == "dated":
+                        queryset = queryset.filter(date_single_q)
+                    else:
+                        queryset = queryset.filter(date_single_q | Q(date__isnull=True))
 
         # Session filter: morning, afternoon, evening
         session_param = self.request.query_params.get("session")

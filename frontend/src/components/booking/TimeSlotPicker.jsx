@@ -276,21 +276,21 @@ export default function TimeSlotPicker({
     );
   };
 
-  // Original slot lists
+  // Original slot lists (strictly prioritize real backend database slots)
   const allMorningSlots =
-    backendSlots?.morning ||
-    DEFAULT_SLOTS.morning ||
-    [];
+    backendSlots !== null
+      ? backendSlots?.morning || []
+      : DEFAULT_SLOTS.morning || [];
 
   const allAfternoonSlots =
-    backendSlots?.afternoon ||
-    DEFAULT_SLOTS.afternoon ||
-    [];
+    backendSlots !== null
+      ? backendSlots?.afternoon || []
+      : DEFAULT_SLOTS.afternoon || [];
 
   const allEveningSlots =
-    backendSlots?.evening ||
-    DEFAULT_SLOTS.evening ||
-    [];
+    backendSlots !== null
+      ? backendSlots?.evening || []
+      : DEFAULT_SLOTS.evening || [];
 
   // Visible slot lists
   const morningSlots =
@@ -614,11 +614,12 @@ export default function TimeSlotPicker({
         {/* QUICK DATE BUTTONS */}
         {/* ==================================================== */}
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5">
 
-          {upcomingDays.map((day) => {
+          {upcomingDays.map((day, idx) => {
             const isActive =
               selectedDate === day.isoDate;
+            const isLastOdd = idx === 4;
 
             return (
               <button
@@ -627,7 +628,9 @@ export default function TimeSlotPicker({
                 onClick={() =>
                   onSelectDate(day.isoDate)
                 }
-                className={`py-3 px-3 rounded-xl text-center transition flex flex-col items-center justify-center gap-1 border cursor-pointer ${
+                className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl text-center transition flex flex-col items-center justify-center gap-1 border cursor-pointer ${
+                  isLastOdd ? 'col-span-2 sm:col-span-1' : ''
+                } ${
                   isActive
                     ? 'bg-[#0051d5] text-white border-[#0051d5] shadow-md shadow-blue-600/25 ring-2 ring-[#0051d5] ring-offset-1'
                     : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-xs'
@@ -855,7 +858,7 @@ export default function TimeSlotPicker({
 
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
 
                   {morningSlots.map((slot) =>
                     renderSlotItem(slot)
@@ -903,7 +906,7 @@ export default function TimeSlotPicker({
 
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
 
                   {afternoonSlots.map((slot) =>
                     renderSlotItem(slot)
@@ -950,7 +953,7 @@ export default function TimeSlotPicker({
 
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
 
                   {eveningSlots.map((slot) =>
                     renderSlotItem(slot)

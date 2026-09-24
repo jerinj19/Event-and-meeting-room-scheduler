@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 export default function BulkTimeSlotModal({
   isOpen,
@@ -6,6 +6,7 @@ export default function BulkTimeSlotModal({
   onSaveBulk,
   rooms = [],
   loading = false,
+  defaultDate = '',
 }) {
   const [mode, setMode] = useState('generator'); // 'generator' | 'manual'
   const [error, setError] = useState('');
@@ -20,6 +21,12 @@ export default function BulkTimeSlotModal({
   const [genScopeType, setGenScopeType] = useState('global'); // 'global' | 'multiple'
   const [genSelectedRooms, setGenSelectedRooms] = useState([]); // array of room IDs
   const [genActive, setGenActive] = useState(true);
+
+  useEffect(() => {
+    if (isOpen && defaultDate) {
+      setGenSelectedDates([defaultDate]);
+    }
+  }, [isOpen, defaultDate]);
 
   // 2. Slots List (Editable rows before committing)
   const [rows, setRows] = useState([
@@ -682,8 +689,8 @@ export default function BulkTimeSlotModal({
               </div>
             ) : (
               <div className="border border-outline-variant/40 rounded-xl overflow-hidden shadow-xs">
-                <div className="max-h-[360px] overflow-y-auto">
-                  <table className="w-full text-left text-xs border-collapse">
+                <div className="max-h-[360px] overflow-y-auto overflow-x-auto">
+                  <table className="w-full min-w-[720px] text-left text-xs border-collapse">
                     <thead className="bg-surface-container-low text-secondary font-semibold uppercase text-[10px] tracking-wider sticky top-0 z-10 border-b border-outline-variant/30">
                       <tr>
                         <th className="py-2.5 px-3">#</th>

@@ -7,6 +7,7 @@ export default function AdminTimeSlotModal({
   slot = null,
   rooms = [],
   loading = false,
+  defaultDate = '',
 }) {
   const isEditMode = Boolean(slot);
 
@@ -14,6 +15,7 @@ export default function AdminTimeSlotModal({
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [period, setPeriod] = useState('auto');
+  const [scheduleType, setScheduleType] = useState('recurring'); // 'recurring' | 'specific'
   const [selectedDates, setSelectedDates] = useState([]);
   const [newDateInput, setNewDateInput] = useState('');
   const [scopeType, setScopeType] = useState('global'); // 'global' | 'multiple'
@@ -30,8 +32,15 @@ export default function AdminTimeSlotModal({
       setStartTime(slot.start || (slot.start_time ? slot.start_time.slice(0, 5) : '09:00'));
       setEndTime(slot.end || (slot.end_time ? slot.end_time.slice(0, 5) : '10:00'));
       setPeriod(slot.period || 'morning');
-      setSelectedDates(slot.date ? [slot.date] : [getTodayStr()]);
-      setNewDateInput(slot.date || getTodayStr());
+      if (slot.date) {
+        setScheduleType('specific');
+        setSelectedDates([slot.date]);
+        setNewDateInput(slot.date);
+      } else {
+        setScheduleType('recurring');
+        setSelectedDates([]);
+        setNewDateInput('');
+      }
       setScopeType(slot.room ? 'multiple' : 'global');
       setSelectedRoomIds(slot.room ? [slot.room] : []);
       setIsActive(slot.is_active !== undefined ? slot.is_active : true);
@@ -42,15 +51,22 @@ export default function AdminTimeSlotModal({
       setStartTime('09:00');
       setEndTime('10:00');
       setPeriod('auto');
-      setSelectedDates([getTodayStr()]);
-      setNewDateInput('');
+      if (defaultDate) {
+        setScheduleType('specific');
+        setSelectedDates([defaultDate]);
+        setNewDateInput(defaultDate);
+      } else {
+        setScheduleType('recurring');
+        setSelectedDates([getTodayStr()]);
+        setNewDateInput('');
+      }
       setScopeType('global');
       setSelectedRoomIds([]);
       setIsActive(true);
       setSortOrder(0);
       setError('');
     }
-  }, [slot, isOpen]);
+  }, [slot, isOpen, defaultDate]);
 
   // Compute calculated duration in minutes
   const calculatedDuration = useMemo(() => {
@@ -118,8 +134,8 @@ export default function AdminTimeSlotModal({
       return;
     }
 
-    if (selectedDates.length === 0) {
-      setError('Please select at least one calendar date.');
+    if (scheduleType === 'specific' && selectedDates.length === 0) {
+      setError('Please select at least one calendar date or choose Every Day (Recurring).');
       return;
     }
 
@@ -128,10 +144,13 @@ export default function AdminTimeSlotModal({
       return;
     }
 
+    const targetDate = scheduleType === 'specific' ? selectedDates[0] : null;
+    const targetDates = scheduleType === 'specific' ? selectedDates : [null];
+
     if (isEditMode) {
       onSave({
         label: label.trim(),
-        date: selectedDates[0],
+        date: targetDate,
         start_time: startTime,
         end_time: endTime,
         period: computedPeriod,
@@ -142,8 +161,8 @@ export default function AdminTimeSlotModal({
     } else {
       onSave({
         label: label.trim(),
-        dates: selectedDates,
-        date: selectedDates[0],
+        dates: targetDates,
+        date: targetDate,
         start_time: startTime,
         end_time: endTime,
         period: computedPeriod,
@@ -272,30 +291,65 @@ export default function AdminTimeSlotModal({
             </div>
 
             {/* Date Applicability Section */}
-            {isEditMode ? (
-              <div>
-                <label className="block text-xs font-semibold text-secondary mb-1.5">
-                  Calendar Date <span className="text-error">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={selectedDates[0] || ''}
-                  onChange={(e) => setSelectedDates(e.target.value ? [e.target.value] : [])}
-                  required
-                  className="w-full px-3 py-2 text-sm bg-surface-container-low border border-outline-variant/60 rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-secondary">
-                    Date Applicability (Specific Dates) <span className="text-error">*</span>
-                  </label>
-                  <span className="text-[11px] font-medium text-secondary">
-                    📅 {selectedDates.length} date{selectedDates.length === 1 ? '' : 's'} selected
-                  </span>
-                </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-secondary">
+                Date Applicability <span className="text-error">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setScheduleType('recurring')}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-medium transition cursor-pointer flex items-center gap-2 ${
+                    scheduleType === 'recurring'
+                      ? 'border-primary bg-primary/10 text-primary font-bold shadow-2xs'
+                      : 'border-outline-variant/60 bg-surface-container-low text-secondary hover:text-on-surface'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">repeat</span>
+                  <div>
+                    <div>Every Day (Daily)</div>
+                    <div className="text-[10px] opacity-75 font-normal">Active for all dates</div>
+                  </div>
+                </button>
 
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScheduleType('specific');
+                    if (selectedDates.length === 0) {
+                      setSelectedDates([defaultDate || getTodayStr()]);
+                    }
+                  }}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-medium transition cursor-pointer flex items-center gap-2 ${
+                    scheduleType === 'specific'
+                      ? 'border-primary bg-primary/10 text-primary font-bold shadow-2xs'
+                      : 'border-outline-variant/60 bg-surface-container-low text-secondary hover:text-on-surface'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+                  <div>
+                    <div>Specific Date(s)</div>
+                    <div className="text-[10px] opacity-75 font-normal">Target single or multiple days</div>
+                  </div>
+                </button>
+              </div>
+
+              {scheduleType === 'recurring' ? (
+                <div className="p-3 bg-blue-50/70 border border-blue-200/70 rounded-xl text-xs text-blue-800 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-blue-600">info</span>
+                  <span>This slot will recur on every calendar date (today, tomorrow, or any selected day).</span>
+                </div>
+              ) : isEditMode ? (
+                <div>
+                  <input
+                    type="date"
+                    value={selectedDates[0] || ''}
+                    onChange={(e) => setSelectedDates(e.target.value ? [e.target.value] : [])}
+                    required
+                    className="w-full px-3 py-2 text-sm bg-surface-container-low border border-outline-variant/60 rounded-xl text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
+                  />
+                </div>
+              ) : (
                 <div className="p-3 bg-surface-container-low border border-outline-variant/50 rounded-xl space-y-2.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <input
@@ -395,8 +449,8 @@ export default function AdminTimeSlotModal({
                     <p className="text-xs text-error italic">Please select or add at least one calendar date.</p>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">

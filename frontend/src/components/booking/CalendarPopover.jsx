@@ -117,7 +117,7 @@ export default function CalendarPopover({ selectedDate, onSelectDate, onClose })
 
   return (
     <div
-      className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 z-50 text-slate-800 animate-in fade-in zoom-in-95 duration-150"
+      className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-white rounded-2xl border border-slate-200 shadow-2xl p-3 sm:p-4 z-50 text-slate-800 animate-in fade-in zoom-in-95 duration-150"
       role="dialog"
       aria-label="30-Day Advance Booking Calendar"
     >

@@ -50,9 +50,13 @@ class BookingSerializer(serializers.ModelSerializer):
     room_name = serializers.ReadOnlyField(source="room.name")
     room_location = serializers.ReadOnlyField(source="room.location")
     room_capacity = serializers.ReadOnlyField(source="room.capacity")
+    room_amenities = serializers.ReadOnlyField(source="room.amenities")
+    room_hourly_rate = serializers.ReadOnlyField(source="room.hourly_rate")
     room_image = serializers.SerializerMethodField()
     user_email = serializers.ReadOnlyField(source="user.email")
     user_name = serializers.ReadOnlyField(source="user.full_name")
+    user_department = serializers.ReadOnlyField(source="user.department")
+    user_is_staff = serializers.ReadOnlyField(source="user.is_staff")
     session = serializers.SerializerMethodField()
     time_slot_label = serializers.SerializerMethodField()
 
@@ -90,10 +94,14 @@ class BookingSerializer(serializers.ModelSerializer):
             "room_name",
             "room_location",
             "room_capacity",
+            "room_amenities",
+            "room_hourly_rate",
             "room_image",
             "user",
             "user_email",
             "user_name",
+            "user_department",
+            "user_is_staff",
             "title",
             "description",
             "start_time",
@@ -110,9 +118,13 @@ class BookingSerializer(serializers.ModelSerializer):
             "user",
             "user_email",
             "user_name",
+            "user_department",
+            "user_is_staff",
             "room_name",
             "room_location",
             "room_capacity",
+            "room_amenities",
+            "room_hourly_rate",
             "room_image",
             "session",
             "time_slot_label",

@@ -128,18 +128,15 @@ export default function AdminRoomsPage() {
     try {
       if (editingRoom) {
         // UPDATE (PATCH)
-        const updated = await roomService.updateRoom(editingRoom.id, formData);
-        setRooms((prev) =>
-          prev.map((r) => (r.id === editingRoom.id ? { ...r, ...updated, ...formData } : r))
-        );
+        await roomService.updateRoom(editingRoom.id, formData);
         toast.success(`Room "${formData.name}" updated successfully!`);
       } else {
         // CREATE (POST)
-        const created = await roomService.createRoom(formData);
-        setRooms((prev) => [created, ...prev]);
+        await roomService.createRoom(formData);
         toast.success(`Room "${formData.name}" created and published!`);
       }
 
+      await loadRooms();
       setIsModalOpen(false);
       setEditingRoom(null);
     } catch (err) {

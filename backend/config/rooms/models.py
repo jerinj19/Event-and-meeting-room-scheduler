@@ -28,6 +28,28 @@ class Room(models.Model):
         default=0.00,
         help_text="Hourly rental rate in INR (₹)"
     )
+    floor_area = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Floor area in square feet (sq ft)"
+    )
+    av_equipment = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of admin-selected Audio/Visual equipment"
+    )
+    acoustics = models.CharField(
+        max_length=150,
+        blank=True,
+        default="",
+        help_text="Acoustics rating or specifications (e.g. 'NRC 0.88 - Soundproofed Glazing')"
+    )
+    connectivity = models.CharField(
+        max_length=150,
+        blank=True,
+        default="",
+        help_text="Connectivity specifications (e.g. 'Wi-Fi 6E - 1.2 Gbps Dedicated')"
+    )
     is_active = models.BooleanField(default=True, help_text="Designates whether this room is available for scheduling")
 
     created_by = models.ForeignKey(
@@ -58,3 +80,33 @@ class Room(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.location}) - Cap: {self.capacity}"
+
+
+class RoomImage(models.Model):
+    """
+    Stores multiple perspective photos for a meeting room.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="images",
+        help_text="Associated meeting room"
+    )
+    image = models.ImageField(
+        upload_to="room_images/",
+        help_text="Perspective photo of the room"
+    )
+    is_primary = models.BooleanField(
+        default=False,
+        help_text="Indicates whether this image is the primary cover photo"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "room_images"
+        ordering = ["-is_primary", "created_at"]
+
+    def __str__(self):
+        return f"Image for {self.room.name} ({'Primary' if self.is_primary else 'Gallery'})"

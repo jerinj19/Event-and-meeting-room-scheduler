@@ -92,14 +92,16 @@ export const roomService = {
   },
 
   /**
-   * Create a new room (Staff only) - supports both JSON and multipart/form-data for image uploads
+   * Create a new room (Staff only) - supports both JSON and multipart/form-data for multiple image uploads
    */
   async createRoom(roomData) {
     const token = localStorage.getItem('access_token');
     const rate = Number(roomData.hourly_rate ?? roomData.hourlyRate ?? 0);
-    
-    // If an image file is provided, use FormData
-    if (roomData.imageFile instanceof File) {
+    const hasFiles = (Array.isArray(roomData.imageFiles) && roomData.imageFiles.length > 0) ||
+                     (roomData.imageFile instanceof File);
+
+    // If image files are provided, use FormData
+    if (hasFiles) {
       const formData = new FormData();
       formData.append('name', roomData.name.trim());
       formData.append('capacity', Number(roomData.capacity));
@@ -107,7 +109,34 @@ export const roomService = {
       formData.append('hourly_rate', rate);
       formData.append('amenities', JSON.stringify(roomData.amenities || []));
       formData.append('is_active', roomData.is_active !== undefined ? roomData.is_active : true);
-      formData.append('image', roomData.imageFile);
+      
+      if (roomData.floor_area !== undefined && roomData.floor_area !== null && roomData.floor_area !== '') {
+        formData.append('floor_area', Number(roomData.floor_area));
+      }
+      if (roomData.av_equipment !== undefined) {
+        formData.append('av_equipment', JSON.stringify(roomData.av_equipment || []));
+      }
+      if (roomData.acoustics !== undefined) {
+        formData.append('acoustics', roomData.acoustics || '');
+      }
+      if (roomData.connectivity !== undefined) {
+        formData.append('connectivity', roomData.connectivity || '');
+      }
+
+      if (Array.isArray(roomData.imageFiles) && roomData.imageFiles.length > 0) {
+        roomData.imageFiles.forEach((file) => {
+          if (file instanceof File) {
+            formData.append('images', file);
+          }
+        });
+        formData.append('primary_image_index', roomData.primary_image_index ?? 0);
+      } else if (roomData.imageFile instanceof File) {
+        formData.append('image', roomData.imageFile);
+      }
+
+      if (roomData.image && typeof roomData.image === 'string' && !roomData.image.startsWith('blob:')) {
+        formData.append('image', roomData.image);
+      }
 
       const response = await fetch(`${API_BASE_URL}/rooms/`, {
         method: 'POST',
@@ -125,6 +154,11 @@ export const roomService = {
       hourly_rate: rate,
       amenities: roomData.amenities || [],
       is_active: roomData.is_active !== undefined ? roomData.is_active : true,
+      floor_area: roomData.floor_area ? Number(roomData.floor_area) : null,
+      av_equipment: roomData.av_equipment || [],
+      acoustics: roomData.acoustics || '',
+      connectivity: roomData.connectivity || '',
+      ...(roomData.image && !roomData.image.startsWith('blob:') ? { image: roomData.image } : {}),
     };
 
     const response = await fetch(`${API_BASE_URL}/rooms/`, {
@@ -137,7 +171,7 @@ export const roomService = {
   },
 
   /**
-   * Update an existing room (Staff only) - supports both JSON and multipart/form-data for image uploads
+   * Update an existing room (Staff only) - supports both JSON and multipart/form-data for multiple images
    */
   async updateRoom(roomId, roomData) {
     const token = localStorage.getItem('access_token');
@@ -145,8 +179,13 @@ export const roomService = {
       ? Number(roomData.hourly_rate ?? roomData.hourlyRate) 
       : undefined;
 
-    // If a new image file is uploaded, use FormData
-    if (roomData.imageFile instanceof File) {
+    const hasFiles = (Array.isArray(roomData.imageFiles) && roomData.imageFiles.length > 0) ||
+                     (roomData.imageFile instanceof File) ||
+                     (Array.isArray(roomData.delete_image_ids) && roomData.delete_image_ids.length > 0) ||
+                     (roomData.primary_image_id !== undefined && roomData.primary_image_id !== null);
+
+    // If new files or image modifications are uploaded, use FormData
+    if (hasFiles) {
       const formData = new FormData();
       if (roomData.name !== undefined) formData.append('name', roomData.name.trim());
       if (roomData.capacity !== undefined) formData.append('capacity', Number(roomData.capacity));
@@ -156,7 +195,41 @@ export const roomService = {
         formData.append('amenities', JSON.stringify(roomData.amenities));
       }
       if (roomData.is_active !== undefined) formData.append('is_active', roomData.is_active);
-      formData.append('image', roomData.imageFile);
+      if (roomData.floor_area !== undefined) {
+        if (roomData.floor_area === '' || roomData.floor_area === null) {
+          formData.append('floor_area', '');
+        } else {
+          formData.append('floor_area', Number(roomData.floor_area));
+        }
+      }
+      if (roomData.av_equipment !== undefined) {
+        formData.append('av_equipment', JSON.stringify(roomData.av_equipment));
+      }
+      if (roomData.acoustics !== undefined) formData.append('acoustics', roomData.acoustics || '');
+      if (roomData.connectivity !== undefined) formData.append('connectivity', roomData.connectivity || '');
+
+      if (Array.isArray(roomData.imageFiles) && roomData.imageFiles.length > 0) {
+        roomData.imageFiles.forEach((file) => {
+          if (file instanceof File) {
+            formData.append('images', file);
+          }
+        });
+        if (roomData.primary_image_index !== undefined) {
+          formData.append('primary_image_index', roomData.primary_image_index);
+        }
+      } else if (roomData.imageFile instanceof File) {
+        formData.append('image', roomData.imageFile);
+      }
+
+      if (Array.isArray(roomData.delete_image_ids) && roomData.delete_image_ids.length > 0) {
+        formData.append('delete_image_ids', JSON.stringify(roomData.delete_image_ids));
+      }
+      if (roomData.primary_image_id) {
+        formData.append('primary_image_id', roomData.primary_image_id);
+      }
+      if (roomData.image && typeof roomData.image === 'string' && !roomData.image.startsWith('blob:')) {
+        formData.append('image', roomData.image);
+      }
 
       const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/`, {
         method: 'PATCH',
@@ -174,6 +247,15 @@ export const roomService = {
     if (rate !== undefined) payload.hourly_rate = rate;
     if (roomData.amenities !== undefined) payload.amenities = roomData.amenities;
     if (roomData.is_active !== undefined) payload.is_active = roomData.is_active;
+    if (roomData.floor_area !== undefined) {
+      payload.floor_area = roomData.floor_area ? Number(roomData.floor_area) : null;
+    }
+    if (roomData.av_equipment !== undefined) payload.av_equipment = roomData.av_equipment;
+    if (roomData.acoustics !== undefined) payload.acoustics = roomData.acoustics;
+    if (roomData.connectivity !== undefined) payload.connectivity = roomData.connectivity;
+    if (roomData.image !== undefined && !roomData.image.startsWith('blob:')) {
+      payload.image = roomData.image;
+    }
 
     const response = await fetch(`${API_BASE_URL}/rooms/${roomId}/`, {
       method: 'PATCH',

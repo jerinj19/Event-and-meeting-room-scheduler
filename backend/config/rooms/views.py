@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from .models import Room
+from .models import Room, RoomImage
 from .permissions import IsAdminOrReadOnly
 from .serializers import RoomSerializer
 
@@ -20,13 +20,74 @@ class RoomViewSet(viewsets.ModelViewSet):
     - GET /api/rooms/gallery/: Distinct previously uploaded room images.
     """
 
-    queryset = Room.objects.select_related("created_by").order_by("name")
+    queryset = Room.objects.select_related("created_by").prefetch_related("images").order_by("name")
     serializer_class = RoomSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
     parser_classes = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        room = serializer.save(created_by=self.request.user)
+        self._handle_multiple_images(room)
+
+    def perform_update(self, serializer):
+        room = serializer.save()
+        self._handle_multiple_images(room)
+
+    def _handle_multiple_images(self, room):
+        uploaded_files = self.request.FILES.getlist("images")
+        primary_index_raw = self.request.data.get("primary_image_index", 0)
+        try:
+            primary_index = int(primary_index_raw)
+        except (ValueError, TypeError):
+            primary_index = 0
+
+        # Handle deletion of any existing images requested
+        delete_ids = self.request.data.get("delete_image_ids")
+        if delete_ids:
+            if isinstance(delete_ids, str):
+                import json
+                try:
+                    delete_ids = json.loads(delete_ids)
+                except Exception:
+                    delete_ids = [delete_ids]
+            if isinstance(delete_ids, list):
+                room.images.filter(id__in=delete_ids).delete()
+
+        # Handle existing image primary designation
+        primary_image_id = self.request.data.get("primary_image_id")
+        if primary_image_id:
+            try:
+                target = room.images.get(id=primary_image_id)
+                room.images.all().update(is_primary=False)
+                target.is_primary = True
+                target.save(update_fields=["is_primary"])
+                room.image = target.image
+                room.save(update_fields=["image"])
+            except Exception:
+                pass
+
+        # Handle newly uploaded files
+        if uploaded_files:
+            if 0 <= primary_index < len(uploaded_files):
+                room.images.all().update(is_primary=False)
+
+            for idx, img_file in enumerate(uploaded_files):
+                is_primary = (idx == primary_index)
+                room_img = RoomImage.objects.create(
+                    room=room,
+                    image=img_file,
+                    is_primary=is_primary,
+                )
+                if is_primary:
+                    room.image = room_img.image
+                    room.save(update_fields=["image"])
+        elif room.image and not room.images.exists():
+            # If a single image was uploaded via the legacy/standard 'image' field
+            RoomImage.objects.create(
+                room=room,
+                image=room.image,
+                is_primary=True,
+            )
 
     @action(detail=False, methods=["get"], url_path="gallery")
     def gallery(self, request):

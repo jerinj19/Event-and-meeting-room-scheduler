@@ -20,6 +20,72 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
     return list.map((a) => (typeof a === 'string' ? a.trim() : String(a))).filter(Boolean);
   }, [room?.amenities]);
 
+  // Compute normalized Audio/Visual equipment for the room
+  const avEquipmentList = useMemo(() => {
+    if (!room?.av_equipment) return [];
+    let list = [];
+    if (Array.isArray(room.av_equipment)) {
+      list = room.av_equipment;
+    } else if (typeof room.av_equipment === 'string') {
+      try {
+        const parsed = JSON.parse(room.av_equipment);
+        list = Array.isArray(parsed) ? parsed : [room.av_equipment];
+      } catch {
+        list = [room.av_equipment];
+      }
+    }
+    return list.map((item) => (typeof item === 'string' ? item.trim() : String(item))).filter(Boolean);
+  }, [room?.av_equipment]);
+
+  // Extract all real photos for the room (from room.images and room.image; no mock data)
+  const galleryImages = useMemo(() => {
+    if (!room) return [];
+    const images = [];
+
+    const formatUrl = (url) => {
+      if (!url) return null;
+      if (typeof url === 'string') {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          return url;
+        }
+        const host = window.location.hostname === '127.0.0.1' ? '127.0.0.1:8000' : 'localhost:8000';
+        const clean = url.startsWith('/') ? url : `/${url}`;
+        return `http://${host}${clean}`;
+      }
+      return null;
+    };
+
+    // If related RoomImage objects exist
+    if (Array.isArray(room.images) && room.images.length > 0) {
+      room.images.forEach((imgObj) => {
+        const url = formatUrl(imgObj.image_url || imgObj.image || imgObj.url);
+        if (url && !images.includes(url)) {
+          // Put primary image first if applicable
+          if (imgObj.is_primary) {
+            images.unshift(url);
+          } else {
+            images.push(url);
+          }
+        }
+      });
+    }
+
+    // Check room.image cover
+    if (room.image) {
+      const coverUrl = formatUrl(room.image);
+      if (coverUrl && !images.includes(coverUrl)) {
+        images.unshift(coverUrl);
+      }
+    }
+
+    return images;
+  }, [room]);
+
+  // Reset selected photo when room changes
+  useEffect(() => {
+    setSelectedPhoto(galleryImages[0] || null);
+  }, [galleryImages]);
+
   // Support closing with Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -33,18 +99,14 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
 
   if (!room) return null;
 
-  const galleryImages = [
-    room.image || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=400&q=80',
-    'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=400&q=80',
-    'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=400&q=80',
-  ];
-
-  const activePhoto = selectedPhoto || room.image || galleryImages[0];
+  const activePhoto = selectedPhoto || galleryImages[0] || null;
   const isAvailable = room.status === 'Available' || (room.is_active !== false && room.status !== 'In-Maintenance');
 
+  const hasAcoustics = Boolean(room.acoustics && room.acoustics.trim());
+  const hasConnectivity = Boolean(room.connectivity && room.connectivity.trim());
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-10 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-8 animate-fade-in">
       {/* Dimmed Blurred Backdrop */}
       <div
         className="fixed inset-0 bg-slate-900/65 backdrop-blur-xs transition-opacity"
@@ -52,13 +114,12 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
       />
 
       {/* Modal Dialog Box */}
-      <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] overflow-y-auto z-10 animate-scale-up flex flex-col justify-between">
-        
+      <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[92vh] overflow-y-auto z-10 animate-scale-up flex flex-col justify-between">
         {/* Sticky Modal Header */}
-        <div className="sticky top-0 bg-white/95 backdrop-blur-md px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between z-20">
           <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+              <h2 className="text-base sm:text-xl font-bold text-slate-900 leading-tight">
                 {room.name}
               </h2>
               <span
@@ -85,7 +146,7 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
             type="button"
             onClick={onClose}
             aria-label="Close modal"
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -94,91 +155,143 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="p-5 sm:p-6 space-y-6">
-          
+        <div className="p-4 sm:p-6 space-y-6">
           {/* Photo Gallery */}
           <div className="space-y-2">
-            <div className="h-56 sm:h-72 w-full rounded-2xl overflow-hidden bg-slate-100 relative">
-              <img
-                src={activePhoto}
-                alt={room.name}
-                className="w-full h-full object-cover transition duration-300"
-              />
-              <span className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-xs px-2.5 py-1 rounded-lg">
-                Primary Perspective (East Panorama)
-              </span>
+            <div className="h-52 sm:h-72 w-full rounded-2xl overflow-hidden bg-slate-100 relative border border-slate-200/60">
+              {activePhoto ? (
+                <>
+                  <img
+                    src={activePhoto}
+                    alt={room.name}
+                    className="w-full h-full object-cover transition duration-300"
+                  />
+                  <span className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] sm:text-xs px-2.5 py-1 rounded-lg">
+                    {galleryImages.indexOf(activePhoto) === 0 ? 'Primary Perspective' : `Perspective ${galleryImages.indexOf(activePhoto) + 1}`}
+                  </span>
+                </>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 p-6 text-center">
+                  <svg className="w-12 h-12 mb-2 stroke-current opacity-40" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-xs font-semibold text-slate-500">No photos uploaded for this room yet</p>
+                  <p className="text-[11px] text-slate-400">Admin can upload room perspectives from the manage dashboard</p>
+                </div>
+              )}
             </div>
 
-            {/* Thumbnail Row */}
-            <div className="grid grid-cols-4 gap-2">
-              {galleryImages.map((imgUrl, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setSelectedPhoto(imgUrl)}
-                  className={`h-16 sm:h-20 rounded-xl overflow-hidden border-2 transition ${
-                    activePhoto === imgUrl ? 'border-blue-600 scale-[0.98]' : 'border-slate-200 opacity-75 hover:opacity-100'
-                  }`}
-                >
-                  <img src={imgUrl} className="w-full h-full object-cover" alt={`Perspective ${i + 1}`} />
-                </button>
-              ))}
-            </div>
+            {/* Thumbnail Row (Only shown if multiple photos exist) */}
+            {galleryImages.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 pt-0.5">
+                {galleryImages.map((imgUrl, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSelectedPhoto(imgUrl)}
+                    className={`h-16 sm:h-20 w-24 sm:w-28 shrink-0 rounded-xl overflow-hidden border-2 transition cursor-pointer ${
+                      activePhoto === imgUrl
+                        ? 'border-blue-600 scale-[0.98] ring-2 ring-blue-500/20 shadow-xs'
+                        : 'border-slate-200 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={imgUrl} className="w-full h-full object-cover" alt={`Perspective ${i + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 4-Card Quick Specs Strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* 1. Capacity */}
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5">
               <p className="text-[11px] text-slate-400 font-medium">Capacity</p>
               <p className="text-sm font-bold text-slate-900 mt-0.5">👥 {room.capacity} People</p>
-              <p className="text-[11px] text-slate-500">Executive Seating</p>
+              <p className="text-[11px] text-slate-500">Seating Capacity</p>
             </div>
+
+            {/* 2. Floor Area (Rendered in sq ft as requested) */}
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5">
               <p className="text-[11px] text-slate-400 font-medium">Floor Area</p>
-              <p className="text-sm font-bold text-slate-900 mt-0.5">📐 {room.area || '1,200 sq ft'}</p>
-              <p className="text-[11px] text-slate-500">112 m² Space</p>
+              <p className="text-sm font-bold text-slate-900 mt-0.5">
+                📐 {room.floor_area ? `${room.floor_area} sq ft` : (room.area || 'Flexible Space')}
+              </p>
+              <p className="text-[11px] text-slate-500">Usable Footprint</p>
             </div>
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5">
-              <p className="text-[11px] text-slate-400 font-medium">Acoustics</p>
-              <p className="text-sm font-bold text-slate-900 mt-0.5">🔇 NRC 0.88</p>
-              <p className="text-[11px] text-slate-500">Soundproofed Glazing</p>
-            </div>
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5">
-              <p className="text-[11px] text-slate-400 font-medium">Connectivity</p>
-              <p className="text-sm font-bold text-slate-900 mt-0.5">📶 Wi-Fi 6E</p>
-              <p className="text-[11px] text-slate-500">1.2 Gbps Dedicated</p>
-            </div>
+
+            {/* 3. Acoustics (Active color if selected by admin, Dim mode if unselected) */}
+            {hasAcoustics ? (
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 transition">
+                <p className="text-[11px] text-slate-400 font-medium">Acoustics</p>
+                <p className="text-sm font-bold text-slate-900 mt-0.5">
+                  🔇 {room.acoustics.includes('-') ? room.acoustics.split('-')[0].trim() : (room.acoustics || 'NRC 0.88')}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {room.acoustics.includes('-') ? room.acoustics.split('-').slice(1).join('-').trim() : 'Soundproofed Glazing'}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-slate-50/50 border border-dashed border-slate-200 rounded-xl p-3.5 opacity-60">
+                <p className="text-[11px] text-slate-400 font-medium">Acoustics</p>
+                <p className="text-sm font-medium text-slate-400 mt-0.5">🔇 Not Specified</p>
+                <p className="text-[11px] text-slate-400">Standard Sound Insulation</p>
+              </div>
+            )}
+
+            {/* 4. Connectivity (Active color if selected by admin, Dim mode if unselected) */}
+            {hasConnectivity ? (
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 transition">
+                <p className="text-[11px] text-slate-400 font-medium">Connectivity</p>
+                <p className="text-sm font-bold text-slate-900 mt-0.5">
+                  📶 {room.connectivity.includes('-') ? room.connectivity.split('-')[0].trim() : (room.connectivity || 'Wi-Fi 6E')}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {room.connectivity.includes('-') ? room.connectivity.split('-').slice(1).join('-').trim() : 'Dedicated Network'}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-slate-50/50 border border-dashed border-slate-200 rounded-xl p-3.5 opacity-60">
+                <p className="text-[11px] text-slate-400 font-medium">Connectivity</p>
+                <p className="text-sm font-medium text-slate-400 mt-0.5">📶 Not Specified</p>
+                <p className="text-[11px] text-slate-400">Standard Office Network</p>
+              </div>
+            )}
           </div>
 
           {/* Equipment & Specs Breakdown (2 Columns) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Audio / Visual */}
+            {/* Audio / Visual & Conferencing (Displays only admin-selected items with green checkmarks) */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <span className="text-blue-600">📺</span>
-                Audio/Visual & Conferencing
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="text-blue-600">📺</span>
+                  Audio/Visual & Conferencing
+                </h4>
+                {avEquipmentList.length > 0 && (
+                  <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/60 px-2 py-0.5 rounded-full">
+                    {avEquipmentList.length} Configured
+                  </span>
+                )}
+              </div>
               <ul className="space-y-2 text-xs text-slate-700">
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-600 font-bold">✓</span>
-                  Dual 65" 4K Sony Bravia Commercial Displays
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-600 font-bold">✓</span>
-                  Polycom Studio 4K Auto-Tracking PTZ Camera
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-600 font-bold">✓</span>
-                  Biamp Beamforming Ceiling Array Microphones
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-emerald-600 font-bold">✓</span>
-                  Wireless Screen Sharing (AirPlay, Miracast, HDMI/USB-C)
-                </li>
+                {avEquipmentList.length > 0 ? (
+                  avEquipmentList.map((item, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <span className="text-emerald-600 font-bold shrink-0">✓</span>
+                      <span className="text-slate-700">{item}</span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="flex items-center gap-2 text-slate-400 italic">
+                    <span className="text-slate-400">ℹ</span>
+                    <span>Standard AV setup available upon request.</span>
+                  </li>
+                )}
               </ul>
             </div>
 
-            {/* Amenities & Hospitality */}
+            {/* Workplace Amenities & Hospitality */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -214,11 +327,10 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
             <span>🛡️ <strong>Free Cancellation:</strong> Up to 1 hour before scheduled start time.</span>
             <span>👨‍💻 <strong>IT Concierge:</strong> On-site setup assistance available.</span>
           </div>
-
         </div>
 
         {/* Modal Sticky Footer Action Bar */}
-        <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-5 sm:px-6 py-4 rounded-b-2xl sm:rounded-b-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-4 sm:px-6 py-3.5 sm:py-4 rounded-b-2xl sm:rounded-b-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-20">
           <p className="text-xs text-slate-500 font-medium">
             Hourly Rate: <strong className="text-slate-800">₹{room.hourlyRate ?? room.hourly_rate ?? '500'}/hr</strong> • Complimentary for Internal Teams
           </p>
@@ -226,7 +338,7 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition"
+              className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer"
             >
               Back to Catalog
             </button>
@@ -242,7 +354,6 @@ export default function RoomDetailsModal({ room, onClose, onBook }) {
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

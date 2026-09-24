@@ -35,8 +35,9 @@ export default function RoomCatalog() {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const host = window.location.hostname === '127.0.0.1' ? '127.0.0.1:8000' : 'localhost:8000';
 
-    fetch('http://127.0.0.1:8000/api/rooms/', { headers })
+    fetch(`http://${host}/api/rooms/`, { headers })
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Backend rooms endpoint not active');
@@ -44,20 +45,41 @@ export default function RoomCatalog() {
       .then((data) => {
         const list = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : []);
         if (list.length > 0) {
-          const formatted = list.map((r, i) => {
+          const formatted = list.map((r) => {
             const rawRate = Number(r.hourly_rate ?? r.hourlyRate ?? 500);
+
+            const formatMediaUrl = (url) => {
+              if (!url) return null;
+              if (typeof url === 'string' && url.startsWith('http')) return url;
+              const clean = typeof url === 'string' && url.startsWith('/') ? url : `/${url}`;
+              return `http://${host}${clean}`;
+            };
+
+            const coverImg = formatMediaUrl(r.image);
+            const formattedImages = Array.isArray(r.images)
+              ? r.images.map((im) => ({
+                  ...im,
+                  image_url: formatMediaUrl(im.image_url || im.image),
+                  url: formatMediaUrl(im.image_url || im.image),
+                }))
+              : [];
+
             return {
+              ...r,
               id: r.id,
               name: r.name,
               location: r.location || 'Bangalore Workspace',
               capacity: r.capacity || 4,
-              area: r.area || `${Math.round((r.capacity || 4) * 60 + 100)} sq ft`,
+              floor_area: r.floor_area !== undefined && r.floor_area !== null ? Number(r.floor_area) : null,
+              area: r.floor_area ? `${r.floor_area} sq ft` : (r.area || `${Math.round((r.capacity || 4) * 60 + 100)} sq ft`),
+              av_equipment: Array.isArray(r.av_equipment) ? r.av_equipment : [],
+              acoustics: r.acoustics || '',
+              connectivity: r.connectivity || '',
+              images: formattedImages,
               hourlyRate: rawRate,
               hourly_rate: rawRate,
               status: r.is_active ? 'Available' : 'In-Maintenance',
-              image: r.image 
-                ? (r.image.startsWith('http') ? r.image : `http://127.0.0.1:8000${r.image}`)
-                : 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+              image: coverImg || (formattedImages[0]?.url) || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
               amenities: Array.isArray(r.amenities) ? r.amenities : [],
               is_active: r.is_active !== undefined ? r.is_active : true,
             };

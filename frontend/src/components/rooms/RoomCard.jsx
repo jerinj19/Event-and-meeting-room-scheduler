@@ -40,10 +40,10 @@ export default function RoomCard({ room, onViewSpecs, onBook }) {
           {/* Capacity and Area Pill */}
           <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-xs px-2.5 py-1 rounded-lg flex items-center gap-2">
             <span>👥 {room.capacity} People</span>
-            {room.area && (
+            {(room.floor_area || room.area) && (
               <>
                 <span className="text-slate-400">•</span>
-                <span>{room.area}</span>
+                <span>{room.floor_area ? `${room.floor_area} sq ft` : room.area}</span>
               </>
             )}
           </div>

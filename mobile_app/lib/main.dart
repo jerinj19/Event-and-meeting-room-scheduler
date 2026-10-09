@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/booking_provider.dart';
 import 'providers/room_provider.dart';
+import 'providers/time_slot_provider.dart';
 import 'screens/splash/splash_screen.dart';
 
 void main() async {
@@ -24,6 +25,7 @@ class SchedulerMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => RoomProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ChangeNotifierProvider(create: (_) => TimeSlotProvider()),
       ],
       child: MaterialApp(
         title: 'Innovyx Room Scheduler',

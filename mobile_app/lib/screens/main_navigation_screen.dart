@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
+import 'admin/admin_bookings_screen.dart';
 import 'admin/admin_dashboard_screen.dart';
+import 'admin/admin_reports_screen.dart';
+import 'admin/admin_room_list_screen.dart';
+import 'admin/admin_time_slots_screen.dart';
+import 'admin/admin_user_directory_screen.dart';
 import 'auth/login_screen.dart';
 import 'booking/book_room_screen.dart';
 import 'dashboard/user_dashboard_screen.dart';
@@ -107,22 +112,49 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         hasGlobalHeader: true,
       ),
       RoomCatalogScreen(
-        onBack: () => _onTabTapped(0),
+        onBack: () => _onTabTapped(isStaff ? 4 : 0),
         onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
         hasGlobalHeader: true,
       ),
       MyBookingsScreen(
-        onBack: () => _onTabTapped(0),
+        onBack: () => _onTabTapped(isStaff ? 4 : 0),
         onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
         hasGlobalHeader: true,
       ),
       const SizedBox.shrink(), // Index 3 is modal BookRoomScreen action
-      if (isStaff)
+      if (isStaff) ...[
         AdminDashboardScreen(
-          onBack: () => _onTabTapped(0),
+          onBack: () => _onTabTapped(4),
+          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+          onNavigateTab: _onTabTapped,
+          hasGlobalHeader: true,
+        ),
+        AdminBookingsScreen(
+          onBack: () => _onTabTapped(4),
           onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
           hasGlobalHeader: true,
         ),
+        AdminRoomListScreen(
+          onBack: () => _onTabTapped(4),
+          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+          hasGlobalHeader: true,
+        ),
+        AdminUserDirectoryScreen(
+          onBack: () => _onTabTapped(4),
+          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+          hasGlobalHeader: true,
+        ),
+        AdminTimeSlotsScreen(
+          onBack: () => _onTabTapped(4),
+          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+          hasGlobalHeader: true,
+        ),
+        AdminReportsScreen(
+          onBack: () => _onTabTapped(4),
+          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+          hasGlobalHeader: true,
+        ),
+      ],
     ];
 
     final safeIndex = _currentIndex >= screens.length ? 0 : _currentIndex;
@@ -161,9 +193,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             // Unified Web-Style Top Header across whole screen
             AppHeader(
               user: user,
+              isAdminMode: isStaff || safeIndex >= 4,
               onToggleSidebar: () => _scaffoldKey.currentState?.openDrawer(),
               onSearch: (q) {
-                _onTabTapped(1); // Go to Room Catalog
+                if (safeIndex >= 4) {
+                  _onTabTapped(5); // Admin All Bookings
+                } else {
+                  _onTabTapped(1); // Room Catalog
+                }
               },
               onOpenSettings: _openSettings,
               onLogout: _confirmLogout,

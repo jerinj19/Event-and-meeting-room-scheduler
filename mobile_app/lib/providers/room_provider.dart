@@ -190,6 +190,28 @@ class RoomProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> createRoomFromPayload(Map<String, dynamic> data) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.createRoomPayload(data);
+      await fetchRooms();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _errorMessage = 'Failed to create room.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> updateRoom(String id, Map<String, dynamic> updates) async {
     _isLoading = true;
     _errorMessage = null;

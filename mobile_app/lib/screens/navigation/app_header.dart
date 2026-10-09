@@ -10,6 +10,7 @@ class AppHeader extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback? onOpenNotifications;
   final VoidCallback? onOpenSettings;
   final VoidCallback? onLogout;
+  final bool isAdminMode;
 
   const AppHeader({
     super.key,
@@ -19,6 +20,7 @@ class AppHeader extends StatefulWidget implements PreferredSizeWidget {
     this.onOpenNotifications,
     this.onOpenSettings,
     this.onLogout,
+    this.isAdminMode = false,
   });
 
   @override
@@ -84,24 +86,28 @@ class _AppHeaderState extends State<AppHeader> {
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: AppTheme.primary,
+                    color: widget.isAdminMode ? const Color(0xFF1E293B) : AppTheme.primary,
                     borderRadius: BorderRadius.circular(9),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primary.withValues(alpha: 0.25),
+                        color: (widget.isAdminMode ? const Color(0xFF1E293B) : AppTheme.primary).withValues(alpha: 0.25),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(Icons.apartment_rounded, color: Colors.white, size: 20),
+                  child: Center(
+                    child: Icon(
+                      widget.isAdminMode ? Icons.admin_panel_settings_rounded : Icons.apartment_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Text(
-                  'Innovyx Rooms',
-                  style: TextStyle(
+                Text(
+                  widget.isAdminMode ? 'Innovyx Admin' : 'Innovyx Rooms',
+                  style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -114,17 +120,19 @@ class _AppHeaderState extends State<AppHeader> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: widget.isAdminMode ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                        color: widget.isAdminMode ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+                      ),
                     ),
-                    child: const Text(
-                      'Workspace v7.4',
+                    child: Text(
+                      widget.isAdminMode ? 'Operations Center' : 'Workspace v7.4',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF64748B),
+                        color: widget.isAdminMode ? const Color(0xFF92400E) : const Color(0xFF64748B),
                       ),
                     ),
                   ),
@@ -161,9 +169,11 @@ class _AppHeaderState extends State<AppHeader> {
                               fontSize: 13,
                               color: Color(0xFF0F172A),
                             ),
-                            decoration: const InputDecoration(
-                              hintText: 'Search by location, amenities, room name...',
-                              hintStyle: TextStyle(
+                            decoration: InputDecoration(
+                              hintText: widget.isAdminMode
+                                  ? 'Search bookings, users, rooms...'
+                                  : 'Search by location, amenities, room name...',
+                              hintStyle: const TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 13,
                                 color: Color(0xFF94A3B8),
@@ -197,37 +207,38 @@ class _AppHeaderState extends State<AppHeader> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // "+ Book Slot" Button (Exact Web Style)
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const BookRoomScreen()),
-                  );
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: Text(
-                  screenWidth < 400 ? 'Book' : 'Book Slot',
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+              // "+ Book Slot" Button (Only in Member / User Mode, Hidden in Admin Console)
+              if (!widget.isAdminMode) ...[
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const BookRoomScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text(
+                    screenWidth < 400 ? 'Book' : 'Book Slot',
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth < 400 ? 10 : 14,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth < 400 ? 10 : 14,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: 10),
+                const SizedBox(width: 10),
+              ],
 
               // Notification Bell with Unread Red Dot (Web style)
               Stack(

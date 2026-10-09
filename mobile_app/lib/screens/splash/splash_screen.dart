@@ -28,8 +28,11 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (authProvider.isAuthenticated) {
+      final isStaff = authProvider.isStaff;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        MaterialPageRoute(
+          builder: (_) => MainNavigationScreen(initialTabIndex: isStaff ? 4 : 0),
+        ),
       );
     } else {
       Navigator.of(context).pushReplacement(

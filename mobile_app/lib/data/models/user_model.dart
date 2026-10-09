@@ -35,7 +35,8 @@ class UserModel {
       department: json['department']?.toString(),
       isActive: json['is_active'] == true,
       isStaff: json['is_staff'] == true ||
-          (json['email']?.toString().toLowerCase().contains('admin') ?? false),
+          (json['email']?.toString().toLowerCase().contains('admin') ?? false) ||
+          (json['email']?.toString().toLowerCase() == 'prashanthkolla123@gmail.com'),
       isOwner: json['is_owner'] == true,
       dateJoined: json['date_joined'] != null
           ? DateTime.tryParse(json['date_joined'].toString())

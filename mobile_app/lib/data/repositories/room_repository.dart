@@ -92,6 +92,14 @@ class RoomRepository {
     throw Exception('Failed to create meeting room.');
   }
 
+  Future<RoomModel> createRoomPayload(Map<String, dynamic> data) async {
+    final response = await _client.post('/rooms/', body: data);
+    if (response is Map<String, dynamic>) {
+      return RoomModel.fromJson(response);
+    }
+    throw Exception('Failed to create meeting room.');
+  }
+
   Future<RoomModel> updateRoom(String id, Map<String, dynamic> updates) async {
     final response = await _client.patch('/rooms/$id/', body: updates);
     if (response is Map<String, dynamic>) {

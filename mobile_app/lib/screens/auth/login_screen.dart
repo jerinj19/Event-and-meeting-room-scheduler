@@ -59,8 +59,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
+      final isStaff = authProvider.isStaff;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        MaterialPageRoute(
+          builder: (_) => MainNavigationScreen(initialTabIndex: isStaff ? 4 : 0),
+        ),
       );
     }
   }
@@ -79,8 +82,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
+      final isStaff = authProvider.isStaff;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        MaterialPageRoute(
+          builder: (_) => MainNavigationScreen(initialTabIndex: isStaff ? 4 : 0),
+        ),
       );
     }
   }
@@ -686,7 +692,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Wrap(
+                             Wrap(
                               spacing: 8,
                               runSpacing: 6,
                               children: [
@@ -698,11 +704,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onPressed: () => _fillDemoAccount('admin@innovyx.com', 'Admin@123'),
                                 ),
                                 ActionChip(
-                                  label: const Text('Staff (mobile_test@innovyx.com)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                                  label: const Text('Admin (prashanthkolla123@gmail.com)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                                  avatar: const Icon(Icons.shield_rounded, size: 14, color: AppTheme.primary),
+                                  backgroundColor: Colors.white,
+                                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                  onPressed: () => _fillDemoAccount('prashanthkolla123@gmail.com', 'Kolla@2000'),
+                                ),
+                                ActionChip(
+                                  label: const Text('Member (zzz@gmail.com)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                                   avatar: const Icon(Icons.person, size: 14, color: Color(0xFF047857)),
                                   backgroundColor: Colors.white,
                                   side: const BorderSide(color: Color(0xFFCBD5E1)),
-                                  onPressed: () => _fillDemoAccount('mobile_test@innovyx.com', 'TestPass123!'),
+                                  onPressed: () => _fillDemoAccount('zzz@gmail.com', 'Kolla@2000'),
                                 ),
                               ],
                             ),

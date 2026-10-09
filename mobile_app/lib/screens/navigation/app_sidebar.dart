@@ -64,43 +64,73 @@ class AppSidebar extends StatelessWidget {
                 ),
               ),
 
-            // Primary Navigation Links (Exact Web Sidebar.jsx)
+            // Primary Navigation Links (Exact Web Sidebar.jsx & AdminSidebar.jsx)
             Expanded(
               child: Material(
                 color: Colors.transparent,
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                   children: [
-                    _buildNavTile(
-                      index: 0,
-                      icon: Icons.dashboard_rounded,
-                      label: 'Welcome Dashboard',
-                    ),
-                    const SizedBox(height: 4),
-                    _buildNavTile(
-                      index: 1,
-                      icon: Icons.meeting_room_outlined,
-                      label: 'Browse Rooms',
-                    ),
-                    const SizedBox(height: 4),
-                    _buildNavTile(
-                      index: 3, // Book a slot navigates to booking or quick book
-                      icon: Icons.schedule_rounded,
-                      label: 'Book a Slot',
-                      badge: 'Live',
-                    ),
-                    const SizedBox(height: 4),
-                    _buildNavTile(
-                      index: 2,
-                      icon: Icons.calendar_month_outlined,
-                      label: 'My Bookings',
-                    ),
                     if (isStaff) ...[
-                      const SizedBox(height: 4),
                       _buildNavTile(
                         index: 4,
-                        icon: Icons.admin_panel_settings_outlined,
-                        label: 'Admin Console',
+                        icon: Icons.dashboard_outlined,
+                        label: 'Admin Dashboard',
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNavTile(
+                        index: 5,
+                        icon: Icons.list_alt_rounded,
+                        label: 'All Bookings',
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNavTile(
+                        index: 6,
+                        icon: Icons.meeting_room_outlined,
+                        label: 'Manage Rooms',
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNavTile(
+                        index: 7,
+                        icon: Icons.group_outlined,
+                        label: 'User & Admin Directory',
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNavTile(
+                        index: 8,
+                        icon: Icons.schedule_rounded,
+                        label: 'Time Slots',
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNavTile(
+                        index: 9,
+                        icon: Icons.analytics_outlined,
+                        label: 'System Reports',
+                      ),
+                    ] else ...[
+                      _buildNavTile(
+                        index: 0,
+                        icon: Icons.dashboard_rounded,
+                        label: 'Welcome Dashboard',
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNavTile(
+                        index: 1,
+                        icon: Icons.meeting_room_outlined,
+                        label: 'Browse Rooms',
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNavTile(
+                        index: 3, // Book a slot navigates to booking or quick book
+                        icon: Icons.schedule_rounded,
+                        label: 'Book a Slot',
+                        badge: 'Live',
+                      ),
+                      const SizedBox(height: 4),
+                      _buildNavTile(
+                        index: 2,
+                        icon: Icons.calendar_month_outlined,
+                        label: 'My Bookings',
                       ),
                     ],
                   ],

@@ -4,6 +4,7 @@ import '../../core/config/api_config.dart';
 class RoomModel {
   final String id;
   final String name;
+  final String? code;
   final int capacity;
   final String location;
   final List<String> amenities;
@@ -21,6 +22,7 @@ class RoomModel {
   RoomModel({
     required this.id,
     required this.name,
+    this.code,
     required this.capacity,
     required this.location,
     required this.amenities,
@@ -35,6 +37,13 @@ class RoomModel {
     this.createdByEmail,
     this.createdAt,
   });
+
+  String get roomCode {
+    if (code != null && code!.isNotEmpty) return code!;
+    final cleanName = name.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '-');
+    final prefix = cleanName.length > 10 ? cleanName.substring(0, 10) : cleanName;
+    return 'RM-$prefix';
+  }
 
   String get formattedImageUrl {
     if (image != null && image!.trim().isNotEmpty) {
@@ -117,6 +126,7 @@ class RoomModel {
     return RoomModel(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Meeting Room',
+      code: json['code']?.toString(),
       capacity: json['capacity'] is int ? json['capacity'] : int.tryParse(json['capacity']?.toString() ?? '1') ?? 1,
       location: json['location']?.toString() ?? '',
       amenities: parsedAmenities,
@@ -137,6 +147,7 @@ class RoomModel {
     return {
       'id': id,
       'name': name,
+      'code': code,
       'capacity': capacity,
       'location': location,
       'amenities': amenities,

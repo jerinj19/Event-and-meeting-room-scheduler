@@ -11,8 +11,11 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
+
+IS_TESTING = 'test' in sys.argv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -60,9 +63,15 @@ ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get(
         'DJANGO_ALLOWED_HOSTS',
-        os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+        os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,*')
     ).split(',')
     if host.strip()
+]
+
+ALLOWED_EMAIL_DOMAINS = [
+    domain.strip().lower()
+    for domain in os.environ.get('ALLOWED_EMAIL_DOMAINS', 'innovyx.com,innovyxtechlabs.com,gmail.com').split(',')
+    if domain.strip()
 ]
 
 
@@ -90,6 +99,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'bookings.middleware.TimezoneMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -166,6 +176,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 AUTH_USER_MODEL = 'users.User'
 
 REST_FRAMEWORK = {
@@ -181,17 +194,23 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('JWT_ACCESS_MINUTES', '30'))),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('JWT_ACCESS_MINUTES', '120'))),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('JWT_REFRESH_DAYS', '7'))),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
+]
+
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(
-        'CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173'
+        'CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5176'
     ).split(',')
     if origin.strip()
 ]
@@ -211,12 +230,14 @@ LOGGING = {
             'formatter': 'standard',
         },
         'file': {
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': LOG_DIR / 'api.log',
-            'when': 'midnight',
-            'backupCount': 14,
-            'encoding': 'utf-8',
-            'formatter': 'standard',
+            'class': 'logging.NullHandler' if IS_TESTING else 'logging.handlers.TimedRotatingFileHandler',
+            **({} if IS_TESTING else {
+                'filename': LOG_DIR / 'api.log',
+                'when': 'midnight',
+                'backupCount': 14,
+                'encoding': 'utf-8',
+                'formatter': 'standard',
+            }),
         },
     },
     'loggers': {
@@ -232,7 +253,29 @@ LOGGING = {
         },
     },
 }
+# Microsoft 365 / Entra ID SSO Configuration
+MICROSOFT_CLIENT_ID = os.environ.get('MICROSOFT_CLIENT_ID', '')
+MICROSOFT_TENANT_ID = os.environ.get('MICROSOFT_TENANT_ID', 'common')
+MICROSOFT_ALLOWED_DOMAINS = [
+    d.strip().lower()
+    for d in os.environ.get('MICROSOFT_ALLOWED_DOMAINS', '').split(',')
+    if d.strip()
+]
+MICROSOFT_REQUIRE_REGISTERED_USER = os.environ.get(
+    'MICROSOFT_REQUIRE_REGISTERED_USER', 'True'
+).lower() in ('true', '1', 'yes')
+ADMIN_CONTACT_EMAIL = os.environ.get('ADMIN_CONTACT_EMAIL', 'admin@innovyx.com')
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-CORS_ALLOW_ALL_ORIGINS = os.environ.get('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
+# Tell Django to read these from your .env file
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'your_password_here')
 
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-timezone',
+]

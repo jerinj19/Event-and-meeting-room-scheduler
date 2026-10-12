@@ -1,0 +1,96 @@
+.table-container {
+  background: #ffffff;
+  border: 1px solid #e0e3e5;
+  border-radius: 8px;
+  overflow-x: auto;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.booking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Inter', sans-serif;
+  text-align: left;
+}
+
+.booking-table th {
+  background: #f7f9fb;
+  padding: 16px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #45464d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e0e3e5;
+}
+
+.booking-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e3e5;
+  vertical-align: middle;
+}
+
+.booking-table tr:last-child td {
+  border-bottom: none;
+}
+
+.room-cell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.room-preview {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  background-color: #f2f4f6;
+  background-size: cover;
+  background-position: center;
+}
+
+.room-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.room-name {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.room-location {
+  color: #7c839b;
+  font-size: 12px;
+}
+
+.tabular-data {
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.action-col {
+  text-align: right;
+}
+
+.btn-cancel {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid #e0e3e5;
+  border-radius: 4px;
+  color: #0f172a;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #fdf2f2;
+  border-color: #ba1a1a;
+  color: #ba1a1a;
+}

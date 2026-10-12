@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Spatia Scheduler - Enterprise Portal</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-dim": "#cbdbf5",
+            "on-primary-fixed-variant": "#003ea7",
+            "surface-container-lowest": "#ffffff",
+            "on-background": "#0b1c30",
+            "tertiary-fixed": "#c9e6ff",
+            "surface": "#f8f9ff",
+            "outline": "#737686",
+            "on-primary": "#ffffff",
+            "on-error-container": "#93000a",
+            "outline-variant": "#c3c6d7",
+            "on-secondary-container": "#57657a",
+            "on-primary-container": "#c8d4ff",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-secondary-fixed-variant": "#3a485b",
+            "error-container": "#ffdad6",
+            "on-tertiary-fixed": "#001e2f",
+            "background": "#f8f9ff",
+            "on-tertiary": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "primary": "#003ca3",
+            "inverse-surface": "#213145",
+            "secondary-fixed": "#d5e3fc",
+            "secondary-fixed-dim": "#b9c7df",
+            "tertiary-fixed-dim": "#89ceff",
+            "on-tertiary-fixed-variant": "#004c6e",
+            "surface-variant": "#d3e4fe",
+            "tertiary-container": "#00628d",
+            "surface-container-low": "#eff4ff",
+            "secondary-container": "#d5e3fc",
+            "primary-container": "#0051d5",
+            "inverse-on-surface": "#eaf1ff",
+            "tertiary": "#00496b",
+            "surface-container-highest": "#d3e4fe",
+            "surface-container": "#e5eeff",
+            "primary-fixed": "#dbe1ff",
+            "secondary": "#515f74",
+            "on-surface": "#0b1c30",
+            "surface-tint": "#0854d7",
+            "surface-bright": "#f8f9ff",
+            "error": "#ba1a1a",
+            "on-secondary": "#ffffff",
+            "on-surface-variant": "#434654",
+            "on-secondary-fixed": "#0d1c2e",
+            "inverse-primary": "#b4c5ff",
+            "on-error": "#ffffff",
+            "on-tertiary-container": "#abdaff",
+            "on-primary-fixed": "#00174b"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "space-md": "0.75rem",
+            "space-lg": "1rem",
+            "space-xl": "1.5rem",
+            "margin": "1rem",
+            "margin-md": "1.5rem",
+            "margin-lg": "2rem",
+            "gutter": "1rem",
+            "gutter-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "title-sm": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "headline-sm": ["Inter"],
+            "body-md": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-sm": ["Inter"],
+            "label-xs": ["Inter"],
+            "body-lg": ["Inter"],
+            "title-md": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "display-lg": ["Inter"],
+            "headline-md": ["Inter"]
+          },
+          "fontSize": {
+            "title-sm": ["0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0em", "fontWeight": "600" }],
+            "headline-lg-mobile": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "headline-sm": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-md": ["0.875rem", { "lineHeight": "1.375rem", "letterSpacing": "0em", "fontWeight": "400" }],
+            "body-sm": ["0.75rem", { "lineHeight": "1.125rem", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "label-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "label-xs": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "body-lg": ["1rem", { "lineHeight": "1.5rem", "letterSpacing": "0em", "fontWeight": "400" }],
+            "title-md": ["1rem", { "lineHeight": "1.5rem", "letterSpacing": "-0.005em", "fontWeight": "600" }],
+            "label-md": ["0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0.005em", "fontWeight": "500" }],
+            "headline-lg": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "display-lg": ["3rem", { "lineHeight": "3.5rem", "letterSpacing": "-0.025em", "fontWeight": "700" }],
+            "headline-md": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #c3c6d7;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="h-full font-body-md text-on-surface bg-background antialiased selection:bg-secondary-container relative overflow-x-hidden">
+<!-- BACKGROUND: Full High-Fidelity Enterprise Dashboard Canvas -->
+<div aria-hidden="true" class="min-h-full flex flex-col pointer-events-none select-none filter blur-[2px] opacity-80">
+<!-- TopNavBar (Shared Component Blueprint) -->
+<header class="w-full px-margin-lg py-space-md flex items-center justify-between z-10 bg-surface-container-lowest border-b border-outline-variant/60 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<div class="flex items-center space-x-8">
+<div class="flex items-center space-x-2">
+<div class="w-7 h-7 rounded-lg bg-primary-container flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</div>
+<span class="text-title-md font-title-md font-bold text-primary tracking-tight">Spatia Scheduler</span>
+</div>
+<nav class="hidden md:flex items-center space-x-6">
+<a class="text-primary font-semibold border-b-2 border-primary pb-1 font-label-md text-label-md" href="#">Platform</a>
+<a class="text-secondary font-medium font-label-md text-label-md" href="#">Directory</a>
+<a class="text-secondary font-medium font-label-md text-label-md" href="#">Security</a>
+<a class="text-secondary font-medium font-label-md text-label-md" href="#">Support</a>
+</nav>
+</div>
+<div class="flex items-center space-x-3">
+<button class="text-secondary p-1 rounded-lg">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+</button>
+<button class="font-label-md text-label-md text-secondary px-3 py-1.5 rounded-lg border border-outline-variant/80">Contact Sales</button>
+<button class="font-label-md text-label-md bg-primary-container text-on-primary px-3.5 py-1.5 rounded-lg shadow-sm">Enterprise Portal</button>
+</div>
+</header>
+<!-- Sub-header Breadcrumb and Actions Bar -->
+<div class="w-full px-margin-lg py-space-md bg-surface-container-lowest border-b border-outline-variant/40 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<span class="text-body-sm font-body-sm text-secondary">Workplace Management</span>
+<span class="text-secondary/50">/</span>
+<span class="text-body-sm font-body-sm text-secondary">London HQ (One Bishopsgate)</span>
+<span class="text-secondary/50">/</span>
+<span class="text-title-sm font-title-sm text-on-surface">Floor 42 Executive Boardrooms</span>
+</div>
+<div class="flex items-center space-x-3">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#ecfdf5] text-[#047857] text-label-xs font-label-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span> Systems Operational
+        </span>
+<div class="h-4 w-px bg-outline-variant/60"></div>
+<span class="text-body-sm font-body-sm text-secondary">Oct 24, 2025 • BST (UTC+1)</span>
+</div>
+</div>
+<!-- Dashboard Content Canvas -->
+<main class="flex-1 w-full max-w-[1440px] mx-auto px-margin-lg py-space-xl space-y-space-xl">
+<!-- Executive Metric Bento -->
+<div class="grid grid-cols-4 gap-gutter-lg">
+<div class="p-space-lg bg-surface-container-lowest rounded-xl border border-outline-variant/60 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<p class="text-body-sm font-body-sm text-secondary">Floor Occupancy Rate</p>
+<div class="mt-2 flex items-baseline justify-between">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">88.4%</h3>
+<span class="text-label-xs font-label-xs text-primary bg-surface-container px-2 py-0.5 rounded">+4.2% peak</span>
+</div>
+<p class="mt-1 text-label-xs font-label-xs text-secondary">14 of 16 high-tier spaces active</p>
+</div>
+<div class="p-space-lg bg-surface-container-lowest rounded-xl border border-outline-variant/60 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<p class="text-body-sm font-body-sm text-secondary">Active Reservations</p>
+<div class="mt-2 flex items-baseline justify-between">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">32 Bookings</h3>
+<span class="text-label-xs font-label-xs text-[#047857] bg-[#ecfdf5] px-2 py-0.5 rounded">All Confirmed</span>
+</div>
+<p class="mt-1 text-label-xs font-label-xs text-secondary">Next turnover in 18 minutes</p>
+</div>
+<div class="p-space-lg bg-surface-container-lowest rounded-xl border border-outline-variant/60 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<p class="text-body-sm font-body-sm text-secondary">Conference Telepresence</p>
+<div class="mt-2 flex items-baseline justify-between">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">99.98%</h3>
+<span class="text-label-xs font-label-xs text-primary bg-surface-container px-2 py-0.5 rounded">4K SIP Mesh</span>
+</div>
+<p class="mt-1 text-label-xs font-label-xs text-secondary">Polycom + Cisco Webex link healthy</p>
+</div>
+<div class="p-space-lg bg-surface-container-lowest rounded-xl border border-outline-variant/60 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<p class="text-body-sm font-body-sm text-secondary">Priority Executive Wing</p>
+<div class="mt-2 flex items-baseline justify-between">
+<h3 class="text-headline-sm font-headline-sm text-[#b45309]">Reserved</h3>
+<span class="text-label-xs font-label-xs text-[#b45309] bg-[#fffbeb] px-2 py-0.5 rounded">Alpha Locked</span>
+</div>
+<p class="mt-1 text-label-xs font-label-xs text-secondary">10:00 AM – 11:30 AM BST</p>
+</div>
+</div>
+<!-- Schedule Table / Timeline Grid Mock -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/60 overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+<div class="px-space-lg py-space-md border-b border-outline-variant/60 flex items-center justify-between">
+<div class="flex items-center space-x-4">
+<h2 class="text-title-md font-title-md text-on-surface">Floor 42 Live Schedule</h2>
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container text-primary font-label-xs text-label-xs">Today, Oct 24</span>
+</div>
+<div class="flex items-center space-x-2">
+<button class="px-3 py-1.5 text-label-md font-label-md border border-outline-variant/80 rounded-lg text-secondary">Filter Amenities</button>
+<button class="px-3 py-1.5 text-label-md font-label-md bg-primary-container text-on-primary rounded-lg">New Schedule Slot</button>
+</div>
+</div>
+<div class="divide-y divide-outline-variant/40">
+<!-- Row 1: The room in question -->
+<div class="p-space-lg flex items-center justify-between bg-primary/5">
+<div class="flex items-center space-x-4">
+<div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">meeting_room</span>
+</div>
+<div>
+<div class="flex items-center space-x-2">
+<h4 class="text-title-sm font-title-sm text-on-surface">Executive Boardroom Alpha</h4>
+<span class="px-2 py-0.5 rounded bg-error-container text-on-error-container text-label-xs font-label-xs">Pending Cancellation</span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary">Floor 42 • West Wing • Capacity: 16 • 4K Dual Display + Telepresence</p>
+</div>
+</div>
+<div class="flex items-center space-x-6">
+<div class="text-right">
+<p class="text-title-sm font-title-sm text-on-surface">10:00 AM – 11:30 AM</p>
+<p class="text-body-sm font-body-sm text-secondary">Host: Prashanth (Senior Director)</p>
+</div>
+<button class="px-3 py-1.5 text-label-sm font-label-sm rounded-lg border border-error text-error bg-surface-container-lowest">Manage</button>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="p-space-lg flex items-center justify-between">
+<div class="flex items-center space-x-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">video_camera_front</span>
+</div>
+<div>
+<div class="flex items-center space-x-2">
+<h4 class="text-title-sm font-title-sm text-on-surface">Studio Beta (AV Production)</h4>
+<span class="px-2 py-0.5 rounded bg-[#ecfdf5] text-[#047857] text-label-xs font-label-xs">Available</span>
+</div>
+<p class="text-body-sm font-body-sm text-secondary">Floor 42 • East Wing • Capacity: 8 • Soundproof Booth</p>
+</div>
+</div>
+<div class="flex items-center space-x-6">
+<div class="text-right">
+<p class="text-title-sm font-title-sm text-secondary">Free until 14:00</p>
+<p class="text-body-sm font-body-sm text-secondary">No current hold</p>
+</div>
+<button class="px-3 py-1.5 text-label-sm font-label-sm rounded-lg border border-outline-variant text-secondary">Reserve</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer (Shared Component Blueprint) -->
+<footer class="w-full px-margin-lg py-space-md flex flex-col md:flex-row items-center justify-between z-10 bg-surface-container-lowest border-t border-outline-variant/60">
+<div class="text-label-md font-label-md font-semibold text-on-surface">
+        © 2025 Spatia Enterprise Workplace Systems Inc. SOC2 Type II Certified. All rights reserved.
+      </div>
+<div class="flex items-center space-x-6 text-label-sm font-label-sm text-secondary">
+<a class="hover:text-primary" href="#">Privacy Policy</a>
+<a class="hover:text-primary" href="#">Terms of Service</a>
+<a class="hover:text-primary" href="#">Security &amp; Compliance</a>
+<a class="hover:text-primary" href="#">System Status</a>
+</div>
+</footer>
+</div>
+<!-- MODAL BACKDROP: Focused Master-Level Dialog Layer -->
+<div aria-labelledby="modal-title" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/35 backdrop-blur-[6px] transition-all duration-200" role="dialog">
+<!-- Modal Container: Raised pure white surface, hairline border #e0e3e5, 8px radius, architectural shadow -->
+<div class="w-full max-w-[540px] bg-[#ffffff] rounded-[8px] border border-[#e0e3e5] shadow-[0_25px_50px_-12px_rgba(15,23,42,0.18),0_0_0_1px_rgba(15,23,42,0.04)] overflow-hidden flex flex-col transform transition-all">
+<!-- Preview Image Banner with Overlaid Badges -->
+<div class="relative h-44 w-full overflow-hidden bg-slate-100 border-b border-[#e0e3e5]">
+<img alt="Executive Boardroom Alpha" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida/AEtjO1WGfyOGlT6EUSoIkdaOWcfz5Z2NthWdPgZPqEWHIen3UbNuFZtx7amAW2okbSpRhOU-XYJygQh3MNADrw6kpClS76Jzj8a_2ad6Ipjk6tJArHXDJ9jRTqCP7FoV01zS87GKtxeED_lbpxJp2npmXRrfJ1z8j05DlerKmca30EG4Mx2zny9Sz2AP8K0dI_Qkt_l9bThvnSrRClTQU7pZnCkdZI5bGOspbulLvA_VCqtTiTEamEvlnaUKnY4"/>
+<!-- Soft top and bottom architectural vignettes for high-contrast tag readability -->
+<div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/30"></div>
+<!-- Top Corner Location & Tier Tag -->
+<div class="absolute top-3 left-3 flex items-center gap-2">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-white/90 backdrop-blur-md text-[11px] font-semibold text-slate-800 tracking-wide uppercase shadow-sm">
+<span class="material-symbols-outlined text-[13px] text-primary">apartment</span>
+            London HQ • Fl 42
+          </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-slate-900/80 backdrop-blur-md text-[11px] font-semibold text-white tracking-wide shadow-sm">
+            Tier 1 Executive
+          </span>
+</div>
+<!-- Bottom Room Specs Overlay Bar -->
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
+<div>
+<h3 class="text-white font-title-md text-title-md font-bold tracking-tight drop-shadow-sm">Executive Boardroom Alpha</h3>
+<p class="text-slate-200 text-body-sm font-body-sm flex items-center gap-1 mt-0.5">
+<span>West Wing Panoramic</span>
+<span>•</span>
+<span>AV 4K Telepresence</span>
+</p>
+</div>
+<div class="flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-[4px] text-slate-900 text-label-xs font-label-xs font-semibold shadow-sm">
+<span class="material-symbols-outlined text-[14px] text-slate-700">group</span>
+<span>Cap: 16</span>
+</div>
+</div>
+</div>
+<!-- Modal Body Content -->
+<div class="p-space-xl space-y-space-lg">
+<!-- Header: Warning Icon + Title & Close Trigger -->
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center flex-shrink-0 text-[#ba1a1a]">
+<span class="material-symbols-outlined text-[22px]">warning</span>
+</div>
+<div>
+<h2 class="text-headline-sm font-headline-sm text-on-surface tracking-tight" id="modal-title">Cancel Reservation?</h2>
+<p class="text-body-sm font-body-sm text-secondary mt-0.5">This release action cannot be undone once confirmed.</p>
+</div>
+</div>
+<button aria-label="Close dialog" class="text-secondary hover:text-on-surface p-1 rounded hover:bg-slate-100 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary/20">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Summary Information Card -->
+<div class="rounded-[6px] border border-[#e0e3e5] bg-[#f8f9ff] p-space-md space-y-space-sm">
+<div class="flex items-center justify-between pb-2 border-b border-[#e0e3e5]">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary text-[18px]">event</span>
+<span class="text-title-sm font-title-sm text-on-surface">Today, Oct 24, 2025</span>
+</div>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">90 mins</span>
+</div>
+<div class="grid grid-cols-2 gap-3 pt-1">
+<div>
+<span class="text-label-xs font-label-xs text-secondary uppercase tracking-wider block">Time Slot</span>
+<span class="text-body-md font-body-md font-semibold text-on-surface flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-slate-500">schedule</span>
+                10:00 AM – 11:30 AM
+              </span>
+</div>
+<div>
+<span class="text-label-xs font-label-xs text-secondary uppercase tracking-wider block">Organizer</span>
+<span class="text-body-md font-body-md font-semibold text-on-surface flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-slate-500">person</span>
+                Prashanth (Eng Dir)
+              </span>
+</div>
+</div>
+<div class="pt-2 border-t border-[#e0e3e5] flex items-center justify-between text-body-sm font-body-sm text-secondary">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-slate-600">group</span>
+<span>12 Confirmed Attendees</span>
+</div>
+<div class="flex items-center gap-1.5 text-slate-700">
+<span class="material-symbols-outlined text-[16px] text-[#047857]">check_circle</span>
+<span class="text-label-xs font-label-xs">AV &amp; Polycom Online</span>
+</div>
+</div>
+</div>
+<!-- Policy Warning & Impact Notice -->
+<div class="p-3 bg-rose-50/60 border border-rose-200/80 rounded-[6px] flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[#ba1a1a] text-[18px] mt-0.5 flex-shrink-0">info</span>
+<p class="text-body-sm font-body-sm text-slate-700 leading-snug">
+            Canceling immediately notifies all <strong class="text-slate-900 font-semibold">12 attendees</strong> via Google &amp; Outlook invites, releases the hardware licenses, and returns the room to the corporate availability pool.
+          </p>
+</div>
+<!-- Reason for Cancellation Form -->
+<div class="space-y-2">
+<label class="block text-label-sm font-label-sm text-secondary font-medium" for="cancel-reason">
+            Reason for cancellation <span class="text-slate-400 font-normal">(optional)</span>
+</label>
+<div class="relative">
+<select class="w-full bg-[#ffffff] border border-[#e0e3e5] rounded-[4px] px-3 py-2 text-body-md font-body-md text-on-surface appearance-none focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-colors pr-8 cursor-pointer" id="cancel-reason">
+<option value="rescheduled">Meeting rescheduled to another date</option>
+<option value="host_unavailable">Host or key participants unavailable</option>
+<option value="moved_virtual">Moved to fully virtual call (no room needed)</option>
+<option value="not_needed">Project discussion completed / No longer needed</option>
+</select>
+<span class="material-symbols-outlined text-[18px] text-secondary absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Modal Footer Action Cluster -->
+<div class="px-space-xl py-space-md bg-[#f8f9ff] border-t border-[#e0e3e5] flex items-center justify-end gap-3">
+<!-- Secondary Action -->
+<button class="h-10 px-4 rounded-[4px] border border-[#e0e3e5] bg-[#ffffff] hover:bg-slate-50 text-slate-700 font-label-md text-label-md font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-slate-300 active:scale-[0.99]" type="button">
+          Keep Booking
+        </button>
+<!-- Primary Destructive Action -->
+<button class="h-10 px-5 rounded-[4px] bg-[#ba1a1a] hover:bg-[#93000a] text-[#ffffff] font-label-md text-label-md font-semibold shadow-sm transition-all duration-150 flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-rose-500/40 active:scale-[0.99]" type="button">
+<span class="material-symbols-outlined text-[18px]">event_busy</span>
+<span>Yes, Cancel Booking</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Facility Admin &amp; Workspace Operations - Spatia Scheduler</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#dce9ff",
+            "on-secondary": "#ffffff",
+            "surface-bright": "#f8f9ff",
+            "surface-dim": "#cbdbf5",
+            "on-secondary-fixed-variant": "#3a485b",
+            "surface-container": "#e5eeff",
+            "on-primary": "#ffffff",
+            "surface-container-highest": "#d3e4fe",
+            "inverse-primary": "#b4c5ff",
+            "inverse-on-surface": "#eaf1ff",
+            "primary": "#003ca3",
+            "on-tertiary-container": "#abdaff",
+            "on-background": "#0b1c30",
+            "surface-tint": "#0854d7",
+            "secondary": "#515f74",
+            "primary-container": "#0051d5",
+            "inverse-surface": "#213145",
+            "tertiary-fixed-dim": "#89ceff",
+            "tertiary-container": "#00628d",
+            "tertiary-fixed": "#c9e6ff",
+            "on-error": "#ffffff",
+            "secondary-container": "#d5e3fc",
+            "tertiary": "#00496b",
+            "surface-variant": "#d3e4fe",
+            "error-container": "#ffdad6",
+            "outline-variant": "#c3c6d7",
+            "outline": "#737686",
+            "on-secondary-container": "#57657a",
+            "surface": "#f8f9ff",
+            "on-tertiary-fixed": "#001e2f",
+            "background": "#f8f9ff",
+            "secondary-fixed-dim": "#b9c7df",
+            "on-secondary-fixed": "#0d1c2e",
+            "on-primary-container": "#c8d4ff",
+            "on-primary-fixed-variant": "#003ea7",
+            "primary-fixed-dim": "#b4c5ff",
+            "primary-fixed": "#dbe1ff",
+            "on-tertiary-fixed-variant": "#004c6e",
+            "on-tertiary": "#ffffff",
+            "on-surface": "#0b1c30",
+            "error": "#ba1a1a",
+            "on-surface-variant": "#434654",
+            "on-primary-fixed": "#00174b",
+            "surface-container-low": "#eff4ff",
+            "secondary-fixed": "#d5e3fc",
+            "on-error-container": "#93000a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "margin-lg": "2rem",
+            "gutter": "1rem",
+            "space-sm": "0.5rem",
+            "space-md": "0.75rem",
+            "space-xl": "1.5rem",
+            "margin-md": "1.5rem",
+            "margin": "1rem",
+            "space-xs": "0.25rem",
+            "gutter-lg": "1.5rem",
+            "space-lg": "1rem"
+          },
+          "fontFamily": {
+            "headline-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "display-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "title-md": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-sm": ["Inter"],
+            "title-sm": ["Inter"],
+            "label-xs": ["Inter"]
+          },
+          "fontSize": {
+            "headline-md": ["1.5rem", { lineHeight: "2rem", letterSpacing: "-0.015em", fontWeight: "600" }],
+            "headline-lg": ["2rem", { lineHeight: "2.5rem", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "label-sm": ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.02em", fontWeight: "500" }],
+            "headline-lg-mobile": ["1.5rem", { lineHeight: "2rem", letterSpacing: "-0.015em", fontWeight: "600" }],
+            "body-md": ["0.875rem", { lineHeight: "1.375rem", letterSpacing: "0em", fontWeight: "400" }],
+            "body-lg": ["1rem", { lineHeight: "1.5rem", letterSpacing: "0em", fontWeight: "400" }],
+            "display-lg": ["3rem", { lineHeight: "3.5rem", letterSpacing: "-0.025em", fontWeight: "700" }],
+            "body-sm": ["0.75rem", { lineHeight: "1.125rem", letterSpacing: "0.01em", fontWeight: "400" }],
+            "title-md": ["1rem", { lineHeight: "1.5rem", letterSpacing: "-0.005em", fontWeight: "600" }],
+            "label-md": ["0.875rem", { lineHeight: "1.25rem", letterSpacing: "0.005em", fontWeight: "500" }],
+            "headline-sm": ["1.25rem", { lineHeight: "1.75rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "title-sm": ["0.875rem", { lineHeight: "1.25rem", letterSpacing: "0em", fontWeight: "600" }],
+            "label-xs": ["0.6875rem", { lineHeight: "0.875rem", letterSpacing: "0.04em", fontWeight: "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      display: inline-block;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+    /* Subtle modern corporate box shadow */
+    .shadow-level-1 {
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    }
+    .shadow-level-2 {
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+    }
+  </style>
+</head>
+<body class="min-h-full bg-surface text-on-surface antialiased p-margin md:p-margin-lg font-body-md selection:bg-surface-container selection:text-primary">
+<!-- Main Container: Standalone Admin Dashboard Content Space -->
+<main class="max-w-[1580px] mx-auto space-y-space-xl">
+<!-- 1. Executive Dashboard Header -->
+<header class="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-space-xl shadow-level-1 flex flex-col xl:flex-row xl:items-center justify-between gap-space-lg">
+<div class="space-y-space-xs">
+<div class="flex flex-wrap items-center gap-space-sm">
+<h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight">Facility Admin &amp; Workspace Operations</h1>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="text-label-xs font-label-xs tracking-normal">Live Telemetry Active • All 48 Enterprise Rooms Online</span>
+</div>
+</div>
+<p class="text-body-md font-body-md text-secondary">
+          Real-time telemetry, space utilization metrics, and reservation audits across corporate campuses
+        </p>
+</div>
+<div class="flex flex-wrap items-center gap-space-sm">
+<!-- Date Range Filter -->
+<button class="inline-flex items-center gap-space-xs px-space-md py-space-sm rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low transition-colors duration-150 text-on-surface font-label-md text-label-md" type="button">
+<span class="material-symbols-outlined text-secondary" data-icon="calendar_month">calendar_month</span>
+<span>Last 30 Days: Oct 1 – Oct 31, 2025</span>
+<span class="material-symbols-outlined text-secondary" data-icon="arrow_drop_down">arrow_drop_down</span>
+</button>
+<!-- Secondary Action: Export -->
+<button class="inline-flex items-center gap-space-xs px-space-md py-space-sm rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-surface font-label-md text-label-md transition-colors duration-150 active:scale-[0.99]" type="button">
+<span class="material-symbols-outlined" data-icon="ios_share">ios_share</span>
+<span>Export Operations Log</span>
+</button>
+<!-- Primary Action: Schedule Maintenance / Block Room -->
+<button class="inline-flex items-center gap-space-xs px-space-md py-space-sm rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary shadow-sm hover:shadow transition-all duration-150 active:scale-[0.98]" type="button">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span>+ Schedule Maintenance / Block Room</span>
+</button>
+</div>
+</header>
+<!-- 2. KPI Cards Grid (4 Cards) -->
+<section aria-label="Key Performance Indicators" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-gutter-lg">
+<!-- KPI Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-space-lg shadow-level-1 flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<span class="text-label-md font-label-md text-secondary">Total Bookings</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="calendar_month">calendar_month</span>
+</div>
+</div>
+<div class="flex items-baseline gap-space-sm">
+<span class="text-display-lg font-display-lg text-on-surface tracking-tight leading-none">1,428</span>
+<span class="inline-flex items-center text-emerald-700 text-label-sm font-label-sm bg-emerald-50 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span>
+              +12.4%
+            </span>
+</div>
+</div>
+<div class="mt-space-md pt-space-sm border-t border-outline-variant/30 flex items-center justify-between text-body-sm font-body-sm text-secondary">
+<span>84 today across 3 campuses</span>
+<span class="text-label-xs font-label-xs text-primary font-semibold">Live stream</span>
+</div>
+</div>
+<!-- KPI Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-space-lg shadow-level-1 flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<span class="text-label-md font-label-md text-secondary">Room Utilization Rate</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="show_chart">show_chart</span>
+</div>
+</div>
+<div class="flex items-baseline gap-space-sm">
+<span class="text-display-lg font-display-lg text-on-surface tracking-tight leading-none">78.6%</span>
+<span class="inline-flex items-center text-emerald-700 text-label-sm font-label-sm bg-emerald-50 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span>
+              +4.2%
+            </span>
+</div>
+</div>
+<div class="mt-space-md space-y-1.5">
+<div class="w-full bg-surface-container-low rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary-container h-1.5 rounded-full" style="width: 78.6%"></div>
+</div>
+<p class="text-body-sm font-body-sm text-secondary flex justify-between">
+<span>Peak at 10:00 AM - 2:30 PM</span>
+<span class="font-semibold text-on-surface">Optimal</span>
+</p>
+</div>
+</div>
+<!-- KPI Card 3 -->
+<div class="bg-surface-container-lowest border border-amber-200 rounded-xl p-space-lg shadow-level-1 flex flex-col justify-between hover:border-amber-400 transition-all duration-200">
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<span class="text-label-md font-label-md text-secondary">Upcoming Maintenance</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-label-xs font-label-xs bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
+<span class="material-symbols-outlined text-xs" data-icon="warning">warning</span>
+              Attention Needed
+            </span>
+</div>
+<div class="flex items-baseline gap-space-sm">
+<span class="text-display-lg font-display-lg text-on-surface tracking-tight leading-none">3 Rooms</span>
+<div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-700 ml-auto">
+<span class="material-symbols-outlined text-lg" data-icon="engineering">engineering</span>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-sm border-t border-outline-variant/30 text-body-sm font-body-sm text-secondary">
+<span>2 AV firmware updates, 1 acoustic HVAC check scheduled</span>
+</div>
+</div>
+<!-- KPI Card 4 -->
+<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-space-lg shadow-level-1 flex flex-col justify-between hover:border-primary/40 transition-all duration-200">
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<span class="text-label-md font-label-md text-secondary">Energy &amp; Space Efficiency</span>
+<div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-700">
+<span class="material-symbols-outlined text-lg" data-icon="eco">eco</span>
+</div>
+</div>
+<div class="flex items-baseline gap-space-sm">
+<span class="text-display-lg font-display-lg text-on-surface tracking-tight leading-none">94.2%</span>
+<span class="inline-flex items-center text-primary text-label-sm font-label-sm bg-surface-container-low px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs" data-icon="verified">verified</span>
+              LEED Tier 1
+            </span>
+</div>
+</div>
+<div class="mt-space-md pt-space-sm border-t border-outline-variant/30 text-body-sm font-body-sm text-secondary">
+<span>Auto-cancellation saved <strong class="text-on-surface font-semibold">42.5 hrs</strong> of idle room reservations</span>
+</div>
+</div>
+</section>
+<!-- 3. Visualization & Analytics Row -->
+<section aria-label="Analytics &amp; Space Breakdown" class="grid grid-cols-1 lg:grid-cols-3 gap-gutter-lg">
+<!-- Left / Main Section (2/3 width): Daily Reservations & Occupancy Trend -->
+<div class="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-space-xl shadow-level-1 flex flex-col justify-between">
+<div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-md border-b border-outline-variant/30">
+<div>
+<h2 class="text-title-md font-title-md text-on-surface">Daily Reservations &amp; Peak Occupancy Trend</h2>
+<p class="text-body-sm font-body-sm text-secondary">Hourly comparison between booked allocation vs. verified badge-in occupancy</p>
+</div>
+<!-- View Switcher & Legend -->
+<div class="flex items-center gap-space-md">
+<div class="inline-flex p-0.5 bg-surface-container-low rounded-lg border border-outline-variant/40">
+<button class="px-2.5 py-1 text-label-xs font-label-xs font-semibold rounded text-secondary hover:text-on-surface transition-colors" type="button">Daily</button>
+<button class="px-2.5 py-1 text-label-xs font-label-xs font-semibold rounded bg-surface-container-lowest text-primary shadow-sm" type="button">Weekly</button>
+<button class="px-2.5 py-1 text-label-xs font-label-xs font-semibold rounded text-secondary hover:text-on-surface transition-colors" type="button">Monthly</button>
+</div>
+</div>
+</div>
+<!-- Chart Legend & Marker Info -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm my-space-md text-label-xs font-label-xs">
+<div class="flex items-center gap-space-md">
+<span class="inline-flex items-center gap-1.5 text-secondary">
+<span class="w-3 h-3 rounded-sm bg-primary-container"></span> Reserved Hours
+              </span>
+<span class="inline-flex items-center gap-1.5 text-secondary">
+<span class="w-3 h-3 rounded-sm bg-surface-container-high border border-outline-variant/40"></span> Actual Occupied (IoT Sensors)
+              </span>
+</div>
+<div class="flex items-center gap-1 text-primary bg-surface-container-low px-2 py-0.5 rounded border border-outline-variant/40">
+<span class="material-symbols-outlined text-xs" data-icon="vertical_align_top">vertical_align_top</span>
+<span>Peak Day: Wednesday, Oct 22 (93.4% capacity)</span>
+</div>
+</div>
+<!-- Styled CSS Visual Analytics Bar / Area Grid Representation -->
+<div class="relative pt-6 pb-2">
+<!-- Peak Indicator Badge absolute -->
+<div class="absolute top-0 left-[48%] -translate-x-1/2 bg-on-surface text-surface-container-lowest text-[10px] font-label-xs px-2 py-0.5 rounded shadow-level-2 pointer-events-none flex items-center gap-1 z-10">
+<span>Peak 142h</span>
+</div>
+<!-- Chart Horizontal Guide Lines -->
+<div class="h-56 w-full flex flex-col justify-between text-label-xs font-label-xs text-secondary/60 relative">
+<div class="border-b border-dashed border-outline-variant/40 w-full flex justify-between pr-2"><span>160h</span></div>
+<div class="border-b border-dashed border-outline-variant/40 w-full flex justify-between pr-2"><span>120h</span></div>
+<div class="border-b border-dashed border-outline-variant/40 w-full flex justify-between pr-2"><span>80h</span></div>
+<div class="border-b border-dashed border-outline-variant/40 w-full flex justify-between pr-2"><span>40h</span></div>
+<div class="border-b border-outline-variant/80 w-full flex justify-between pr-2 text-on-surface"><span>0h</span></div>
+<!-- The Bar Columns Layer -->
+<div class="absolute inset-0 pl-8 pr-2 pt-2 pb-5 flex items-end justify-between gap-2">
+<!-- Day 1: Mon -->
+<div class="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer">
+<div class="w-full max-w-[42px] flex items-end justify-center gap-1 h-full">
+<div class="w-1/2 bg-surface-container-high group-hover:bg-surface-container-highest rounded-t transition-all" style="height: 62%;"></div>
+<div class="w-1/2 bg-primary-container group-hover:bg-primary rounded-t transition-all" style="height: 72%;"></div>
+</div>
+<span class="text-label-xs font-label-xs text-secondary group-hover:text-on-surface mt-2">Mon 20</span>
+</div>
+<!-- Day 2: Tue -->
+<div class="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer">
+<div class="w-full max-w-[42px] flex items-end justify-center gap-1 h-full">
+<div class="w-1/2 bg-surface-container-high group-hover:bg-surface-container-highest rounded-t transition-all" style="height: 76%;"></div>
+<div class="w-1/2 bg-primary-container group-hover:bg-primary rounded-t transition-all" style="height: 84%;"></div>
+</div>
+<span class="text-label-xs font-label-xs text-secondary group-hover:text-on-surface mt-2">Tue 21</span>
+</div>
+<!-- Day 3: Wed (Peak) -->
+<div class="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer relative">
+<div class="w-full max-w-[42px] flex items-end justify-center gap-1 h-full">
+<div class="w-1/2 bg-surface-container-highest border border-primary/20 rounded-t transition-all" style="height: 88%;"></div>
+<div class="w-1/2 bg-primary-container rounded-t shadow-md ring-2 ring-primary/20 transition-all" style="height: 94%;"></div>
+</div>
+<span class="text-label-xs font-label-xs font-semibold text-primary mt-2">Wed 22</span>
+</div>
+<!-- Day 4: Thu -->
+<div class="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer">
+<div class="w-full max-w-[42px] flex items-end justify-center gap-1 h-full">
+<div class="w-1/2 bg-surface-container-high group-hover:bg-surface-container-highest rounded-t transition-all" style="height: 80%;"></div>
+<div class="w-1/2 bg-primary-container group-hover:bg-primary rounded-t transition-all" style="height: 86%;"></div>
+</div>
+<span class="text-label-xs font-label-xs text-secondary group-hover:text-on-surface mt-2">Thu 23</span>
+</div>
+<!-- Day 5: Fri -->
+<div class="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer">
+<div class="w-full max-w-[42px] flex items-end justify-center gap-1 h-full">
+<div class="w-1/2 bg-surface-container-high group-hover:bg-surface-container-highest rounded-t transition-all" style="height: 52%;"></div>
+<div class="w-1/2 bg-primary-container group-hover:bg-primary rounded-t transition-all" style="height: 64%;"></div>
+</div>
+<span class="text-label-xs font-label-xs text-secondary group-hover:text-on-surface mt-2">Fri 24</span>
+</div>
+<!-- Day 6: Sat -->
+<div class="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer opacity-75">
+<div class="w-full max-w-[42px] flex items-end justify-center gap-1 h-full">
+<div class="w-1/2 bg-surface-container-high group-hover:bg-surface-container-highest rounded-t transition-all" style="height: 18%;"></div>
+<div class="w-1/2 bg-primary-container group-hover:bg-primary rounded-t transition-all" style="height: 22%;"></div>
+</div>
+<span class="text-label-xs font-label-xs text-secondary mt-2">Sat 25</span>
+</div>
+<!-- Day 7: Sun -->
+<div class="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer opacity-75">
+<div class="w-full max-w-[42px] flex items-end justify-center gap-1 h-full">
+<div class="w-1/2 bg-surface-container-high group-hover:bg-surface-container-highest rounded-t transition-all" style="height: 12%;"></div>
+<div class="w-1/2 bg-primary-container group-hover:bg-primary rounded-t transition-all" style="height: 15%;"></div>
+</div>
+<span class="text-label-xs font-label-xs text-secondary mt-2">Sun 26</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="pt-space-md border-t border-outline-variant/30 flex items-center justify-between text-body-sm font-body-sm text-secondary">
+<span class="inline-flex items-center gap-1 text-xs">
+<span class="material-symbols-outlined text-xs text-emerald-600" data-icon="check_circle">check_circle</span>
+            Telemetry sync latency: 1.2s • Optical &amp; PIR motion cross-verified
+          </span>
+<a class="text-primary font-label-sm hover:underline inline-flex items-center gap-0.5" href="#">
+            Audit Analytics Logs
+            <span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Right Section (1/3 width): Room Category Distribution & Breakdown -->
+<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl p-space-xl shadow-level-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-md border-b border-outline-variant/30">
+<div>
+<h2 class="text-title-md font-title-md text-on-surface">Category Distribution</h2>
+<p class="text-body-sm font-body-sm text-secondary">Utilization breakdown across room profiles</p>
+</div>
+<button class="text-secondary hover:text-on-surface p-1 rounded hover:bg-surface-container-low" title="Category Filter" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="mt-space-lg space-y-space-lg">
+<!-- Category Item 1 -->
+<div class="space-y-1.5">
+<div class="flex items-center justify-between text-label-md font-label-md">
+<span class="text-on-surface flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+                  Executive Boardrooms
+                </span>
+<span class="text-primary font-semibold">88% <span class="text-secondary font-normal text-body-sm">(12 rooms)</span></span>
+</div>
+<div class="w-full bg-surface-container-low rounded-full h-2 overflow-hidden">
+<div class="bg-primary-container h-2 rounded-full" style="width: 88%"></div>
+</div>
+<div class="flex justify-between text-label-xs font-label-xs text-secondary">
+<span>Av. Duration: 1h 45m</span>
+<span class="text-emerald-700">92% badged turn-out</span>
+</div>
+</div>
+<!-- Category Item 2 -->
+<div class="space-y-1.5">
+<div class="flex items-center justify-between text-label-md font-label-md">
+<span class="text-on-surface flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-cyan-600"></span>
+                  Focus Acoustic Pods
+                </span>
+<span class="text-cyan-800 font-semibold">92% <span class="text-secondary font-normal text-body-sm">(18 units)</span></span>
+</div>
+<div class="w-full bg-surface-container-low rounded-full h-2 overflow-hidden">
+<div class="bg-cyan-600 h-2 rounded-full" style="width: 92%"></div>
+</div>
+<div class="flex justify-between text-label-xs font-label-xs text-secondary">
+<span>Av. Duration: 42m</span>
+<span class="text-emerald-700">High turnover</span>
+</div>
+</div>
+<!-- Category Item 3 -->
+<div class="space-y-1.5">
+<div class="flex items-center justify-between text-label-md font-label-md">
+<span class="text-on-surface flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                  Creative Collaboration Hubs
+                </span>
+<span class="text-indigo-800 font-semibold">79% <span class="text-secondary font-normal text-body-sm">(14 rooms)</span></span>
+</div>
+<div class="w-full bg-surface-container-low rounded-full h-2 overflow-hidden">
+<div class="bg-indigo-600 h-2 rounded-full" style="width: 79%"></div>
+</div>
+<div class="flex justify-between text-label-xs font-label-xs text-secondary">
+<span>Av. Duration: 2h 10m</span>
+<span>Whiteboard telemetry sync</span>
+</div>
+</div>
+<!-- Category Item 4 -->
+<div class="space-y-1.5">
+<div class="flex items-center justify-between text-label-md font-label-md">
+<span class="text-on-surface flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                  Town Hall Auditoriums
+                </span>
+<span class="text-slate-800 font-semibold">64% <span class="text-secondary font-normal text-body-sm">(4 venues)</span></span>
+</div>
+<div class="w-full bg-surface-container-low rounded-full h-2 overflow-hidden">
+<div class="bg-slate-500 h-2 rounded-full" style="width: 64%"></div>
+</div>
+<div class="flex justify-between text-label-xs font-label-xs text-secondary">
+<span>Av. Duration: 3h 30m</span>
+<span>Broadcast streams enabled</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-lg pt-space-md border-t border-outline-variant/30 flex items-center justify-between text-body-sm font-body-sm">
+<span class="text-secondary">Optimal fleet occupancy target: <strong class="text-on-surface">80%</strong></span>
+<span class="inline-flex items-center gap-1 text-emerald-700 font-label-sm font-semibold">
+<span class="material-symbols-outlined text-xs" data-icon="check">check</span> On Target
+          </span>
+</div>
+</div>
+</section>
+<!-- 4. Upcoming Maintenance & Alert Strip / Panel -->
+<section aria-label="Maintenance Schedule Notice" class="bg-amber-50/50 border border-amber-200/80 rounded-xl p-space-lg shadow-level-1">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md pb-space-sm mb-space-sm border-b border-amber-200/60">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" data-icon="build">build</span>
+</div>
+<div>
+<h3 class="text-title-sm font-title-sm text-amber-950">Active &amp; Scheduled Engineering Maintenance Windows</h3>
+<p class="text-body-sm font-body-sm text-amber-900/80">3 rooms scheduled for hardware diagnostic &amp; sensor calibration this week</p>
+</div>
+</div>
+<button class="text-label-sm font-label-sm text-amber-900 font-semibold hover:text-amber-950 underline self-start md:self-auto" type="button">
+          Manage Maintenance Calendar
+        </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Maintenance Card 1 -->
+<div class="bg-surface-container-lowest/90 border border-amber-200 rounded-lg p-space-md flex flex-col justify-between">
+<div class="space-y-1">
+<div class="flex items-center justify-between">
+<span class="text-label-xs font-label-xs px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">Tomorrow • 06:00 AM</span>
+<span class="text-label-xs font-label-xs text-secondary">2h downtime</span>
+</div>
+<h4 class="text-title-sm font-title-sm text-on-surface">Executive Boardroom Gamma</h4>
+<p class="text-body-sm font-body-sm text-secondary">Floor 45, Tower East • Display Telepresence Calibrating</p>
+</div>
+<div class="mt-space-sm pt-space-xs border-t border-outline-variant/30 flex items-center justify-between text-label-xs font-label-xs">
+<span class="text-secondary font-medium">Technician: Cisco Systems Certified</span>
+<span class="text-primary font-semibold hover:underline cursor-pointer">Notify Hosts</span>
+</div>
+</div>
+<!-- Maintenance Card 2 -->
+<div class="bg-surface-container-lowest/90 border border-amber-200 rounded-lg p-space-md flex flex-col justify-between">
+<div class="space-y-1">
+<div class="flex items-center justify-between">
+<span class="text-label-xs font-label-xs px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">Oct 26 • 07:00 AM</span>
+<span class="text-label-xs font-label-xs text-secondary">1.5h downtime</span>
+</div>
+<h4 class="text-title-sm font-title-sm text-on-surface">Acoustic Pod B-08</h4>
+<p class="text-body-sm font-body-sm text-secondary">Floor 14, North Hub • Smart Sensor &amp; Airflow Check</p>
+</div>
+<div class="mt-space-sm pt-space-xs border-t border-outline-variant/30 flex items-center justify-between text-label-xs font-label-xs">
+<span class="text-secondary font-medium">Technician: In-house Facilities</span>
+<span class="text-primary font-semibold hover:underline cursor-pointer">Re-route Bookings</span>
+</div>
+</div>
+<!-- Maintenance Card 3 -->
+<div class="bg-surface-container-lowest/90 border border-amber-200 rounded-lg p-space-md flex flex-col justify-between">
+<div class="space-y-1">
+<div class="flex items-center justify-between">
+<span class="text-label-xs font-label-xs px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">Oct 27 • Weekend Hold</span>
+<span class="text-label-xs font-label-xs text-secondary">4h downtime</span>
+</div>
+<h4 class="text-title-sm font-title-sm text-on-surface">Horizon Event Hall</h4>
+<p class="text-body-sm font-body-sm text-secondary">Floor 2, Atrium • Dual Laser Projector Servicing</p>
+</div>
+<div class="mt-space-sm pt-space-xs border-t border-outline-variant/30 flex items-center justify-between text-label-xs font-label-xs">
+<span class="text-secondary font-medium">Technician: Barco Specialist Team</span>
+<span class="text-primary font-semibold hover:underline cursor-pointer">View Work Order</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. Recent Booking Activity Table -->
+<section aria-label="Recent Booking Activity" class="bg-surface-container-lowest border border-outline-variant/60 rounded-xl shadow-level-1 overflow-hidden">
+<!-- Table Header Toolbar -->
+<div class="p-space-lg border-b border-outline-variant/40 flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div>
+<h2 class="text-title-md font-title-md text-on-surface">Reservation Audits &amp; Activity Stream</h2>
+<p class="text-body-sm font-body-sm text-secondary">Live enterprise booking events, attendee verification, and spatial status</p>
+</div>
+<div class="flex flex-wrap items-center gap-space-sm">
+<!-- Search Input -->
+<div class="relative min-w-[280px] sm:min-w-[320px]">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm" data-icon="search">search</span>
+<input class="w-full pl-9 pr-3 py-1.5 text-body-sm font-body-sm rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface placeholder:text-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all" placeholder="Search by reservation ID, room, host, or department..." type="text"/>
+</div>
+<!-- Filter 1: Status -->
+<select class="py-1.5 px-3 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface font-label-sm text-label-sm focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20">
+<option>All Statuses</option>
+<option>CONFIRMED</option>
+<option>IN-PROGRESS</option>
+<option>MAINTENANCE HOLD</option>
+<option>CANCELLED / RELEASED</option>
+</select>
+<!-- Filter 2: Building -->
+<select class="py-1.5 px-3 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface font-label-sm text-label-sm focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20">
+<option>All Buildings</option>
+<option>One Bishopsgate Tower</option>
+<option>Innovation Pavilion</option>
+<option>West Campus Annex</option>
+</select>
+<!-- Filter 3: Room Type -->
+<select class="py-1.5 px-3 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface font-label-sm text-label-sm focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20">
+<option>All Room Types</option>
+<option>Executive Boardroom</option>
+<option>Creative Hub</option>
+<option>Focus Acoustic Pod</option>
+<option>Auditorium</option>
+</select>
+<!-- Action: Download CSV -->
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low text-secondary hover:text-on-surface font-label-sm text-label-sm transition-colors" title="Download filtered activity as CSV" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="download">download</span>
+<span>Download CSV</span>
+</button>
+</div>
+</div>
+<!-- Table Container -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/60 border-b border-outline-variant/40 text-label-sm font-label-sm text-secondary">
+<th class="py-3 px-space-lg" scope="col">Room &amp; Campus</th>
+<th class="py-3 px-space-lg" scope="col">Event / Meeting Title &amp; Organizer</th>
+<th class="py-3 px-space-lg" scope="col">Schedule &amp; Duration</th>
+<th class="py-3 px-space-lg" scope="col">Headcount &amp; Cap</th>
+<th class="py-3 px-space-lg" scope="col">Telemetry Status</th>
+<th class="py-3 px-space-lg text-right" scope="col">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/30 text-body-sm font-body-sm">
+<!-- Row 1: Executive Boardroom -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<img alt="Executive Boardroom London view" class="w-12 h-12 rounded-lg object-cover border border-outline-variant/50 shadow-sm flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WGfyOGlT6EUSoIkdaOWcfz5Z2NthWdPgZPqEWHIen3UbNuFZtx7amAW2okbSpRhOU-XYJygQh3MNADrw6kpClS76Jzj8a_2ad6Ipjk6tJArHXDJ9jRTqCP7FoV01zS87GKtxeED_lbpxJp2npmXRrfJ1z8j05DlerKmca30EG4Mx2zny9Sz2AP8K0dI_Qkt_l9bThvnSrRClTQU7pZnCkdZI5bGOspbulLvA_VCqtTiTEamEvlnaUKnY4"/>
+<div>
+<div class="font-title-sm text-title-sm text-on-surface">Skyline Executive Boardroom</div>
+<div class="text-secondary text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="location_on">location_on</span>
+                      Floor 45 • Bishopsgate Tower (London)
+                    </div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-semibold text-on-surface">Q4 Global Investment Committee</div>
+<div class="text-secondary text-label-xs flex items-center gap-2 mt-0.5">
+<span class="font-medium text-on-surface">Evelyn Vance</span>
+<span>•</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-primary font-medium">C-Suite &amp; Treasury</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-medium text-on-surface">Today, Oct 24</div>
+<div class="text-secondary text-label-xs flex items-center gap-1.5 mt-0.5">
+<span>10:00 AM – 12:30 PM</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-low text-secondary border border-outline-variant/30">2h 30m</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary font-semibold text-label-xs">
+                    14/16
+                  </div>
+<div>
+<div class="font-medium text-on-surface">14 badged in</div>
+<div class="text-label-xs text-emerald-700">87.5% capacity</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-xs font-label-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+                  IN-PROGRESS
+                </span>
+</td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-primary hover:bg-surface-container font-semibold transition-colors" type="button">Audit Log</button>
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-secondary hover:text-on-surface hover:bg-surface-container transition-colors" type="button">Modify</button>
+<button class="p-1 rounded text-secondary hover:text-on-surface hover:bg-surface-container" title="Options" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2: Creative Collaboration Hub -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<img alt="Creative Hub interior" class="w-12 h-12 rounded-lg object-cover border border-outline-variant/50 shadow-sm flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1Whzs1nHELsAG2qB3iKCROObIsTQnidmQa0B9O-p4lNdbUzLFxX9t_p207h4dc0MnDlpR-eU1pbsiu5WWeorE3Ci7Lf9WEkksIijQzZXr9J2xHTitSrnjXd7c08bv858uLgY9NYZXvpoTsJ5PRYuzWpq9zYXb5i9Qu5tPToKI07H7T0Vz-S0CROCk9VUbrEQtxntUDAJopn4jQem47kbo4FkgHZTHU2Vh1PWpvrrK_VZiIHT1iqO0a5Luk"/>
+<div>
+<div class="font-title-sm text-title-sm text-on-surface">Design Sprint Creative Hub</div>
+<div class="text-secondary text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="location_on">location_on</span>
+                      Floor 04 • Innovation Pavilion (HQ)
+                    </div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-semibold text-on-surface">SaaS Platform 3.0 Architecture Review</div>
+<div class="text-secondary text-label-xs flex items-center gap-2 mt-0.5">
+<span class="font-medium text-on-surface">Marcus Brody</span>
+<span>•</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-primary font-medium">Core Engineering</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-medium text-on-surface">Today, Oct 24</div>
+<div class="text-secondary text-label-xs flex items-center gap-1.5 mt-0.5">
+<span>01:30 PM – 03:00 PM</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-low text-secondary border border-outline-variant/30">1h 30m</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary font-semibold text-label-xs">
+                    9/12
+                  </div>
+<div>
+<div class="font-medium text-on-surface">9 invites RSVP</div>
+<div class="text-label-xs text-secondary">Dual whiteboard linked</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-xs font-label-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+<span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                  CONFIRMED
+                </span>
+</td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-primary hover:bg-surface-container font-semibold transition-colors" type="button">Audit Log</button>
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-secondary hover:text-on-surface hover:bg-surface-container transition-colors" type="button">Modify</button>
+<button class="p-1 rounded text-secondary hover:text-on-surface hover:bg-surface-container" title="Options" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3: Acoustic Focus Pod -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<img alt="Acoustic Pod interior" class="w-12 h-12 rounded-lg object-cover border border-outline-variant/50 shadow-sm flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1UdceIA59ZdjML9aFqaxp5O7nyorcktNqm1FEudKB8Qb73Pi3CvaXelkJuIQNa0JPuvBEyZmh11IdSG0TK4SJO5DRY9mbIwLiwQ7f7VOzwnKqLSimQix7UADNwKOXSv_Y3jBvzYCKQgnp8-qiyd33ARv7QdvT4k7ooZpEEtSiuIw1dVN9PWtSK5JodQAuI_Wo5JDgWbAFUcgbX6ZlZjEhT0CJGa2jNC0OkqRYpXOmDQEjlz1h6xf86OgZY"/>
+<div>
+<div class="font-title-sm text-title-sm text-on-surface">Acoustic Focus Booth 12-B</div>
+<div class="text-secondary text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="location_on">location_on</span>
+                      Floor 12 • West Campus Annex
+                    </div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-semibold text-on-surface">Client Discovery Call (EMEA Region)</div>
+<div class="text-secondary text-label-xs flex items-center gap-2 mt-0.5">
+<span class="font-medium text-on-surface">Elena Rostova</span>
+<span>•</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-primary font-medium">Enterprise Sales</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-medium text-on-surface">Today, Oct 24</div>
+<div class="text-secondary text-label-xs flex items-center gap-1.5 mt-0.5">
+<span>03:15 PM – 04:00 PM</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-low text-secondary border border-outline-variant/30">45m</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary font-semibold text-label-xs">
+                    2/2
+                  </div>
+<div>
+<div class="font-medium text-on-surface">2 attendees</div>
+<div class="text-label-xs text-emerald-700">100% capacity</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-xs font-label-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+<span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                  CONFIRMED
+                </span>
+</td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-primary hover:bg-surface-container font-semibold transition-colors" type="button">Audit Log</button>
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-secondary hover:text-on-surface hover:bg-surface-container transition-colors" type="button">Modify</button>
+<button class="p-1 rounded text-secondary hover:text-on-surface hover:bg-surface-container" title="Options" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4: Maintenance Hold Room -->
+<tr class="hover:bg-surface-container-low/40 transition-colors bg-amber-50/20">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 flex-shrink-0">
+<span class="material-symbols-outlined text-xl" data-icon="build">build</span>
+</div>
+<div>
+<div class="font-title-sm text-title-sm text-on-surface">Executive Boardroom Gamma</div>
+<div class="text-secondary text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="location_on">location_on</span>
+                      Floor 45 • Bishopsgate Tower
+                    </div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-semibold text-on-surface">Cisco WebEx RoomOS Firmware Update</div>
+<div class="text-secondary text-label-xs flex items-center gap-2 mt-0.5">
+<span class="font-medium text-on-surface">IT Infrastructure Ops</span>
+<span>•</span>
+<span class="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-medium">Work Order #WO-8821</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-medium text-on-surface">Tomorrow, Oct 25</div>
+<div class="text-secondary text-label-xs flex items-center gap-1.5 mt-0.5">
+<span>06:00 AM – 08:00 AM</span>
+<span class="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-200">2h Maintenance</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-800 font-semibold text-label-xs">
+                    0/20
+                  </div>
+<div>
+<div class="font-medium text-on-surface">Spatial Lock</div>
+<div class="text-label-xs text-amber-800">No public bookings</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-xs font-label-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
+<span class="w-2 h-2 rounded-full bg-amber-600"></span>
+                  MAINTENANCE HOLD
+                </span>
+</td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-primary hover:bg-surface-container font-semibold transition-colors" type="button">Audit Log</button>
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-secondary hover:text-on-surface hover:bg-surface-container transition-colors" type="button">Release</button>
+<button class="p-1 rounded text-secondary hover:text-on-surface hover:bg-surface-container" title="Options" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 5: Cancelled / Released -->
+<tr class="hover:bg-surface-container-low/40 transition-colors opacity-80">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<img alt="Creative Hub interior" class="w-12 h-12 rounded-lg object-cover border border-outline-variant/50 grayscale flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1Whzs1nHELsAG2qB3iKCROObIsTQnidmQa0B9O-p4lNdbUzLFxX9t_p207h4dc0MnDlpR-eU1pbsiu5WWeorE3Ci7Lf9WEkksIijQzZXr9J2xHTitSrnjXd7c08bv858uLgY9NYZXvpoTsJ5PRYuzWpq9zYXb5i9Qu5tPToKI07H7T0Vz-S0CROCk9VUbrEQtxntUDAJopn4jQem47kbo4FkgHZTHU2Vh1PWpvrrK_VZiIHT1iqO0a5Luk"/>
+<div>
+<div class="font-title-sm text-title-sm text-on-surface">Apollo Strategy Studio</div>
+<div class="text-secondary text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="location_on">location_on</span>
+                      Floor 08 • Innovation Pavilion
+                    </div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-semibold text-on-surface line-through text-secondary">Brand Identity Workshop</div>
+<div class="text-secondary text-label-xs flex items-center gap-2 mt-0.5">
+<span class="font-medium text-secondary">Julian Kester</span>
+<span>•</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-low text-secondary font-medium">Marketing</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-medium text-secondary">Today, Oct 24</div>
+<div class="text-secondary text-label-xs flex items-center gap-1.5 mt-0.5">
+<span class="line-through">09:00 AM – 10:30 AM</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-low text-secondary">Auto-released</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-secondary font-semibold text-label-xs">
+                    0/10
+                  </div>
+<div>
+<div class="font-medium text-secondary">No badge-in</div>
+<div class="text-label-xs text-secondary">Auto-reclaimed in 15m</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-xs font-label-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+<span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                  CANCELLED / RELEASED
+                </span>
+</td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-primary hover:bg-surface-container font-semibold transition-colors" type="button">Audit Log</button>
+<button class="p-1 rounded text-secondary hover:text-on-surface hover:bg-surface-container" title="Options" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 6: Confirmed Town Hall -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<img alt="Executive Boardroom interior" class="w-12 h-12 rounded-lg object-cover border border-outline-variant/50 shadow-sm flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1WGfyOGlT6EUSoIkdaOWcfz5Z2NthWdPgZPqEWHIen3UbNuFZtx7amAW2okbSpRhOU-XYJygQh3MNADrw6kpClS76Jzj8a_2ad6Ipjk6tJArHXDJ9jRTqCP7FoV01zS87GKtxeED_lbpxJp2npmXRrfJ1z8j05DlerKmca30EG4Mx2zny9Sz2AP8K0dI_Qkt_l9bThvnSrRClTQU7pZnCkdZI5bGOspbulLvA_VCqtTiTEamEvlnaUKnY4"/>
+<div>
+<div class="font-title-sm text-title-sm text-on-surface">Grand Horizon Auditorium</div>
+<div class="text-secondary text-body-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="location_on">location_on</span>
+                      Ground Floor • Central Atrium
+                    </div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-semibold text-on-surface">All-Hands Global Townhall &amp; Product Keynote</div>
+<div class="text-secondary text-label-xs flex items-center gap-2 mt-0.5">
+<span class="font-medium text-on-surface">Samantha Reed</span>
+<span>•</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-primary font-medium">People &amp; Culture</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div>
+<div class="font-medium text-on-surface">Tomorrow, Oct 25</div>
+<div class="text-secondary text-label-xs flex items-center gap-1.5 mt-0.5">
+<span>04:00 PM – 05:30 PM</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container-low text-secondary border border-outline-variant/30">1h 30m</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center text-primary font-semibold text-label-xs">
+                    180
+                  </div>
+<div>
+<div class="font-medium text-on-surface">180 / 220 seats</div>
+<div class="text-label-xs text-primary">Live streaming setup</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-xs font-label-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+<span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                  CONFIRMED
+                </span>
+</td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-primary hover:bg-surface-container font-semibold transition-colors" type="button">Audit Log</button>
+<button class="px-2 py-1 rounded text-label-xs font-label-xs text-secondary hover:text-on-surface hover:bg-surface-container transition-colors" type="button">Modify</button>
+<button class="p-1 rounded text-secondary hover:text-on-surface hover:bg-surface-container" title="Options" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="px-space-lg py-space-md bg-surface-container-lowest border-t border-outline-variant/40 flex flex-col sm:flex-row items-center justify-between gap-space-sm">
+<div class="text-body-sm font-body-sm text-secondary">
+          Showing <span class="font-semibold text-on-surface">1–6</span> of <span class="font-semibold text-on-surface">148</span> events
+        </div>
+<div class="inline-flex items-center gap-1">
+<button class="px-2.5 py-1 rounded border border-outline-variant/60 text-secondary hover:bg-surface-container-low text-label-xs font-label-xs disabled:opacity-40" disabled="" type="button">
+            Previous
+          </button>
+<button class="w-7 h-7 rounded bg-primary-container text-on-primary font-semibold text-label-xs flex items-center justify-center" type="button">1</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container text-secondary text-label-xs flex items-center justify-center font-medium" type="button">2</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container text-secondary text-label-xs flex items-center justify-center font-medium" type="button">3</button>
+<span class="text-secondary text-xs px-1">...</span>
+<button class="w-7 h-7 rounded hover:bg-surface-container text-secondary text-label-xs flex items-center justify-center font-medium" type="button">25</button>
+<button class="px-2.5 py-1 rounded border border-outline-variant text-secondary hover:bg-surface-container-low text-label-xs font-label-xs hover:text-on-surface" type="button">
+            Next
+          </button>
+</div>
+</div>
+</section>
+</main>
+</body></html>

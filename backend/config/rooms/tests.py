@@ -235,3 +235,171 @@ class RoomAPITests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["name"], "Boardroom Alpha")
+
+    def test_admin_can_fully_update_room_put(self):
+        """Admin can perform a full PUT update on a room."""
+        self.client.force_authenticate(user=self.admin_user)
+        payload = {
+            "name": "Boardroom Alpha Renovated",
+            "capacity": 22,
+            "location": "Floor 3, North Wing",
+            "amenities": ["Video Conference", "Digital Whiteboard"],
+            "is_active": True,
+        }
+        response = self.client.put(
+            f"/api/rooms/{self.room_a.id}/",
+            payload,
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["name"], "Boardroom Alpha Renovated")
+        self.assertEqual(response.data["capacity"], 22)
+        self.room_a.refresh_from_db()
+        self.assertEqual(self.room_a.name, "Boardroom Alpha Renovated")
+
+    def test_regular_user_cannot_fully_update_room_put(self):
+        """Regular user cannot perform a full PUT update (403)."""
+        self.client.force_authenticate(user=self.regular_user)
+        payload = {
+            "name": "Boardroom Alpha Hacked",
+            "capacity": 22,
+            "location": "Floor 3, North Wing",
+            "amenities": ["Video Conference"],
+            "is_active": True,
+        }
+        response = self.client.put(
+            f"/api/rooms/{self.room_a.id}/",
+            payload,
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_filter_by_max_capacity(self):
+        """Filter rooms with ?max_capacity=8."""
+        self.client.force_authenticate(user=self.regular_user)
+        response = self.client.get("/api/rooms/", {"max_capacity": 8})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["name"], "Huddle Beta")
+
+    def test_filter_by_invalid_min_capacity_returns_400(self):
+        """Passing non-integer min_capacity returns 400 validation error."""
+        self.client.force_authenticate(user=self.regular_user)
+        response = self.client.get("/api/rooms/", {"min_capacity": "not_an_int"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_filter_by_invalid_max_capacity_returns_400(self):
+        """Passing non-integer max_capacity returns 400 validation error."""
+        self.client.force_authenticate(user=self.regular_user)
+        response = self.client.get("/api/rooms/", {"max_capacity": "not_an_int"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_staff_user_sees_inactive_rooms_by_default(self):
+        """Staff user listing rooms sees both active and inactive rooms."""
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get("/api/rooms/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 3)
+        names = [r["name"] for r in response.data["results"]]
+        self.assertIn("Storage Gamma", names)
+
+    def test_filter_by_is_active_explicit(self):
+        """Admin filtering ?is_active=false retrieves only inactive rooms."""
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get("/api/rooms/", {"is_active": "false"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["name"], "Storage Gamma")
+
+    def test_retrieve_nonexistent_room_returns_404(self):
+        """Retrieving a room with unknown UUID returns 404."""
+        self.client.force_authenticate(user=self.regular_user)
+        random_id = uuid.uuid4()
+        response = self.client.get(f"/api/rooms/{random_id}/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_admin_can_create_room_with_full_specifications(self):
+        """Staff user can create room with floor_area, av_equipment, acoustics, and connectivity."""
+        self.client.force_authenticate(user=self.admin_user)
+        payload = {
+            "name": "Executive Innovation Suite",
+            "capacity": 16,
+            "location": "Bengaluru, Karnataka",
+            "floor_area": 1450,
+            "av_equipment": [
+                "Dual 65\" 4K Sony Bravia Commercial Displays",
+                "Polycom Studio 4K Auto-Tracking PTZ Camera",
+            ],
+            "acoustics": "NRC 0.88 - Soundproofed Glazing",
+            "connectivity": "Wi-Fi 6E - 1.2 Gbps Dedicated",
+            "amenities": ["4K Display Screen", "High-Speed Wi-Fi 6E"],
+            "hourly_rate": 850,
+            "is_active": True,
+        }
+        response = self.client.post("/api/rooms/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["floor_area"], 1450)
+        self.assertEqual(len(response.data["av_equipment"]), 2)
+        self.assertEqual(response.data["acoustics"], "NRC 0.88 - Soundproofed Glazing")
+        self.assertEqual(response.data["connectivity"], "Wi-Fi 6E - 1.2 Gbps Dedicated")
+
+    def test_floor_area_must_be_positive_integer(self):
+        """Non-positive floor area must be rejected with 400 validation error."""
+        self.client.force_authenticate(user=self.admin_user)
+        payload = {
+            "name": "Invalid Room",
+            "capacity": 10,
+            "location": "Mumbai, Maharashtra",
+            "floor_area": -50,
+            "amenities": [],
+        }
+        response = self.client.post("/api/rooms/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("floor_area", str(response.data))
+
+    def test_av_equipment_must_be_list(self):
+        """Audio/Visual equipment must be a valid list or array."""
+        self.client.force_authenticate(user=self.admin_user)
+        payload = {
+            "name": "Invalid AV Room",
+            "capacity": 10,
+            "location": "Chennai, Tamil Nadu",
+            "av_equipment": "not a list",
+            "amenities": [],
+        }
+        response = self.client.post("/api/rooms/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("av_equipment", str(response.data))
+
+    def test_multiple_image_upload_and_primary_selection(self):
+        """Uploading multiple images attaches RoomImage records and sets the primary cover."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import RoomImage
+
+        self.client.force_authenticate(user=self.admin_user)
+        img1 = SimpleUploadedFile("perspective1.jpg", b"dummy_content_1", content_type="image/jpeg")
+        img2 = SimpleUploadedFile("perspective2.jpg", b"dummy_content_2", content_type="image/jpeg")
+
+        payload = {
+            "name": "Panoramic Conference Room",
+            "capacity": 25,
+            "location": "Hyderabad, Telangana",
+            "floor_area": 2200,
+            "amenities": "[\"High-Speed Wi-Fi 6E\"]",
+            "images": [img1, img2],
+            "primary_image_index": 1,
+        }
+        response = self.client.post("/api/rooms/", payload, format="multipart")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        room_id = response.data["id"]
+        created_room = Room.objects.get(id=room_id)
+        room_images = RoomImage.objects.filter(room=created_room).order_by("created_at")
+        self.assertEqual(room_images.count(), 2)
+        # Verify img2 is primary
+        primary_images = room_images.filter(is_primary=True)
+        self.assertEqual(primary_images.count(), 1)
+        self.assertTrue(created_room.image)
+        self.assertIn("perspective2", created_room.image.name)
+
+

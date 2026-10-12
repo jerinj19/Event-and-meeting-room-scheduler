@@ -410,13 +410,13 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                 spacing: 10,
                 runSpacing: 6,
                 children: [
-                  const Text(
+                  Text(
                     'All Reservations & Schedule Audits',
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      fontSize: 22,
+                      fontSize: isWide ? 22 : 18,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
+                      color: const Color(0xFF0F172A),
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -429,12 +429,14 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.circle, size: 8, color: Color(0xFF10B981)),
-                        SizedBox(width: 6),
+                      children: [
+                        const Icon(Icons.circle, size: 8, color: Color(0xFF10B981)),
+                        const SizedBox(width: 6),
                         Text(
-                          'Live Concurrency Guard Active • PostgreSQL ExclusionConstraint',
-                          style: TextStyle(
+                          isWide
+                              ? 'Live Concurrency Guard Active • PostgreSQL ExclusionConstraint'
+                              : 'Live Concurrency Guard Active',
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -458,8 +460,9 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
             ],
           );
 
-          final actionButtons = Row(
-            mainAxisSize: MainAxisSize.min,
+          final actionButtons = Wrap(
+            spacing: 10,
+            runSpacing: 8,
             children: [
               OutlinedButton.icon(
                 onPressed: () => _exportCSV(filtered),
@@ -478,7 +481,6 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
               OutlinedButton.icon(
                 onPressed: _resetFilters,
                 icon: const Icon(Icons.refresh_rounded, size: 16),
@@ -964,20 +966,24 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
               ),
 
               // Status Segmented Tabs
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildStatusTab('ALL', 'All ($totalCount)'),
-                    _buildStatusTab('CONFIRMED', 'Confirmed ($confirmedCount)'),
-                    _buildStatusTab('CANCELLED', 'Cancelled ($cancelledCount)'),
-                  ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildStatusTab('ALL', 'All ($totalCount)'),
+                      _buildStatusTab('CONFIRMED', 'Confirmed ($confirmedCount)'),
+                      _buildStatusTab('CANCELLED', 'Cancelled ($cancelledCount)'),
+                    ],
+                  ),
                 ),
               ),
 
@@ -1478,70 +1484,74 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> {
                     Icon(Icons.verified_rounded, size: 16, color: Color(0xFF059669)),
                     SizedBox(width: 6),
                     Text(
-                      'PostgreSQL ExclusionConstraint Active • Real-time DB sync',
+                      'PostgreSQL ExclusionConstraint Active',
                       style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: Color(0xFF64748B)),
                     ),
                   ],
                 ),
 
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('Rows per page:', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                    const SizedBox(width: 6),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: _pageSize,
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF0F172A)),
-                        items: const [
-                          DropdownMenuItem(value: 10, child: Text('10')),
-                          DropdownMenuItem(value: 20, child: Text('20')),
-                          DropdownMenuItem(value: 50, child: Text('50')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() {
-                              _pageSize = val;
-                              _currentPage = 1;
-                            });
-                          }
-                        },
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Rows per page:', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                      const SizedBox(width: 6),
+                      DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _pageSize,
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF0F172A)),
+                          items: const [
+                            DropdownMenuItem(value: 10, child: Text('10')),
+                            DropdownMenuItem(value: 20, child: Text('20')),
+                            DropdownMenuItem(value: 50, child: Text('50')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _pageSize = val;
+                                _currentPage = 1;
+                              });
+                            }
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    Text(
-                      'Showing ${totalCount == 0 ? 0 : (_currentPage - 1) * _pageSize + 1} – ${min(_currentPage * _pageSize, totalCount)} of $totalCount',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(width: 10),
-                    IconButton(
-                      icon: const Icon(Icons.first_page_rounded, size: 18),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: _currentPage > 1 ? () => setState(() => _currentPage = 1) : null,
-                    ),
-                    const SizedBox(width: 6),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left_rounded, size: 18),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: _currentPage > 1 ? () => setState(() => _currentPage--) : null,
-                    ),
-                    const SizedBox(width: 6),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right_rounded, size: 18),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: _currentPage < totalPages ? () => setState(() => _currentPage++) : null,
-                    ),
-                    const SizedBox(width: 6),
-                    IconButton(
-                      icon: const Icon(Icons.last_page_rounded, size: 18),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: _currentPage < totalPages ? () => setState(() => _currentPage = totalPages) : null,
-                    ),
-                  ],
+                      const SizedBox(width: 14),
+                      Text(
+                        'Showing ${totalCount == 0 ? 0 : (_currentPage - 1) * _pageSize + 1} – ${min(_currentPage * _pageSize, totalCount)} of $totalCount',
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 10),
+                      IconButton(
+                        icon: const Icon(Icons.first_page_rounded, size: 18),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _currentPage > 1 ? () => setState(() => _currentPage = 1) : null,
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded, size: 18),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _currentPage > 1 ? () => setState(() => _currentPage--) : null,
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded, size: 18),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _currentPage < totalPages ? () => setState(() => _currentPage++) : null,
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton(
+                        icon: const Icon(Icons.last_page_rounded, size: 18),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _currentPage < totalPages ? () => setState(() => _currentPage = totalPages) : null,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

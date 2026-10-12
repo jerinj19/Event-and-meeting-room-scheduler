@@ -316,19 +316,21 @@ class _AdminRoomListScreenState extends State<AdminRoomListScreen> {
             ),
             const SizedBox(height: 6),
             // Title + Enterprise Grid badge
-            Row(
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 10,
+              runSpacing: 6,
               children: [
                 const Text(
                   'Room Management (Admin)',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF0F172A),
                     letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(width: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
@@ -351,8 +353,9 @@ class _AdminRoomListScreenState extends State<AdminRoomListScreen> {
           ],
         );
 
-        final actionButtons = Row(
-          mainAxisSize: MainAxisSize.min,
+        final actionButtons = Wrap(
+          spacing: 10,
+          runSpacing: 8,
           children: [
             // Export CSV button
             OutlinedButton.icon(
@@ -368,7 +371,6 @@ class _AdminRoomListScreenState extends State<AdminRoomListScreen> {
                 textStyle: const TextStyle(fontFamily: 'Inter', fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
-            const SizedBox(width: 10),
 
             // + Create New Room button
             ElevatedButton.icon(

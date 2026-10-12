@@ -34,6 +34,18 @@ class ApiConfig {
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_prefKeyBaseUrl);
+
+    if (kIsWeb) {
+      final host = Uri.base.host;
+      if (host.isNotEmpty && host != 'localhost' && host != '127.0.0.1') {
+        if (saved == null || saved.contains('localhost') || saved.contains('127.0.0.1')) {
+          _currentBaseUrl = 'http://$host:8000/api';
+          await prefs.setString(_prefKeyBaseUrl, _currentBaseUrl);
+          return;
+        }
+      }
+    }
+
     if (saved != null && saved.trim().isNotEmpty) {
       _currentBaseUrl = saved.trim();
     } else {

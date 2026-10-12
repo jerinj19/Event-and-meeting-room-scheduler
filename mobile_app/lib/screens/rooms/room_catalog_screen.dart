@@ -403,96 +403,100 @@ class _RoomCatalogScreenState extends State<RoomCatalogScreen> {
     required int maintenanceCount,
     required int totalCount,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 4,
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF10B981),
-                  shape: BoxShape.circle,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x06000000),
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF10B981),
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'Available: ',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-              Text(
-                '$availableCount',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
+                const SizedBox(width: 6),
+                const Text(
+                  'Available: ',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
-          const SizedBox(width: 12),
-          Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF59E0B),
-                  shape: BoxShape.circle,
+                Text(
+                  '$availableCount',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'Maintenance: ',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-              Text(
-                '$maintenanceCount',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
+            const SizedBox(width: 12),
+            Row(
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF59E0B),
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
-          const SizedBox(width: 12),
-          Row(
-            children: [
-              const Text(
-                'Total Properties: ',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-              Text(
-                '$totalCount',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
+                const SizedBox(width: 6),
+                const Text(
+                  'Maintenance: ',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
-              ),
-            ],
-          ),
-        ],
+                Text(
+                  '$maintenanceCount',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
+            const SizedBox(width: 12),
+            Row(
+              children: [
+                const Text(
+                  'Total Properties: ',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+                Text(
+                  '$totalCount',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1191,195 +1195,217 @@ class _RoomCatalogScreenState extends State<RoomCatalogScreen> {
               ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          const TextSpan(
-                            text: 'Results: ',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F172A),
-                            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = !isDesktop || constraints.maxWidth < 680;
+
+              final tagsContent = Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Results: ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
                           ),
+                        ),
+                        TextSpan(
+                          text: '${filteredRooms.length} Spaces Found ',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF2563EB),
+                          ),
+                        ),
+                        if (dateStr.isNotEmpty)
                           TextSpan(
-                            text: '${filteredRooms.length} Spaces Found ',
+                            text: '($dateStr)',
                             style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF2563EB),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF64748B),
                             ),
                           ),
-                          if (dateStr.isNotEmpty)
-                            TextSpan(
-                              text: '(Available on $dateStr)',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF64748B),
-                              ),
+                      ],
+                    ),
+                  ),
+
+                  // Active Date Chip
+                  if (_selectedDate != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF2FF),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFE0E7FF)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Date: ${_formatDisplayDate(_selectedDate)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF4338CA),
                             ),
+                          ),
+                          const SizedBox(width: 6),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedDate = null;
+                              });
+                            },
+                            child: const Icon(Icons.close_rounded, size: 12, color: Color(0xFF6366F1)),
+                          ),
                         ],
                       ),
                     ),
 
-                    // Active Date Chip
-                    if (_selectedDate != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEF2FF),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFE0E7FF)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Date: ${_formatDisplayDate(_selectedDate)}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF4338CA),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _selectedDate = null;
-                                });
-                              },
-                              child: const Icon(Icons.close_rounded, size: 12, color: Color(0xFF6366F1)),
-                            ),
-                          ],
-                        ),
+                  // Active Search Query Chip
+                  if (_locationQuery.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFDBEAFE)),
                       ),
-
-                    // Active Search Query Chip
-                    if (_locationQuery.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFDBEAFE)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Search: "$_locationQuery"',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1D4ED8),
-                              ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Search: "$_locationQuery"',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1D4ED8),
                             ),
-                            const SizedBox(width: 6),
-                            InkWell(
-                              onTap: () {
-                                _locationQueryController.clear();
-                                setState(() {
-                                  _locationQuery = '';
-                                });
-                              },
-                              child: const Icon(Icons.close_rounded, size: 12, color: Color(0xFF3B82F6)),
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 6),
+                          InkWell(
+                            onTap: () {
+                              _locationQueryController.clear();
+                              setState(() {
+                                _locationQuery = '';
+                              });
+                            },
+                            child: const Icon(Icons.close_rounded, size: 12, color: Color(0xFF3B82F6)),
+                          ),
+                        ],
                       ),
+                    ),
 
-                    // Active Location Chip
-                    if (_locationFilter != 'all')
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFDBEAFE)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Location: $_locationFilter',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1D4ED8),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _locationFilter = 'all';
-                                });
-                              },
-                              child: const Icon(Icons.close_rounded, size: 12, color: Color(0xFF3B82F6)),
-                            ),
-                          ],
-                        ),
+                  // Active Location Chip
+                  if (_locationFilter != 'all')
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFDBEAFE)),
                       ),
-                  ],
-                ),
-              ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Location: $_locationFilter',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1D4ED8),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _locationFilter = 'all';
+                              });
+                            },
+                            child: const Icon(Icons.close_rounded, size: 12, color: Color(0xFF3B82F6)),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
 
-              // Sort By Dropdown
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              final sortContent = Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
                 children: [
                   const Text(
                     'Sort by: ',
                     style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   ),
-                  DropdownButton<String>(
-                    value: _sortBy,
-                    underline: const SizedBox.shrink(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F172A),
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _sortBy,
+                      isDense: true,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'recommended',
+                          child: Text('Recommended (Top picks)'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'rateAsc',
+                          child: Text('Rate: Low to High'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'rateDesc',
+                          child: Text('Rate: High to Low'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'capacityDesc',
+                          child: Text('Capacity: High to Low'),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _sortBy = val;
+                          });
+                        }
+                      },
                     ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'recommended',
-                        child: Text('Recommended (Top picks)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'rateAsc',
-                        child: Text('Rate: Low to High'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'rateDesc',
-                        child: Text('Rate: High to Low'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'capacityDesc',
-                        child: Text('Capacity: High to Low'),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _sortBy = val;
-                        });
-                      }
-                    },
                   ),
                 ],
-              ),
-            ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    tagsContent,
+                    const SizedBox(height: 8),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    const SizedBox(height: 4),
+                    sortContent,
+                  ],
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: tagsContent),
+                  sortContent,
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 16),
@@ -1449,8 +1475,8 @@ class _RoomCatalogScreenState extends State<RoomCatalogScreen> {
                 columns = 2;
               }
 
-              // Compute dynamic aspect ratio so card height remains constant (~345px) with no excess empty gap!
-              const double cardEstimatedHeight = 345.0;
+              // Compute dynamic aspect ratio so card height remains constant (~385px) with ample room for image, tags, and buttons
+              const double cardEstimatedHeight = 385.0;
               final double columnWidth = (width - (columns - 1) * 16) / columns;
               final double dynamicAspectRatio = columnWidth / cardEstimatedHeight;
 
@@ -1461,7 +1487,7 @@ class _RoomCatalogScreenState extends State<RoomCatalogScreen> {
                   crossAxisCount: columns,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: dynamicAspectRatio.clamp(0.72, 1.2),
+                  childAspectRatio: dynamicAspectRatio.clamp(0.65, 1.2),
                 ),
                 itemCount: filteredRooms.length,
                 itemBuilder: (ctx, index) {

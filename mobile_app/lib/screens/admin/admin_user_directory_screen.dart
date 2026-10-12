@@ -187,41 +187,38 @@ class _AdminUserDirectoryScreenState extends State<AdminUserDirectoryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 10,
+                    runSpacing: 6,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.group_outlined, color: AppTheme.primary, size: 24),
-                          ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'User & Admin Directory',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.group_outlined, color: AppTheme.primary, size: 24),
                       ),
-                      const SizedBox(height: 4),
                       const Text(
-                        'View system identities, manage access roles, and control active status.',
-                        style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Color(0xFF64748B)),
+                        'User & Admin Directory',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                        ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'View system identities, manage access roles, and control active status.',
+                    style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Color(0xFF64748B)),
                   ),
                 ],
               ),
@@ -377,117 +374,203 @@ class _AdminUserDirectoryScreenState extends State<AdminUserDirectoryScreen> {
                     final u = filtered[index];
                     final initial = u.fullName.isNotEmpty ? u.fullName[0].toUpperCase() : 'U';
 
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        children: [
-                          // Avatar
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: u.isStaff
-                                ? AppTheme.primary.withValues(alpha: 0.15)
-                                : const Color(0xFFF1F5F9),
-                            child: Text(
-                              initial,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: u.isStaff ? AppTheme.primary : const Color(0xFF475569),
-                              ),
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCompact = constraints.maxWidth < 500;
+
+                        final roleBadge = Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: u.isStaff ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: u.isStaff ? const Color(0xFFBFDBFE) : const Color(0xFFE2E8F0),
                             ),
                           ),
-                          const SizedBox(width: 14),
-                          // Name & Email
-                          Expanded(
+                          child: Text(
+                            u.isStaff ? 'Administrator' : 'Member',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: u.isStaff ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
+                            ),
+                          ),
+                        );
+
+                        final actionsWidget = Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () => _toggleUserRole(u),
+                              icon: Icon(
+                                u.isStaff ? Icons.remove_moderator_rounded : Icons.shield_rounded,
+                                size: 16,
+                                color: u.isStaff ? const Color(0xFFD97706) : AppTheme.primary,
+                              ),
+                              label: Text(
+                                u.isStaff ? 'Demote' : 'Make Admin',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: u.isStaff ? const Color(0xFFD97706) : AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            IconButton(
+                              icon: Icon(
+                                u.isActive ? Icons.block_rounded : Icons.check_circle_outline_rounded,
+                                size: 18,
+                                color: u.isActive ? AppTheme.error : AppTheme.success,
+                              ),
+                              tooltip: u.isActive ? 'Suspend User' : 'Activate User',
+                              onPressed: () => _toggleUserActive(u),
+                            ),
+                          ],
+                        );
+
+                        if (isCompact) {
+                          return Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    Text(
-                                      u.fullName,
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                      decoration: BoxDecoration(
-                                        color: u.isStaff ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: u.isStaff ? const Color(0xFFBFDBFE) : const Color(0xFFE2E8F0),
-                                        ),
-                                      ),
+                                    CircleAvatar(
+                                      radius: 18,
+                                      backgroundColor: u.isStaff
+                                          ? AppTheme.primary.withValues(alpha: 0.15)
+                                          : const Color(0xFFF1F5F9),
                                       child: Text(
-                                        u.isStaff ? 'Administrator' : 'Member',
+                                        initial,
                                         style: TextStyle(
                                           fontFamily: 'Inter',
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          color: u.isStaff ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                          color: u.isStaff ? AppTheme.primary : const Color(0xFF475569),
                                         ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Wrap(
+                                            crossAxisAlignment: WrapCrossAlignment.center,
+                                            spacing: 6,
+                                            runSpacing: 2,
+                                            children: [
+                                              Text(
+                                                u.fullName,
+                                                style: const TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Color(0xFF0F172A),
+                                                ),
+                                              ),
+                                              roleBadge,
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${u.email}${u.department != null && u.department!.isNotEmpty ? ' • ${u.department}' : ''}',
+                                            style: const TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 12,
+                                              color: Color(0xFF64748B),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${u.email}${u.department != null && u.department!.isNotEmpty ? ' • ${u.department}' : ''}',
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 12,
-                                    color: Color(0xFF64748B),
-                                  ),
+                                const SizedBox(height: 8),
+                                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [actionsWidget],
                                 ),
                               ],
                             ),
+                          );
+                        }
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
-                          // Actions
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                          child: Row(
                             children: [
-                              TextButton.icon(
-                                onPressed: () => _toggleUserRole(u),
-                                icon: Icon(
-                                  u.isStaff ? Icons.remove_moderator_rounded : Icons.shield_rounded,
-                                  size: 16,
-                                  color: u.isStaff ? const Color(0xFFD97706) : AppTheme.primary,
-                                ),
-                                label: Text(
-                                  u.isStaff ? 'Demote' : 'Make Admin',
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: u.isStaff
+                                    ? AppTheme.primary.withValues(alpha: 0.15)
+                                    : const Color(0xFFF1F5F9),
+                                child: Text(
+                                  initial,
                                   style: TextStyle(
                                     fontFamily: 'Inter',
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: u.isStaff ? const Color(0xFFD97706) : AppTheme.primary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: u.isStaff ? AppTheme.primary : const Color(0xFF475569),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              IconButton(
-                                icon: Icon(
-                                  u.isActive ? Icons.block_rounded : Icons.check_circle_outline_rounded,
-                                  size: 18,
-                                  color: u.isActive ? AppTheme.error : AppTheme.success,
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          u.fullName,
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        roleBadge,
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${u.email}${u.department != null && u.department!.isNotEmpty ? ' • ${u.department}' : ''}',
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                tooltip: u.isActive ? 'Suspend User' : 'Activate User',
-                                onPressed: () => _toggleUserActive(u),
                               ),
+                              actionsWidget,
                             ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
                 ),

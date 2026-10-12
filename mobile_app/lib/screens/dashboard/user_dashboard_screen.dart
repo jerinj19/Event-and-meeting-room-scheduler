@@ -321,7 +321,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   // --- 2. BENTO KPI GRID (4 EXACT CARDS) ---
   Widget _buildBentoKpiGrid(StatsModel stats, int upcomingCount, String? nextMeeting, bool isWide) {
     final int crossAxisCount = isWide ? 4 : 2;
-    final double childAspectRatio = isWide ? 1.45 : 1.1;
+    final double childAspectRatio = isWide ? 1.45 : 1.0;
 
     return GridView.count(
       crossAxisCount: crossAxisCount,

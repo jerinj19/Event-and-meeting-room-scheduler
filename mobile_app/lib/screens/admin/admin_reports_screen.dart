@@ -68,41 +68,38 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 10,
+                    runSpacing: 6,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.analytics_outlined, color: AppTheme.primary, size: 24),
-                          ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'System Reports',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.analytics_outlined, color: AppTheme.primary, size: 24),
                       ),
-                      const SizedBox(height: 4),
                       const Text(
-                        'Audit corporate workspace capacity, peak utilization, and telemetry insights.',
-                        style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Color(0xFF64748B)),
+                        'System Reports',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                        ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Audit corporate workspace capacity, peak utilization, and telemetry insights.',
+                    style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Color(0xFF64748B)),
                   ),
                 ],
               ),
@@ -137,57 +134,102 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                 const Center(
                   child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()),
                 )
-              else ...[
-                Row(
-                  children: [
-                    _buildReportCard(
+              else
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 600;
+
+                    final cardTotal = _buildReportCard(
                       'Total Bookings',
                       '${_stats?.totalBookings ?? 0}',
                       Icons.book_online_rounded,
                       AppTheme.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildReportCard(
+                    );
+                    final cardConfirmed = _buildReportCard(
                       'Confirmed Rate',
                       '${_stats?.totalBookings != null && _stats!.totalBookings > 0 ? ((_stats!.confirmedBookings / _stats!.totalBookings) * 100).toStringAsFixed(1) : 0}%',
                       Icons.verified_rounded,
                       const Color(0xFF059669),
-                    ),
-                    const SizedBox(width: 12),
-                    _buildReportCard(
+                    );
+                    final cardCancelled = _buildReportCard(
                       'Cancelled Rate',
                       '${_stats?.totalBookings != null && _stats!.totalBookings > 0 ? ((_stats!.cancelledBookings / _stats!.totalBookings) * 100).toStringAsFixed(1) : 0}%',
                       Icons.cancel_outlined,
                       AppTheme.error,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    _buildReportCard(
-                      'Peak Utilization Hour',
-                      _stats?.peakTime ?? '10:00 AM - 11:00 AM',
+                    );
+                    final cardPeak = _buildReportCard(
+                      'Peak Hour',
+                      _stats?.peakTime ?? '10:00 - 11:00 AM',
                       Icons.schedule_rounded,
                       const Color(0xFFD97706),
-                    ),
-                    const SizedBox(width: 12),
-                    _buildReportCard(
+                    );
+                    final cardHours = _buildReportCard(
                       'Scheduled Hours',
                       '${_stats?.confirmedHours ?? 0} hrs',
                       Icons.hourglass_bottom_rounded,
                       const Color(0xFF4F46E5),
-                    ),
-                    const SizedBox(width: 12),
-                    _buildReportCard(
+                    );
+                    final cardRooms = _buildReportCard(
                       'Active Rooms',
                       '${_stats?.activeRooms ?? 0}',
                       Icons.meeting_room_rounded,
                       const Color(0xFF0284C7),
-                    ),
-                  ],
+                    );
+
+                    if (isCompact) {
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              cardTotal,
+                              const SizedBox(width: 10),
+                              cardConfirmed,
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              cardCancelled,
+                              const SizedBox(width: 10),
+                              cardRooms,
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              cardPeak,
+                              const SizedBox(width: 10),
+                              cardHours,
+                            ],
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            cardTotal,
+                            const SizedBox(width: 12),
+                            cardConfirmed,
+                            const SizedBox(width: 12),
+                            cardCancelled,
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            cardPeak,
+                            const SizedBox(width: 12),
+                            cardHours,
+                            const SizedBox(width: 12),
+                            cardRooms,
+                          ],
+                        ),
+                      ],
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 20),
@@ -251,7 +293,6 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                   ),
                 ),
               ],
-            ],
           ),
         ),
       ),

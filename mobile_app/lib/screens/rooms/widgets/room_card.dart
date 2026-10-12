@@ -70,7 +70,7 @@ class RoomCard extends StatelessWidget {
           Stack(
             children: [
               SizedBox(
-                height: 190,
+                height: 175,
                 width: double.infinity,
                 child: _buildImage(context),
               ),

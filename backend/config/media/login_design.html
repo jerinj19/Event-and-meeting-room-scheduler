@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Innovyx Rooms — Ultra-Transparent Building View Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: #070d18;
+      overflow-x: hidden;
+      padding: 30px 14px;
+    }
+
+    /* 1. Fullscreen building & workspace background */
+    .backdrop-image {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      object-position: center;
+      z-index: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    /* 2. Zero-fog overlay (Building is completely crystal clear) */
+    .backdrop-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(
+        180deg, 
+        rgba(0, 0, 0, 0.06) 0%, 
+        rgba(0, 0, 0, 0.00) 45%, 
+        rgba(0, 0, 0, 0.14) 100%
+      );
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Top responsive branding & background switcher bar */
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.12);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.18);
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.3px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    }
+
+    .brand-logo svg {
+      color: #38bdf8;
+    }
+
+    .bg-switcher {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 3px;
+    }
+
+    .bg-switcher button {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    }
+
+    .bg-switcher button.active {
+      background: #0056e0;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 86, 224, 0.4);
+    }
+
+    /* 3. Ultra-Transparent Glass Card (Building is visibly sharp & recognizable through the card) */
+    .login-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 430px;
+      margin-top: 55px;
+      background: rgba(11, 20, 38, 0.05); /* Sheer ~5% transparent glass! */
+      backdrop-filter: blur(2.5px); /* Very light 2.5px blur - building architecture stays completely visible! */
+      -webkit-backdrop-filter: blur(2.5px);
+      border: 1.2px solid rgba(56, 189, 248, 0.32);
+      border-radius: 20px;
+      padding: 28px 24px;
+      box-shadow: 
+        0 16px 40px rgba(0, 0, 0, 0.25),
+        0 0 24px rgba(0, 81, 213, 0.12);
+      animation: fadeIn 0.35s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header text with contrast drop shadows */
+    .title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      text-align: center;
+      letter-spacing: -0.4px;
+      margin-bottom: 5px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+    }
+
+    .subtitle {
+      font-size: 12.5px;
+      color: #f1f5f9;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+    }
+
+    /* Segmented Control: Ultra-Transparent Glass */
+    .tab-container {
+      display: flex;
+      background: rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 14px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px 0;
+      border: none;
+      background: transparent;
+      color: #f1f5f9;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    }
+
+    .tab-btn.active {
+      background: #0056e0;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* SSO Buttons: Ultra-Transparent Glass */
+    .sso-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .sso-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 0;
+      background: rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 9px;
+      color: #ffffff;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .sso-btn:hover {
+      background: rgba(0, 0, 0, 0.25);
+      border-color: rgba(56, 189, 248, 0.45);
+    }
+
+    /* Divider */
+    .divider-row {
+      display: flex;
+      align-items: center;
+      margin: 16px 0 18px;
+      gap: 10px;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    .divider-text {
+      color: #e2e8f0;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Inputs: Ultra-Transparent Glass */
+    .input-group {
+      margin-bottom: 14px;
+    }
+
+    .input-label {
+      display: block;
+      color: #f8fafc;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
+    }
+
+    .input-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.08); /* 8% opacity glass input */
+      border: 1.2px solid rgba(56, 189, 248, 0.32);
+      border-radius: 10px;
+      padding: 0 12px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .input-box:focus-within {
+      border-color: #38bdf8;
+      background: rgba(0, 0, 0, 0.2);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+    }
+
+    .input-icon {
+      color: #38bdf8;
+      margin-right: 9px;
+    }
+
+    .input-field {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #ffffff;
+      font-size: 13.5px;
+      padding: 12px 0;
+      font-family: inherit;
+      font-weight: 600;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .input-field::placeholder {
+      color: #94a3b8;
+    }
+
+    .toggle-pass {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    /* Options Row */
+    .options-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      font-size: 12px;
+    }
+
+    .remember-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #f1f5f9;
+      font-weight: 500;
+      cursor: pointer;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .remember-wrap input[type="checkbox"] {
+      accent-color: #0056e0;
+      width: 15px;
+      height: 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      color: #38bdf8;
+      text-decoration: none;
+      font-weight: 700;
+      transition: color 0.2s;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .forgot-link:hover {
+      color: #7dd3fc;
+    }
+
+    /* CTA Button */
+    .btn-submit {
+      width: 100%;
+      background: #0056e0;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 0;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 18px rgba(0, 86, 224, 0.45);
+      transition: all 0.2s;
+    }
+
+    .btn-submit:hover {
+      background: #0064fa;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px rgba(0, 86, 224, 0.6);
+    }
+
+    /* Demo accounts box */
+    .demo-box {
+      margin-top: 18px;
+      background: rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .demo-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 8px;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .demo-header svg {
+      color: #38bdf8;
+    }
+
+    .demo-pills {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .demo-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255, 255, 255, 0.94);
+      border: none;
+      border-radius: 20px;
+      padding: 6px 12px;
+      color: #0f172a;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      width: fit-content;
+      text-align: left;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .demo-pill:hover {
+      background: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(255, 255, 255, 0.4);
+    }
+
+    /* Footers */
+    .footer-security {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 18px;
+      font-size: 11px;
+      color: #e2e8f0;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .footer-support {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #cbd5e1;
+      text-decoration: none;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .footer-support:hover {
+      color: #ffffff;
+    }
+
+    /* Mobile Responsive Media Queries */
+    @media (max-width: 480px) {
+      body {
+        padding: 12px 10px 24px;
+      }
+      .top-bar {
+        padding: 10px 14px;
+      }
+      .login-card {
+        margin-top: 50px;
+        padding: 20px 16px;
+        border-radius: 16px;
+      }
+      .title {
+        font-size: 21px;
+      }
+      .subtitle {
+        font-size: 11.5px;
+        margin-bottom: 16px;
+      }
+      .demo-pill {
+        font-size: 11px;
+        padding: 5px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Responsive App Header & Switcher -->
+  <div class="top-bar">
+    <div class="brand-logo">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+      </svg>
+      <span>Innovyx</span>
+    </div>
+    <div class="bg-switcher">
+      <button class="active" id="sw-building" onclick="selectBg('building')">
+        🏢 Building
+      </button>
+      <button id="sw-workspace" onclick="selectBg('workspace')">
+        🏛️ Workspace
+      </button>
+    </div>
+  </div>
+
+  <!-- Fullscreen Modern Building & Workspace Background -->
+  <img id="bg-img" src="/media/building_bg.jpg" alt="Building Backdrop" class="backdrop-image">
+  <div class="backdrop-overlay"></div>
+
+  <!-- Truly Transparent Glass Card (Building is sharp & clearly visible through card) -->
+  <div class="login-card">
+    <h1 class="title">Sign in to your portal</h1>
+    <p class="subtitle">Access your enterprise room reservations & schedules</p>
+
+    <!-- Tabs: Log In / Register -->
+    <div class="tab-container">
+      <button class="tab-btn active" id="btn-login" onclick="switchMode(true)">Log In</button>
+      <button class="tab-btn" id="btn-register" onclick="switchMode(false)">Register</button>
+    </div>
+
+    <!-- SSO Buttons -->
+    <div class="sso-row">
+      <button class="sso-btn" onclick="fillAccount('admin@innovyx.com', 'Admin@123')">
+        <svg width="17" height="17" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        Google
+      </button>
+      <button class="sso-btn" onclick="fillAccount('admin@innovyx.com', 'Admin@123')">
+        <svg width="15" height="15" viewBox="0 0 23 23">
+          <rect fill="#F25022" x="1" y="1" width="10" height="10"/>
+          <rect fill="#7FBA00" x="12" y="1" width="10" height="10"/>
+          <rect fill="#00A4EF" x="1" y="12" width="10" height="10"/>
+          <rect fill="#FFB900" x="12" y="12" width="10" height="10"/>
+        </svg>
+        Microsoft 365
+      </button>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider-row">
+      <div class="divider-line"></div>
+      <span class="divider-text">OR CONTINUE WITH SSO</span>
+      <div class="divider-line"></div>
+    </div>
+
+    <form onsubmit="event.preventDefault(); alert('Logged in successfully!');">
+      <!-- Work Email -->
+      <div class="input-group">
+        <label class="input-label">Work Email</label>
+        <div class="input-box">
+          <svg class="input-icon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          <input type="email" id="input-email" class="input-field" value="admin@innovyx.com" placeholder="name@company.com" required>
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="input-group">
+        <label class="input-label">Password</label>
+        <div class="input-box">
+          <svg class="input-icon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+          <input type="password" id="input-password" class="input-field" value="Admin@123" placeholder="••••••••" required>
+          <button type="button" class="toggle-pass" onclick="togglePassword()">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="options-row">
+        <label class="remember-wrap">
+          <input type="checkbox" checked>
+          <span>Remember this device</span>
+        </label>
+        <a href="#" class="forgot-link">Forgot password?</a>
+      </div>
+
+      <!-- Submit CTA -->
+      <button type="submit" class="btn-submit" id="btn-submit">
+        Secure Log In &rarr;
+      </button>
+
+      <!-- Pre-configured test accounts -->
+      <div class="demo-box">
+        <div class="demo-header">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+          </svg>
+          <span>Pre-configured Working Test Accounts:</span>
+        </div>
+        <div class="demo-pills">
+          <button type="button" class="demo-pill" onclick="fillAccount('admin@innovyx.com', 'Admin@123')">
+            <svg width="13" height="13" fill="#0056e0" viewBox="0 0 24 24">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+            </svg>
+            Admin (admin@innovyx.com)
+          </button>
+          <button type="button" class="demo-pill" onclick="fillAccount('prashanthkolla123@gmail.com', 'Kolla@2000')">
+            <svg width="13" height="13" fill="#0056e0" viewBox="0 0 24 24">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+            </svg>
+            Admin (prashanthkolla123@gmail.com)
+          </button>
+          <button type="button" class="demo-pill" onclick="fillAccount('zzz@gmail.com', 'Kolla@2000')">
+            <svg width="13" height="13" fill="#10b981" viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            Member (zzz@gmail.com)
+          </button>
+        </div>
+      </div>
+
+      <!-- Security seals footer -->
+      <div class="footer-security">
+        <svg width="14" height="14" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+        Protected by SOC2 Type II compliance & enterprise SSO
+      </div>
+      <a href="#" class="footer-support">
+        <svg width="14" height="14" fill="none" stroke="#cbd5e1" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a9 9 0 01-12.728 0m0 0l2.829-2.829M2.828 5.636a9 9 0 0112.728 0m0 0l-2.829 2.829"/>
+        </svg>
+        Need enterprise assistance? Contact Support
+      </a>
+    </form>
+  </div>
+
+  <script>
+    function selectBg(mode) {
+      const img = document.getElementById('bg-img');
+      const btnB = document.getElementById('sw-building');
+      const btnW = document.getElementById('sw-workspace');
+      if (mode === 'building') {
+        img.src = '/media/building_bg.jpg';
+        btnB.className = 'active';
+        btnW.className = '';
+      } else {
+        img.src = '/media/workspace_interior_bg.jpg';
+        btnW.className = 'active';
+        btnB.className = '';
+      }
+    }
+
+    function fillAccount(email, pass) {
+      document.getElementById('input-email').value = email;
+      document.getElementById('input-password').value = pass;
+    }
+
+    function switchMode(isLogin) {
+      document.getElementById('btn-login').className = isLogin ? 'tab-btn active' : 'tab-btn';
+      document.getElementById('btn-register').className = !isLogin ? 'tab-btn active' : 'tab-btn';
+      document.getElementById('btn-submit').innerHTML = isLogin ? 'Secure Log In &rarr;' : 'Create Account &rarr;';
+    }
+
+    function togglePassword() {
+      const p = document.getElementById('input-password');
+      p.type = p.type === 'password' ? 'text' : 'password';
+    }
+  </script>
+</body>
+</html>
